@@ -1,0 +1,28 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Intf3.java
+package com.example.controller;
+
+interface Intf3 {
+}
+---
+/com/example/dto
+---
+/com/example/dto/Intf1.java
+package com.example.dto;
+
+interface Intf1 {
+}
+---
+/com/example/dto/Intf2.java
+package com.example.dto;
+
+interface Intf2 {
+}

@@ -1,0 +1,250 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.PlayerActivitiesDTO;
+import com.example.dto.PlayersDTO;
+import java.lang.Integer;
+import java.lang.String;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+interface Controller {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
+
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello/{id}",
+      produces = "*/*"
+  )
+  String hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz, HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/DepositDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class DepositDTO {
+  private PlayerDTO player;
+
+  private PlayerEnum playerenum;
+
+  private String depositId;
+
+  private Long amountCents;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  private ZonedDateTime processedAt;
+}
+---
+/com/example/dto/PlayerActivitiesDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.time.ZonedDateTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerActivitiesDTO {
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  private ZonedDateTime from;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  private ZonedDateTime to;
+
+  private List<PlayerActivityDTO> items;
+}
+---
+/com/example/dto/PlayerActivityDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerActivityDTO {
+  private String tag;
+
+  private String userId;
+
+  private String currency;
+
+  private Long betsSumCents;
+
+  private Long wagerCents;
+
+  private Long additionalDeductionsSumCents;
+
+  private Long roundsCount;
+
+  private Long bonusIssuesSumCents;
+
+  private Long chargebacksSumCents;
+
+  private Long chargebacksCount;
+
+  private Long depositsSumCents;
+
+  private Long depositsCount;
+
+  private Long cashoutsSumCents;
+
+  private Long cashoutsCount;
+
+  private List<DepositDTO> deposits;
+}
+---
+/com/example/dto/PlayerDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerDTO {
+  private String tag;
+
+  private String email;
+
+  private String userId;
+
+  private LocalDate dateOfBirth;
+
+  private String firstName;
+
+  private String lastName;
+
+  private String nickname;
+
+  private Gender gender;
+
+  private String country;
+
+  private String language;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  private ZonedDateTime signUpAt;
+
+  private boolean duplicate;
+
+  public enum Gender {
+    m,
+
+    f,
+
+    n
+  }
+}
+---
+/com/example/dto/PlayerEnum.java
+package com.example.dto;
+
+public enum PlayerEnum {
+  good,
+
+  bad,
+
+  ugly
+}
+---
+/com/example/dto/PlayersDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayersDTO {
+  private List<PlayerDTO> players;
+}
+---
+/com/example/dto/ZonedDateTimeDeserializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.DateTimeException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public ZonedDateTime deserialize(JsonParser jsonParser,
+      DeserializationContext deserializationContext) throws IOException {
+    String date = jsonParser.getText();
+    try  {
+      return ZonedDateTime.parse(date, formatter);
+    }
+    catch (DateTimeException e) {
+      throw new JsonParseException(jsonParser, e.getMessage());
+    }
+  }
+}

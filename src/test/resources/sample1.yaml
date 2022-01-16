@@ -1,0 +1,102 @@
+openapi: 3.0.1
+info:
+  title: "ClickMatters"
+  description: |
+    Click Matters UI backend
+  version: "0.1"
+tags:
+  - name: menu
+    description: Everything about menu
+
+paths:
+  /menu:
+    get:
+      tags:
+        - menu
+      summary: Get menu items
+      operationId: getMenu
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                title: MenuDTO
+                properties:
+                  menu_items:
+                    nullable: false
+                    description: "Menu items"
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MenuItemDTO"
+        403:
+          description: Not authorized
+          content: {}
+    delete:
+      operationId: delete_menu
+      responses:
+        "204":
+          description: deletes menu
+
+  /api/v1/affiliate/{id}/playeractivities/csv:
+    get:
+      operationId: affiliatePlayerActivitiesCSV
+      parameters:
+        - name: id
+          in: path
+          description: affiliate id
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: status
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: affiliate's player activities
+          content:
+            text/csv:
+              schema:
+                type: string
+  /api/v1/bills:
+    get:
+      operationId: get_bills
+      parameters:
+        - name: affiliate_id
+          in: query
+          description: parameter for filtering bills by affiliate id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: bills
+          content:
+            application/json:
+              schema:
+                type: integer
+components:
+  schemas:
+    MenuItemDTO:
+      type: object
+      title: MenuItemDTO
+      properties:
+        id:
+          description: "Menu item id"
+          type: string
+          nullable: false
+        enabled:
+          type: boolean
+        name:
+          description: "Menu item name"
+          type: string
+          nullable: false
+        menu_items:
+          description: "Menu items"
+          type: array
+          nullable: false
+          items:
+            $ref: "#/components/schemas/MenuItemDTO"

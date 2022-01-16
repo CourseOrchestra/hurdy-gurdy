@@ -1,0 +1,200 @@
+openapi: 3.0.1
+info:
+  title: "ClickMatters integration API"
+  description: |
+    Click Matters API backend
+  version: "0.1"
+paths:
+  /api/v1/players:
+    post:
+      operationId: syncPlayers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayersDTO"
+        required: true
+      responses:
+        "201":
+          description: record created
+  /api/v1/activity:
+    post:
+      tags:
+        - ss_controller
+      operationId: syncPlayerActivities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerActivitiesDTO'
+        required: true
+      responses:
+        "201":
+          description: record created
+  /api/v1/hello:
+    get:
+      tags:
+        - ss_controller
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+  /api/v1/hello/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          description: affiliate id
+          required: true
+          schema:
+            type: integer
+        - name: foo
+          in: query
+          schema:
+            type: string
+        - name: bar
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: baz
+          in: header
+          schema:
+            type: string
+          required: true
+      tags:
+        - ss_controller
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+components:
+  schemas:
+    PlayerDTO:
+      type: object
+      properties:
+        tag:
+          type: string
+        email:
+          type: string
+        user_id:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        first_name:
+          type: string
+        last_name:
+          type: string
+        nickname:
+          type: string
+        gender:
+          type: string
+          title: Gender
+          enum:
+            - m
+            - f
+            - "n"
+        country:
+          type: string
+        language:
+          type: string
+        sign_up_at:
+          type: string
+          format: date-time
+        duplicate:
+          type: boolean
+    PlayersDTO:
+      type: object
+      properties:
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerDTO'
+    DepositDTO:
+      type: object
+      properties:
+        player:
+          $ref: '#/components/schemas/PlayerDTO'
+        playerenum:
+          $ref: '#/components/schemas/PlayerEnum'
+        deposit_id:
+          type: string
+        amount_cents:
+          type: integer
+          format: int64
+        processed_at:
+          type: string
+          format: date-time
+    PlayerActivitiesDTO:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerActivityDTO'
+    PlayerActivityDTO:
+      type: object
+      properties:
+        tag:
+          type: string
+        user_id:
+          type: string
+        currency:
+          type: string
+        bets_sum_cents:
+          type: integer
+          format: int64
+        wager_cents:
+          type: integer
+          format: int64
+        additional_deductions_sum_cents:
+          type: integer
+          format: int64
+        rounds_count:
+          type: integer
+          format: int64
+        bonus_issues_sum_cents:
+          type: integer
+          format: int64
+        chargebacks_sum_cents:
+          type: integer
+          format: int64
+        chargebacks_count:
+          type: integer
+          format: int64
+        deposits_sum_cents:
+          type: integer
+          format: int64
+        deposits_count:
+          type: integer
+          format: int64
+        cashouts_sum_cents:
+          type: integer
+          format: int64
+        cashouts_count:
+          type: integer
+          format: int64
+        deposits:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepositDTO'
+    PlayerEnum:
+      enum:
+        - good
+        - bad
+        - ugly

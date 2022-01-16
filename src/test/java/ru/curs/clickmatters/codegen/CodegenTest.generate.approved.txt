@@ -1,0 +1,54 @@
+---
+
+---
+\com
+---
+\com\example
+---
+\com\example\api
+---
+\com\example\api\Controller.java
+package com.example.api;
+
+import com.example.dto.MenuDTO;
+import org.springframework.web.bind.annotation.GetMapping;
+
+interface Controller {
+  @GetMapping("/menu")
+  MenuDTO getMenu();
+}
+---
+\com\example\dto
+---
+\com\example\dto\MenuDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+public class MenuDTO {
+  private List<MenuItemDTO> menuItems;
+}
+---
+\com\example\dto\MenuItemDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+public class MenuItemDTO {
+  private String id;
+
+  private String name;
+
+  private List<MenuItemDTO> menuItems;
+}

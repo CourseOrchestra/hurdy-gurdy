@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    ignore:
+      # We work on Vaadin 14 LTS
+      - dependency-name: com.vaadin:vaadin-bom
+        versions:
+          - ">= 15.0.0"
+      - dependency-name: com.vaadin:vaadin-maven-plugin
+        versions:
+          - ">= 15.0.0"
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        versions:
+          # Because of https://github.com/spring-projects/spring-boot/issues/26627
+          - "2.4.6"
+          - "2.5.0"
+      - dependency-name: org.apache.tomcat.embed:tomcat-embed-core
+        versions:
+          # Because it's not yet compatible with the current Spring Web
+          - ">= 10.0.0"

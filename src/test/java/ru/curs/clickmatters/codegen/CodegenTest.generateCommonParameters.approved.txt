@@ -1,0 +1,49 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.ToveDTO;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+interface Controller {
+  @GetMapping(
+      value = "/api/v1/tove/{id}",
+      produces = "application/json"
+  )
+  ToveDTO getTove(@PathVariable(name = "id") int id, HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/tove/{id}",
+      produces = "application/json"
+  )
+  ToveDTO updateTove(@RequestBody ToveDTO request, @PathVariable(name = "id") int id,
+      HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/ToveDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ToveDTO {
+  private String name;
+}

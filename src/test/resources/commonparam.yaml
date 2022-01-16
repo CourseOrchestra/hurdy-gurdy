@@ -1,0 +1,47 @@
+openapi: 3.0.1
+info:
+  title: "Common parameter"
+  description: |
+    Test
+  version: "0.1"
+paths:
+  /api/v1/tove/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: tove id
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: get_tove
+      responses:
+        "200":
+          description: tove
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToveDTO'
+    put:
+      operationId: update_tove
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToveDTO"
+        required: true
+      responses:
+        "200":
+          description: updates a tove record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToveDTO'
+
+components:
+  schemas:
+    ToveDTO:
+      type: object
+      properties:
+        name:
+          type: string

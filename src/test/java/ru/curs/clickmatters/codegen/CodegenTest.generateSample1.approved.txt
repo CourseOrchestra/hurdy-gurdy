@@ -1,0 +1,84 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.MenuDTO;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+interface Controller {
+  @GetMapping(
+      value = "/menu",
+      produces = "application/json"
+  )
+  MenuDTO getMenu(HttpServletResponse response);
+
+  @DeleteMapping("/menu")
+  void deleteMenu(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/affiliate/{id}/playeractivities/csv",
+      produces = "text/csv"
+  )
+  String affiliatePlayerActivitiesCSV(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "status") Boolean status,
+      HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/bills",
+      produces = "application/json"
+  )
+  int getBills(@RequestParam(required = false, name = "affiliate_id") Integer affiliateId,
+      HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/MenuDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class MenuDTO {
+  private List<MenuItemDTO> menuItems;
+}
+---
+/com/example/dto/MenuItemDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class MenuItemDTO {
+  private String id;
+
+  private boolean enabled;
+
+  private String name;
+
+  private List<MenuItemDTO> menuItems;
+}
