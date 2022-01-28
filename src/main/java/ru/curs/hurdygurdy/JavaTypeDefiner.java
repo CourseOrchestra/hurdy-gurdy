@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.hurdygurdy;
+package ru.curs.hurdygurdy;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;

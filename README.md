@@ -4,9 +4,9 @@
 
 # Hurdy-Gurdy
 
-Generates client and server side Java code based on OpenAPI spec
+Generates client and server side Java/Kotlin code based on OpenAPI spec, using [swagger-parser](https://github.com/swagger-api/swagger-parser), [JavaPoet](https://github.com/square/javapoet) and [KotlinPoet](https://github.com/square/kotlinpoet).
 
-## Usage example
+## Usage example (as Maven plugin)
 ```xml
 <plugin>
     <groupId>ru.curs</groupId>

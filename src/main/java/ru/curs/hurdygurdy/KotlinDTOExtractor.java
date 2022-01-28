@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.hurdygurdy;
+package ru.curs.hurdygurdy;
 
 import com.squareup.kotlinpoet.TypeSpec;
 

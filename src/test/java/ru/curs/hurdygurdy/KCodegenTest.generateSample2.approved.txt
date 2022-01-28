@@ -24,22 +24,22 @@ import org.springframework.web.bind.`annotation`.RequestHeader
 import org.springframework.web.bind.`annotation`.RequestParam
 
 public interface Controller {
-  @PostMapping(value = "/api/v1/players")
+  @PostMapping(value = ["/api/v1/players"])
   public fun syncPlayers(@RequestBody request: PlayersDTO, response: HttpServletResponse): Unit
 
-  @PostMapping(value = "/api/v1/activity")
+  @PostMapping(value = ["/api/v1/activity"])
   public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO,
       response: HttpServletResponse): Unit
 
   @GetMapping(
-    value = "/api/v1/hello",
-    produces = "*/*"
+    value = ["/api/v1/hello"],
+    produces = ["*/*"]
   )
   public fun hello(response: HttpServletResponse): String
 
   @GetMapping(
-    value = "/api/v1/hello/{id}",
-    produces = "*/*"
+    value = ["/api/v1/hello/{id}"],
+    produces = ["*/*"]
   )
   public fun hello(
     @PathVariable(name = "id") id: Int,
@@ -63,13 +63,13 @@ import kotlin.Long
 import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class DepositDTO(
-  player: PlayerDTO,
-  playerenum: PlayerEnum,
-  depositId: String,
-  amountCents: Long,
+public data class DepositDTO(
+  public val player: PlayerDTO,
+  public val playerenum: PlayerEnum,
+  public val depositId: String,
+  public val amountCents: Long,
   @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  processedAt: ZonedDateTime
+  public val processedAt: ZonedDateTime
 )
 ---
 /com/example/dto/PlayerActivitiesDTO.kt
@@ -82,12 +82,12 @@ import java.time.ZonedDateTime
 import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class PlayerActivitiesDTO(
+public data class PlayerActivitiesDTO(
   @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  from: ZonedDateTime,
+  public val from: ZonedDateTime,
   @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  to: ZonedDateTime,
-  items: List<PlayerActivityDTO>
+  public val to: ZonedDateTime,
+  public val items: List<PlayerActivityDTO>
 )
 ---
 /com/example/dto/PlayerActivityDTO.kt
@@ -100,22 +100,22 @@ import kotlin.String
 import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class PlayerActivityDTO(
-  tag: String,
-  userId: String,
-  currency: String,
-  betsSumCents: Long,
-  wagerCents: Long,
-  additionalDeductionsSumCents: Long,
-  roundsCount: Long,
-  bonusIssuesSumCents: Long,
-  chargebacksSumCents: Long,
-  chargebacksCount: Long,
-  depositsSumCents: Long,
-  depositsCount: Long,
-  cashoutsSumCents: Long,
-  cashoutsCount: Long,
-  deposits: List<DepositDTO>
+public data class PlayerActivityDTO(
+  public val tag: String,
+  public val userId: String,
+  public val currency: String,
+  public val betsSumCents: Long,
+  public val wagerCents: Long,
+  public val additionalDeductionsSumCents: Long,
+  public val roundsCount: Long,
+  public val bonusIssuesSumCents: Long,
+  public val chargebacksSumCents: Long,
+  public val chargebacksCount: Long,
+  public val depositsSumCents: Long,
+  public val depositsCount: Long,
+  public val cashoutsSumCents: Long,
+  public val cashoutsCount: Long,
+  public val deposits: List<DepositDTO>
 )
 ---
 /com/example/dto/PlayerDTO.kt
@@ -130,20 +130,20 @@ import kotlin.Boolean
 import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class PlayerDTO(
-  tag: String,
-  email: String,
-  userId: String,
-  dateOfBirth: LocalDate,
-  firstName: String,
-  lastName: String,
-  nickname: String,
-  gender: Gender,
-  country: String,
-  language: String,
+public data class PlayerDTO(
+  public val tag: String,
+  public val email: String,
+  public val userId: String,
+  public val dateOfBirth: LocalDate,
+  public val firstName: String,
+  public val lastName: String,
+  public val nickname: String,
+  public val gender: Gender,
+  public val country: String,
+  public val language: String,
   @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  signUpAt: ZonedDateTime,
-  duplicate: Boolean
+  public val signUpAt: ZonedDateTime,
+  public val duplicate: Boolean
 ) {
   public enum class Gender {
     m,
@@ -169,8 +169,8 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class PlayersDTO(
-  players: List<PlayerDTO>
+public data class PlayersDTO(
+  public val players: List<PlayerDTO>
 )
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt

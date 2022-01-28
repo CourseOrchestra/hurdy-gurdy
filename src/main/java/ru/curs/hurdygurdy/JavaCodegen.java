@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.hurdygurdy;
+package ru.curs.hurdygurdy;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;

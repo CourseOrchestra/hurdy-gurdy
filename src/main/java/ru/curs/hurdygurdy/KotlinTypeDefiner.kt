@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.hurdygurdy
+package ru.curs.hurdygurdy
 
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonParser
@@ -118,7 +118,7 @@ class KotlinTypeDefiner internal constructor(
                     PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
                 ).build()
             )
-            .addModifiers(KModifier.PUBLIC)
+            .addModifiers(KModifier.DATA)
         //Add properties
         val schemaMap = schema.properties
         val constructorBuilder = FunSpec.constructorBuilder()
@@ -128,7 +128,9 @@ class KotlinTypeDefiner internal constructor(
             }
             val typeName = defineKotlinType(value, classBuilder)
 
-            val paramSpec = ParameterSpec.builder(CaseUtils.snakeToCamel(key), typeName)
+            val propertyName = CaseUtils.snakeToCamel(key)
+            val paramSpec =
+                ParameterSpec.builder(propertyName, typeName)
 
             if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)
             ) {
@@ -141,6 +143,11 @@ class KotlinTypeDefiner internal constructor(
             }
             val param = paramSpec.build()
             constructorBuilder.addParameter(param)
+
+            val propertySpec = PropertySpec
+                .builder(propertyName, typeName)
+                .initializer(propertyName).build()
+            classBuilder.addProperty(propertySpec)
         }
         classBuilder.primaryConstructor(constructorBuilder.build())
         return classBuilder.build()
@@ -153,9 +160,6 @@ class KotlinTypeDefiner internal constructor(
                     JsonDeserializer::class.asClassName()
                         .parameterizedBy(ZonedDateTime::class.asClassName())
                 )
-                .addModifiers(KModifier.PUBLIC)
-
-
                 .addProperty(
                     PropertySpec.builder(
                         "formatter",

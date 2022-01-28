@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.hurdygurdy
+package ru.curs.hurdygurdy
 
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FunSpec
@@ -139,11 +139,11 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
             else -> null
         }
         return if (annotationClass != null) {
-            val builder = AnnotationSpec.builder(annotationClass).addMember("value = %S", path)
+            val builder = AnnotationSpec.builder(annotationClass).addMember("value = [%S]", path)
             getSuccessfulReply(operationEntry.value)
                 .flatMap(::getMediaType)
                 .map { it.key }
-                .ifPresent { builder.addMember("produces = %S", it) }
+                .ifPresent { builder.addMember("produces = [%S]", it) }
             builder.build()
         } else null
     }
