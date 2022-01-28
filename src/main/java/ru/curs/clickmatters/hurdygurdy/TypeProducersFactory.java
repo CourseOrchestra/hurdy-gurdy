@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 import java.util.List;
 import java.util.function.BiConsumer;

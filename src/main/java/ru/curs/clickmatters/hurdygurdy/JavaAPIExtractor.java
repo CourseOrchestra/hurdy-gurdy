@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.MethodSpec;

@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 public enum ClassCategory {
     DTO("dto"),

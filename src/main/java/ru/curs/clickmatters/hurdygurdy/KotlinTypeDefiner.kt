@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen
+package ru.curs.clickmatters.hurdygurdy
 
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonParser

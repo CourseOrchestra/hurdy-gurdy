@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;

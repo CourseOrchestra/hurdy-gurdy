@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;

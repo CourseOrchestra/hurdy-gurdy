@@ -1,4 +1,4 @@
-package ru.curs.clickmatters.codegen;
+package ru.curs.clickmatters.hurdygurdy;
 
 import com.squareup.javapoet.TypeSpec;
 import org.approvaltests.Approvals;
