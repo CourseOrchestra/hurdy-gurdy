@@ -1,0 +1,200 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import com.example.dto.PlayersDTO
+import javax.servlet.http.HttpServletResponse
+import kotlin.Int
+import kotlin.String
+import kotlin.Unit
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @PostMapping(value = "/api/v1/players")
+  public fun syncPlayers(@RequestBody request: PlayersDTO, response: HttpServletResponse): Unit
+
+  @PostMapping(value = "/api/v1/activity")
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO,
+      response: HttpServletResponse): Unit
+
+  @GetMapping(
+    value = "/api/v1/hello",
+    produces = "*/*"
+  )
+  public fun hello(response: HttpServletResponse): String
+
+  @GetMapping(
+    value = "/api/v1/hello/{id}",
+    produces = "*/*"
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int,
+    @RequestParam(required = false, name = "foo") foo: String,
+    @RequestParam(required = true, name = "bar") bar: Int,
+    @RequestHeader(required = true, name = "baz") baz: String,
+    response: HttpServletResponse
+  ): String
+}
+---
+/com/example/dto
+---
+/com/example/dto/DepositDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import java.time.ZonedDateTime
+import kotlin.Long
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public class DepositDTO(
+  player: PlayerDTO,
+  playerenum: PlayerEnum,
+  depositId: String,
+  amountCents: Long,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
+  processedAt: ZonedDateTime
+)
+---
+/com/example/dto/PlayerActivitiesDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import java.time.ZonedDateTime
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public class PlayerActivitiesDTO(
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
+  from: ZonedDateTime,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
+  to: ZonedDateTime,
+  items: List<PlayerActivityDTO>
+)
+---
+/com/example/dto/PlayerActivityDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public class PlayerActivityDTO(
+  tag: String,
+  userId: String,
+  currency: String,
+  betsSumCents: Long,
+  wagerCents: Long,
+  additionalDeductionsSumCents: Long,
+  roundsCount: Long,
+  bonusIssuesSumCents: Long,
+  chargebacksSumCents: Long,
+  chargebacksCount: Long,
+  depositsSumCents: Long,
+  depositsCount: Long,
+  cashoutsSumCents: Long,
+  cashoutsCount: Long,
+  deposits: List<DepositDTO>
+)
+---
+/com/example/dto/PlayerDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import java.time.LocalDate
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public class PlayerDTO(
+  tag: String,
+  email: String,
+  userId: String,
+  dateOfBirth: LocalDate,
+  firstName: String,
+  lastName: String,
+  nickname: String,
+  gender: Gender,
+  country: String,
+  language: String,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
+  signUpAt: ZonedDateTime,
+  duplicate: Boolean
+) {
+  public enum class Gender {
+    m,
+    f,
+    n,
+  }
+}
+---
+/com/example/dto/PlayerEnum.kt
+package com.example.dto
+
+public enum class PlayerEnum {
+  good,
+  bad,
+  ugly,
+}
+---
+/com/example/dto/PlayersDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public class PlayersDTO(
+  players: List<PlayerDTO>
+)
+---
+/com/example/dto/ZonedDateTimeDeserializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import java.time.DateTimeException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun deserialize(jsonParser: JsonParser,
+      deserializationContext: DeserializationContext): ZonedDateTime {
+    val date = jsonParser.text
+    try  {
+      return ZonedDateTime.parse(date, formatter)
+    }
+    catch (e: DateTimeException) {
+      throw JsonParseException(jsonParser, e.getMessage())
+    }
+  }
+}

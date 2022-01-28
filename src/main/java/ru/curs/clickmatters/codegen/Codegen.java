@@ -1,7 +1,5 @@
 package ru.curs.clickmatters.codegen;
 
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.TypeSpec;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -12,20 +10,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public class Codegen {
+
+public abstract class Codegen<T> {
 
     private final String rootPackage;
     private OpenAPI openAPI;
-    private Map<ClassCategory, List<TypeSpec>> typeSpecs = new EnumMap<>(ClassCategory.class);
-    private final TypeDefiner typeDefiner;
-    private final List<TypeSpecExtractor> typeSpecExtractors;
+    private final Map<ClassCategory, List<T>> typeSpecs = new EnumMap<>(ClassCategory.class);
+    private final List<TypeSpecExtractor<T>> typeSpecExtractors;
 
 
-    public Codegen(String rootPackage, boolean generateResponseParameter) {
+    public Codegen(String rootPackage, TypeProducersFactory<T> typeProducersFactory) {
         this.rootPackage = rootPackage;
-        this.typeDefiner = new TypeDefiner(rootPackage, this::addTypeSpec);
-        typeSpecExtractors =  List.of(
-                new DTOExtractor(typeDefiner), new APIExtractor(typeDefiner, generateResponseParameter));
+        TypeDefiner<T> typeDefiner = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
+        typeSpecExtractors = typeProducersFactory.typeSpecExtractors(typeDefiner);
     }
 
     private void parse(Path sourceFile) throws IOException {
@@ -53,18 +50,19 @@ public class Codegen {
 
 
     void generate(Path resultDirectory) throws IOException {
-        for (Map.Entry<ClassCategory, List<TypeSpec>> typeSpecsEntry : typeSpecs.entrySet()) {
-            for (TypeSpec typeSpec : typeSpecsEntry.getValue()) {
-                JavaFile javaFile = JavaFile.builder(String.join(".", rootPackage,
-                        typeSpecsEntry.getKey().getPackageName()),
-                        typeSpec).build();
-                javaFile.writeTo(resultDirectory);
+        for (Map.Entry<ClassCategory, List<T>> typeSpecsEntry : typeSpecs.entrySet()) {
+            for (T typeSpec : typeSpecsEntry.getValue()) {
+                final String packageName = String.join(".", rootPackage,
+                        typeSpecsEntry.getKey().getPackageName());
+                writeFile(resultDirectory, packageName, typeSpec);
             }
         }
     }
 
-    public void addTypeSpec(ClassCategory classCategory, TypeSpec typeSpec) {
-        List<TypeSpec> specList = this.typeSpecs.computeIfAbsent(classCategory, n -> new ArrayList<>());
+    public void addTypeSpec(ClassCategory classCategory, T typeSpec) {
+        List<T> specList = this.typeSpecs.computeIfAbsent(classCategory, n -> new ArrayList<>());
         specList.add(typeSpec);
     }
+
+    abstract void writeFile(Path resultDirectory, String packageName, T typeSpec) throws IOException;
 }

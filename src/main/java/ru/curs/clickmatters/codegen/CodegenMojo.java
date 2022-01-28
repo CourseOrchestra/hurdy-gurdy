@@ -18,6 +18,9 @@ import java.nio.file.Path;
         defaultPhase = LifecyclePhase.GENERATE_SOURCES
 )
 public class CodegenMojo extends AbstractMojo {
+    @Parameter(property = "language", defaultValue = "java")
+    String language;
+
     @Parameter(property = "spec", required = true)
     String spec;
 
@@ -32,7 +35,10 @@ public class CodegenMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        Codegen codegen = new Codegen(rootPackage, generateResponseParameter);
+        Codegen<?> codegen =
+                "java".equalsIgnoreCase(language) ?
+                        new JavaCodegen(rootPackage, generateResponseParameter)
+                        : new KotlinCodegen(rootPackage, generateResponseParameter);
         try {
             Path targetPath = getTargetPath();
             codegen.generate(Path.of(spec), targetPath);
@@ -47,7 +53,7 @@ public class CodegenMojo extends AbstractMojo {
     private Path getTargetPath() throws IOException {
         Path result = Path.of(project.getBuild().getDirectory()
                 + File.separator + "generated-sources" + File.separator + "openapi");
-        if (!Files.exists(result)){
+        if (!Files.exists(result)) {
             Files.createDirectories(result);
         }
         return result;

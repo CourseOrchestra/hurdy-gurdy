@@ -1,0 +1,25 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Intf3.kt
+package com.example.controller
+
+public interface Intf3
+---
+/com/example/dto
+---
+/com/example/dto/Intf1.kt
+package com.example.dto
+
+public interface Intf1
+---
+/com/example/dto/Intf2.kt
+package com.example.dto
+
+public interface Intf2

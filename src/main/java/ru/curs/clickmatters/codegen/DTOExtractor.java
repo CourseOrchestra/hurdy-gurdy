@@ -1,25 +1,25 @@
 package ru.curs.clickmatters.codegen;
 
-import com.squareup.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
 
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class DTOExtractor implements TypeSpecExtractor {
+public abstract class DTOExtractor<T> implements TypeSpecExtractor<T> {
 
-    private final TypeDefiner typeDefiner;
+    private final TypeDefiner<T> typeDefiner;
 
-    public DTOExtractor(TypeDefiner typeDefiner) {
+    public DTOExtractor(TypeDefiner<T> typeDefiner) {
         this.typeDefiner = typeDefiner;
     }
 
     @Override
-    public void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+    public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         for (Map.Entry<String, Schema> schemaEntry : openAPI.getComponents().getSchemas().entrySet()) {
-            TypeSpec dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue());
+            T dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue());
             typeSpecBiConsumer.accept(ClassCategory.DTO, dto);
         }
     }
+
 }
