@@ -43,7 +43,7 @@ class KotlinTypeDefiner internal constructor(
 
     public override fun defineKotlinType(schema: Schema<*>, parent: TypeSpec.Builder): TypeName {
         val `$ref` = schema.`$ref`
-        return if (`$ref` == null) {
+        val result = if (`$ref` == null) {
             val internalType = schema.type
             when (internalType) {
                 "string" -> if ("date" == schema.format)
@@ -69,7 +69,8 @@ class KotlinTypeDefiner internal constructor(
                 "boolean" -> BOOLEAN
                 "array" -> {
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
-                    List::class.asTypeName().parameterizedBy(defineKotlinType(itemsSchema, parent))
+                    List::class.asTypeName().parameterizedBy(defineKotlinType(itemsSchema, parent)
+                        .copy(nullable = false))
                 }
                 "object" -> {
                     val simpleName = schema.title
@@ -102,6 +103,7 @@ class KotlinTypeDefiner internal constructor(
             matcher.find()
             ClassName(java.lang.String.join(".", rootPackage, "dto"), matcher.group(1))
         }
+        return result.copy(nullable = schema.nullable ?: true)
     }
 
     override fun getEnum(name: String, schema: Schema<*>): TypeSpec {

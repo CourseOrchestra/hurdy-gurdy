@@ -26,7 +26,7 @@ public interface Controller {
     value = ["/menu"],
     produces = ["application/json"]
   )
-  public fun getMenu(response: HttpServletResponse): MenuDTO
+  public fun getMenu(response: HttpServletResponse): MenuDTO?
 
   @DeleteMapping(value = ["/menu"])
   public fun deleteMenu(response: HttpServletResponse): Unit
@@ -36,17 +36,17 @@ public interface Controller {
     produces = ["text/csv"]
   )
   public fun affiliatePlayerActivitiesCSV(
-    @PathVariable(name = "id") id: Int,
-    @RequestParam(required = false, name = "status") status: Boolean,
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "status") status: Boolean?,
     response: HttpServletResponse
-  ): String
+  ): String?
 
   @GetMapping(
     value = ["/api/v1/bills"],
     produces = ["application/json"]
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id") affiliateId: Int,
-      response: HttpServletResponse): Int
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id") affiliateId: Int?,
+      response: HttpServletResponse): Int?
 }
 ---
 /com/example/dto
@@ -75,7 +75,7 @@ import kotlin.collections.List
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class MenuItemDTO(
   public val id: String,
-  public val enabled: Boolean,
+  public val enabled: Boolean?,
   public val name: String,
   public val menuItems: List<MenuItemDTO>
 )
