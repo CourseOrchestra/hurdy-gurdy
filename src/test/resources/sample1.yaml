@@ -82,6 +82,7 @@ components:
   schemas:
     MenuItemDTO:
       type: object
+      nullable: false
       title: MenuItemDTO
       properties:
         id:
