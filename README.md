@@ -31,3 +31,13 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
     </executions>
 </plugin>
 ```
+
+## Usage example (in Kotlin code, e.g. Gradle's buildSrc)
+
+```kotlin
+val codegen = KotlinCodegen("com.example.project", true)
+val yamlPath = project.layout.projectDirectory.asFile.toPath().resolve("src/main/openapi/api.yaml")
+val resultPath = project.layout.buildDirectory.get().asFile.toPath().resolve("generated-sources")
+Files.createDirectories(resultPath)
+codegen.generate(yamlPath, resultPath)
+```
