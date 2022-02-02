@@ -122,7 +122,7 @@ class KotlinTypeDefiner internal constructor(
             )
             .addModifiers(KModifier.DATA)
         //Add properties
-        val schemaMap = schema.properties
+        val schemaMap: Map<String, Schema<*>>? = schema.properties
         val constructorBuilder = FunSpec.constructorBuilder()
         if (schemaMap != null) for ((key, value) in schemaMap) {
             check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
@@ -143,6 +143,13 @@ class KotlinTypeDefiner internal constructor(
                 )
                 ensureJsonZonedDateTimeDeserializer()
             }
+
+            value.default?.let {
+                paramSpec.defaultValue(
+                    if (typeName == String::class.asTypeName()) "%S" else "%L", it
+                )
+            }
+
             val param = paramSpec.build()
             constructorBuilder.addParameter(param)
 

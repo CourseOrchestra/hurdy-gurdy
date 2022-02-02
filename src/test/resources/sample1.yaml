@@ -83,6 +83,8 @@ components:
     MenuItemDTO:
       type: object
       nullable: false
+      extends:
+        - java.lang.Serializable
       title: MenuItemDTO
       properties:
         id:
@@ -94,6 +96,7 @@ components:
         name:
           description: "Menu item name"
           type: string
+          default: "Default name"
           nullable: false
         menu_items:
           description: "Menu items"
@@ -101,3 +104,17 @@ components:
           nullable: false
           items:
             $ref: "#/components/schemas/MenuItemDTO"
+        bool_value:
+          type: boolean
+          default: false
+          nullable: true
+        int_value:
+          type: integer
+          default: 42
+        str_value:
+          type: string
+          nullable: true
+        float_value:
+          type: number
+          default: 3.14
+

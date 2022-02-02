@@ -64,6 +64,8 @@ package com.example.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Double;
+import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
 import lombok.Data;
@@ -78,4 +80,12 @@ public class MenuItemDTO {
   private String name;
 
   private List<MenuItemDTO> menuItems;
+
+  private boolean boolValue;
+
+  private Integer intValue;
+
+  private String strValue;
+
+  private Double floatValue;
 }
