@@ -83,7 +83,7 @@ components:
     MenuItemDTO:
       type: object
       nullable: false
-      extends:
+      x-extends:
         - java.lang.Serializable
       title: MenuItemDTO
       properties:

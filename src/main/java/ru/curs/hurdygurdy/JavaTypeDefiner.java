@@ -140,11 +140,14 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     @Override
     TypeSpec getDTOClass(String name, Schema<?> schema) {
+
+
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name)
                 .addAnnotation(Data.class)
                 .addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
                         "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build())
                 .addModifiers(Modifier.PUBLIC);
+        getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
         //Add properties
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null)
@@ -160,7 +163,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 if (typeName instanceof ClassName && "ZonedDateTime"
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(JsonDeserialize.class))
+                                    ClassName.get(JsonDeserialize.class))
                             .addMember("using", "ZonedDateTimeDeserializer.class")
                             .build());
                     ensureJsonZonedDateTimeDeserializer();
