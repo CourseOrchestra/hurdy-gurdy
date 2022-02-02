@@ -2,6 +2,9 @@ package ru.curs.hurdygurdy;
 
 import io.swagger.v3.oas.models.media.Schema;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 public abstract class TypeDefiner<T> {
@@ -18,6 +21,21 @@ public abstract class TypeDefiner<T> {
             return getEnum(name, schema);
         else
             return getDTOClass(name, schema);
+    }
+
+    @SuppressWarnings("unchecked")
+    List<String> getExtendsList(Schema<?> schema) {
+        List<String> extendsList = new ArrayList<>();
+        Optional.ofNullable(schema.getExtensions()).map(e -> e.get("x-extends"))
+                .ifPresent(e -> {
+                            if (e instanceof String) {
+                                extendsList.add((String) e);
+                            } else if (e instanceof List) {
+                                extendsList.addAll((List<String>) e);
+                            }
+                        }
+                );
+        return extendsList;
     }
 
     abstract T getEnum(String name, Schema<?> schema);

@@ -121,6 +121,9 @@ class KotlinTypeDefiner internal constructor(
                 ).build()
             )
             .addModifiers(KModifier.DATA)
+        getExtendsList(schema).asSequence()
+            .map(ClassName.Companion::bestGuess)
+            .forEach(classBuilder::addSuperinterface)
         //Add properties
         val schemaMap: Map<String, Schema<*>>? = schema.properties
         val constructorBuilder = FunSpec.constructorBuilder()
