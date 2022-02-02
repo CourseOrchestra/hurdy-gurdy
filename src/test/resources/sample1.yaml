@@ -104,6 +104,7 @@ components:
           nullable: false
           items:
             $ref: "#/components/schemas/MenuItemDTO"
+          default: []
         bool_value:
           type: boolean
           default: false

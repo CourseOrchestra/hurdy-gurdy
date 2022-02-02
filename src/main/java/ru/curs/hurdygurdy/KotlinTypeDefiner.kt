@@ -148,9 +148,13 @@ class KotlinTypeDefiner internal constructor(
             }
 
             value.default?.let {
-                paramSpec.defaultValue(
-                    if (typeName == String::class.asTypeName()) "%S" else "%L", it
-                )
+                if (value.type == "array") {
+                    paramSpec.defaultValue("listOf()")
+                } else {
+                    paramSpec.defaultValue(
+                        if (typeName == String::class.asTypeName()) "%S" else "%L", it
+                    )
+                }
             }
 
             val param = paramSpec.build()
