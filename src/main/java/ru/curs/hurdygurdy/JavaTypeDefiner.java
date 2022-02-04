@@ -15,6 +15,7 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
@@ -39,7 +40,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         super(rootPackage, typeSpecBiConsumer);
     }
 
-    public TypeName defineJavaType(Schema<?> schema, TypeSpec.Builder parent) {
+    @Override
+    public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
         String $ref = schema.get$ref();
         if ($ref == null) {
             String internalType = schema.getType();
@@ -80,12 +82,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     return TypeName.BOOLEAN;
                 case "array":
                     Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
-                    return ParameterizedTypeName.get(ClassName.get(List.class), defineJavaType(itemsSchema, parent));
+                    return ParameterizedTypeName.get(ClassName.get(List.class), defineJavaType(itemsSchema, openAPI, parent));
                 case "object":
                 default:
                     String simpleName = schema.getTitle();
                     if (simpleName != null) {
-                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema));
+                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI));
                         return ClassName.get(String.join(".", rootPackage, "dto"),
                                 simpleName);
                     } else {
@@ -139,7 +141,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     @Override
-    TypeSpec getDTOClass(String name, Schema<?> schema) {
+    TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI) {
 
 
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name)
@@ -156,7 +158,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         String.format("Property '%s' of schema '%s' is not in snake case",
                                 entry.getKey(), name)
                 );
-                TypeName typeName = defineJavaType(entry.getValue(), classBuilder);
+                TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder);
                 FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         typeName,
                         CaseUtils.snakeToCamel(entry.getKey()), Modifier.PRIVATE);
@@ -175,7 +177,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     @Override
-    TypeSpec getEnum(String name, Schema<?> schema) {
+    TypeSpec getEnum(String name, Schema<?> schema, OpenAPI openAPI) {
         TypeSpec.Builder classBuilder = TypeSpec.enumBuilder(name).addModifiers(Modifier.PUBLIC);
         for (Object val : schema.getEnum()) {
             classBuilder.addEnumConstant(val.toString());

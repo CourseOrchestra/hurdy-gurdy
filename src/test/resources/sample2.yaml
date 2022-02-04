@@ -80,6 +80,7 @@ components:
   schemas:
     PlayerDTO:
       type: object
+      nullable: false
       properties:
         tag:
           type: string

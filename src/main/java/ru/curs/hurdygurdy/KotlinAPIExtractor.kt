@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
+import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.media.Content
@@ -33,6 +34,7 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
     }
 
     public override fun buildMethod(
+        openAPI: OpenAPI,
         classBuilder: TypeSpec.Builder,
         stringPathItemEntry: Map.Entry<String, PathItem>,
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>
@@ -42,9 +44,9 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
             .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
         getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.key)?.let(methodBuilder::addAnnotation)
         //we are deriving the returning type from the schema of the successful result
-        methodBuilder.returns(determineReturnKotlinType(operationEntry.value, classBuilder))
+        methodBuilder.returns(determineReturnKotlinType(operationEntry.value, openAPI, classBuilder))
         Optional.ofNullable(operationEntry.value.requestBody).map { obj: RequestBody -> obj.content }
-            .map { getContentType(it, classBuilder) }
+            .map { getContentType(it, openAPI, classBuilder) }
             .ifPresent { typeName: TypeName ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
@@ -65,7 +67,7 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(PathVariable::class)
@@ -85,7 +87,7 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(
@@ -106,7 +108,7 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.kebabToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(
@@ -148,19 +150,20 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
         } else null
     }
 
-    private fun determineReturnKotlinType(operation: Operation, parent: TypeSpec.Builder): TypeName =
+    private fun determineReturnKotlinType(operation: Operation, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName =
         getSuccessfulReply(operation).map { c: Content ->
             getContentType(
                 c,
+                openAPI,
                 parent
             )
         }.orElse(UNIT)
 
-    private fun getContentType(content: Content, parent: TypeSpec.Builder): TypeName =
+    private fun getContentType(content: Content, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName =
         Optional.ofNullable(content)
             .flatMap(::getMediaType)
             .map { it.value }
             .map { it.schema }
-            .map { typeDefiner.defineKotlinType(it, parent) }
+            .map { typeDefiner.defineKotlinType(it, openAPI, parent) }
             .orElse(UNIT)
 }
