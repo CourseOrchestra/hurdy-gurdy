@@ -24,6 +24,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.Schema
 import java.time.DateTimeException
@@ -41,7 +42,7 @@ class KotlinTypeDefiner internal constructor(
 
     private var hasJsonZonedDateTimeDeserializer = false
 
-    public override fun defineKotlinType(schema: Schema<*>, parent: TypeSpec.Builder): TypeName {
+    public override fun defineKotlinType(schema: Schema<*>, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName {
         val `$ref` = schema.`$ref`
         val result = if (`$ref` == null) {
             val internalType = schema.type
@@ -69,13 +70,15 @@ class KotlinTypeDefiner internal constructor(
                 "boolean" -> BOOLEAN
                 "array" -> {
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
-                    List::class.asTypeName().parameterizedBy(defineKotlinType(itemsSchema, parent)
-                        .copy(nullable = false))
+                    List::class.asTypeName().parameterizedBy(
+                        defineKotlinType(itemsSchema, openAPI, parent)
+                            .copy(nullable = false)
+                    )
                 }
                 "object" -> {
                     val simpleName = schema.title
                     if (simpleName != null) {
-                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema))
+                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
                             java.lang.String.join(".", rootPackage, "dto"),
                             simpleName
@@ -88,7 +91,7 @@ class KotlinTypeDefiner internal constructor(
                 else -> {
                     val simpleName = schema.title
                     if (simpleName != null) {
-                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema))
+                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
                             java.lang.String.join(".", rootPackage, "dto"),
                             simpleName
@@ -99,20 +102,22 @@ class KotlinTypeDefiner internal constructor(
                 }
             }
         } else {
-            val matcher = Pattern.compile("/([^/$]+)$").matcher(`$ref`)
-            matcher.find()
-            ClassName(java.lang.String.join(".", rootPackage, "dto"), matcher.group(1))
+            val name = Regex("/([^/$]+)$").find(`$ref`)?.groups?.get(1)?.value
+                ?: throw java.lang.IllegalStateException("Cannot parse reference $`$ref`")
+            val nullable = openAPI.components?.schemas?.get(name)?.nullable ?: true
+            return ClassName(java.lang.String.join(".", rootPackage, "dto"), name)
+                .copy(nullable = nullable)
         }
         return result.copy(nullable = schema.nullable ?: true)
     }
 
-    override fun getEnum(name: String, schema: Schema<*>): TypeSpec {
+    override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
         schema.enum.forEach { classBuilder.addEnumConstant(it.toString()) }
         return classBuilder.build()
     }
 
-    override fun getDTOClass(name: String, schema: Schema<*>): TypeSpec {
+    override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.classBuilder(name)
             .addAnnotation(
                 AnnotationSpec.builder(JsonNaming::class).addMember(
@@ -131,7 +136,7 @@ class KotlinTypeDefiner internal constructor(
             check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
                 String.format("Property '%s' of schema '%s' is not in snake case", key, name)
             }
-            val typeName = defineKotlinType(value, classBuilder)
+            val typeName = defineKotlinType(value, openAPI, classBuilder)
 
             val propertyName = CaseUtils.snakeToCamel(key)
             val paramSpec =

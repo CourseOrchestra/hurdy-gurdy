@@ -17,7 +17,7 @@ public abstract class DTOExtractor<T> implements TypeSpecExtractor<T> {
     @Override
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         for (Map.Entry<String, Schema> schemaEntry : openAPI.getComponents().getSchemas().entrySet()) {
-            T dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue());
+            T dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue(), openAPI);
             typeSpecBiConsumer.accept(ClassCategory.DTO, dto);
         }
     }

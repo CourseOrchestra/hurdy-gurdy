@@ -64,7 +64,7 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class DepositDTO(
-  public val player: PlayerDTO?,
+  public val player: PlayerDTO,
   public val playerenum: PlayerEnum?,
   public val depositId: String?,
   public val amountCents: Long?,

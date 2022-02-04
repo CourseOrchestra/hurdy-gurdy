@@ -40,7 +40,7 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         BuilderHolder builderHolder = builder();
         for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
             for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
-                buildMethod(builderHolder.builder, stringPathItemEntry, operationEntry);
+                buildMethod(openAPI, builderHolder.builder, stringPathItemEntry, operationEntry);
             }
         }
         typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, builderHolder.build());
@@ -48,7 +48,7 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
 
     abstract BuilderHolder builder();
 
-    abstract void buildMethod(B classBuilder, Map.Entry<String, PathItem> stringPathItemEntry,
+    abstract void buildMethod(OpenAPI openAPI, B classBuilder, Map.Entry<String, PathItem> stringPathItemEntry,
                               Map.Entry<PathItem.HttpMethod, Operation> operationEntry);
 
     static Optional<Content> getSuccessfulReply(Operation operation) {
