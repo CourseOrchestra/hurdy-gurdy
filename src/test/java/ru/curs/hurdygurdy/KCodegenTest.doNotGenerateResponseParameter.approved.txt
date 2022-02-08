@@ -7,6 +7,44 @@
 ---
 /com/example/controller
 ---
+/com/example/controller/Api.kt
+package com.example.controller
+
+import com.example.dto.MenuDTO
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.Unit
+import org.springframework.web.bind.`annotation`.DeleteMapping
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Api {
+  @GetMapping(
+    value = ["/menu"],
+    produces = ["application/json"]
+  )
+  public fun getMenu(): MenuDTO?
+
+  @DeleteMapping(value = ["/menu"])
+  public fun deleteMenu(): Unit
+
+  @GetMapping(
+    value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
+    produces = ["text/csv"]
+  )
+  public fun affiliatePlayerActivitiesCSV(@PathVariable(name = "id") id: Int?,
+      @RequestParam(required = false, name = "status") status: Boolean?): String?
+
+  @GetMapping(
+    value = ["/api/v1/bills"],
+    produces = ["application/json"]
+  )
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id") affiliateId: Int?):
+      Int?
+}
+---
 /com/example/controller/Controller.kt
 package com.example.controller
 

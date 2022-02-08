@@ -26,13 +26,15 @@ import java.util.Optional;
 
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
-    public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner, boolean generateResponseParameter) {
-        super(typeDefiner, generateResponseParameter);
+    public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
+                            boolean generateResponseParameter,
+                            boolean generateApiInterface) {
+        super(typeDefiner, generateResponseParameter, generateApiInterface);
     }
 
     @Override
-    BuilderHolder builder() {
-        return new BuilderHolder(TypeSpec.interfaceBuilder("Controller")) {
+    BuilderHolder builder(String name) {
+        return new BuilderHolder(TypeSpec.interfaceBuilder( name)) {
             @Override
             TypeSpec build() {
                 return builder.build();
@@ -43,7 +45,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     @Override
     void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
                      Map.Entry<String, PathItem> stringPathItemEntry,
-                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry) {
+                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                     boolean generateResponseParameter) {
         MethodSpec.Builder methodBuilder = MethodSpec
                 .methodBuilder(CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId()))
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);

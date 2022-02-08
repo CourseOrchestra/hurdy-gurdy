@@ -24,11 +24,15 @@ import java.util.*
 import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
 
-class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponseParameter: Boolean) :
-    APIExtractor<TypeSpec, TypeSpec.Builder>(typeDefiner, generateResponseParameter) {
+class KotlinAPIExtractor(
+    typeDefiner: TypeDefiner<TypeSpec>,
+    generateResponseParameter: Boolean,
+    generateApiInterface: Boolean
+) :
+    APIExtractor<TypeSpec, TypeSpec.Builder>(typeDefiner, generateResponseParameter, generateApiInterface) {
 
-    internal override fun builder(): BuilderHolder {
-        return object : BuilderHolder(TypeSpec.interfaceBuilder("Controller")) {
+    internal override fun builder(name: String): BuilderHolder {
+        return object : BuilderHolder(TypeSpec.interfaceBuilder(name)) {
             override fun build(): TypeSpec = builder.build()
         }
     }
@@ -37,7 +41,8 @@ class KotlinAPIExtractor(typeDefiner: TypeDefiner<TypeSpec>, generateResponsePar
         openAPI: OpenAPI,
         classBuilder: TypeSpec.Builder,
         stringPathItemEntry: Map.Entry<String, PathItem>,
-        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        generateResponseParameter: Boolean
     ) {
         val methodBuilder = FunSpec
             .builder(CaseUtils.snakeToCamel(operationEntry.value.operationId))

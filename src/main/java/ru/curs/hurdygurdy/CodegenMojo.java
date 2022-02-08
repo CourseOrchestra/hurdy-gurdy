@@ -30,6 +30,9 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "generateResponseParameter", required = false)
     boolean generateResponseParameter = false;
 
+    @Parameter(property = "generateApiInterface", required = false)
+    boolean generateApiInterface = false;
+
     @Component
     MavenProject project;
 
@@ -37,8 +40,8 @@ public class CodegenMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException {
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language) ?
-                        new JavaCodegen(rootPackage, generateResponseParameter)
-                        : new KotlinCodegen(rootPackage, generateResponseParameter);
+                        new JavaCodegen(rootPackage, generateResponseParameter, generateApiInterface)
+                        : new KotlinCodegen(rootPackage, generateResponseParameter, generateApiInterface);
         try {
             Path targetPath = getTargetPath();
             codegen.generate(Path.of(spec), targetPath);
