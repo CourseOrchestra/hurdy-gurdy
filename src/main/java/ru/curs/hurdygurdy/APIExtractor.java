@@ -17,7 +17,8 @@ import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     final TypeDefiner<T> typeDefiner;
-    final boolean generateResponseParameter;
+    private final boolean generateResponseParameter;
+    final boolean generateApiInterface;
 
     abstract class BuilderHolder {
         final B builder;
@@ -29,27 +30,39 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         abstract T build();
     }
 
-    protected APIExtractor(TypeDefiner<T> typeDefiner, boolean generateResponseParameter) {
+    protected APIExtractor(TypeDefiner<T> typeDefiner, boolean generateResponseParameter, boolean generateApiInterface) {
         this.typeDefiner = typeDefiner;
         this.generateResponseParameter = generateResponseParameter;
+        this.generateApiInterface = generateApiInterface;
     }
 
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
-        BuilderHolder builderHolder = builder();
-        for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
-            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
-                buildMethod(openAPI, builderHolder.builder, stringPathItemEntry, operationEntry);
-            }
-        }
+        BuilderHolder builderHolder = generateClass(openAPI, paths, "Controller", generateResponseParameter);
         typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, builderHolder.build());
+        if (generateApiInterface) {
+            builderHolder = generateClass(openAPI, paths, "Api", false);
+            typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, builderHolder.build());
+        }
     }
 
-    abstract BuilderHolder builder();
+    private BuilderHolder generateClass(OpenAPI openAPI, Paths paths, String name, boolean generateResponseParameter) {
+        BuilderHolder builderHolder = builder(name);
+        for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
+            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
+                buildMethod(openAPI, builderHolder.builder, stringPathItemEntry,
+                        operationEntry, generateResponseParameter);
+            }
+        }
+        return builderHolder;
+    }
+
+    abstract BuilderHolder builder(String name);
 
     abstract void buildMethod(OpenAPI openAPI, B classBuilder, Map.Entry<String, PathItem> stringPathItemEntry,
-                              Map.Entry<PathItem.HttpMethod, Operation> operationEntry);
+                              Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                              boolean generateResponseParameter);
 
     static Optional<Content> getSuccessfulReply(Operation operation) {
         return operation.getResponses().entrySet().stream()

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 public class JavaCodegen extends Codegen<TypeSpec> {
-    public JavaCodegen(String rootPackage, boolean generateResponseParameter) {
+    public JavaCodegen(String rootPackage, boolean generateResponseParameter, boolean generateApiInterface) {
 
         super(rootPackage, new TypeProducersFactory<>() {
             @Override
@@ -20,7 +20,7 @@ public class JavaCodegen extends Codegen<TypeSpec> {
             @Override
             public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(TypeDefiner<TypeSpec> typeDefiner) {
                 return List.of(new JavaDTOExtractor(typeDefiner),
-                        new JavaAPIExtractor(typeDefiner, generateResponseParameter));
+                        new JavaAPIExtractor(typeDefiner, generateResponseParameter, generateApiInterface));
             }
         });
     }
