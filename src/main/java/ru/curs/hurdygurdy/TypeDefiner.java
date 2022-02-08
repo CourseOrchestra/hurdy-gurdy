@@ -18,10 +18,11 @@ public abstract class TypeDefiner<T> {
     }
 
     final T getDTO(String name, Schema<?> schema, OpenAPI openAPI) {
-        if (schema.getEnum() != null)
+        if (schema.getEnum() != null) {
             return getEnum(name, schema, openAPI);
-        else
+        } else {
             return getDTOClass(name, schema, openAPI);
+        }
     }
 
     @SuppressWarnings("unchecked")

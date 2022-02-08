@@ -42,18 +42,19 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     @Override
     public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
+        @SuppressWarnings("LocalVariableName")
         String $ref = schema.get$ref();
         if ($ref == null) {
             String internalType = schema.getType();
             switch (internalType) {
                 case "string":
-                    if ("date".equals(schema.getFormat()))
+                    if ("date".equals(schema.getFormat())) {
                         return TypeName.get(LocalDate.class);
-                    else if ("date-time".equals(schema.getFormat()))
+                    } else if ("date-time".equals(schema.getFormat())) {
                         return TypeName.get(ZonedDateTime.class);
-                    else if ("uuid".equals(schema.getFormat()))
+                    } else if ("uuid".equals(schema.getFormat())) {
                         return ClassName.get(UUID.class);
-                    else if (schema.getEnum() != null) {
+                    } else if (schema.getEnum() != null) {
                         //internal enum
                         String simpleName = schema.getTitle();
                         if (simpleName == null) {
@@ -69,20 +70,23 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         return ClassName.get("", simpleName);
                     } else return ClassName.get(String.class);
                 case "number":
-                    if ("float".equals(schema.getFormat()))
+                    if ("float".equals(schema.getFormat())) {
                         return TypeName.FLOAT.box();
-                    else
+                    } else {
                         return TypeName.DOUBLE.box();
+                    }
                 case "integer":
-                    if ("int64".equals(schema.getFormat()))
+                    if ("int64".equals(schema.getFormat())) {
                         return TypeName.LONG.box();
-                    else
+                    } else {
                         return TypeName.INT.box();
+                    }
                 case "boolean":
                     return TypeName.BOOLEAN;
                 case "array":
                     Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
-                    return ParameterizedTypeName.get(ClassName.get(List.class), defineJavaType(itemsSchema, openAPI, parent));
+                    return ParameterizedTypeName.get(ClassName.get(List.class),
+                            defineJavaType(itemsSchema, openAPI, parent));
                 case "object":
                 default:
                     String simpleName = schema.getTitle();
@@ -117,12 +121,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                     .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
                                     .build())
                             .addMethod(MethodSpec.methodBuilder(
-                                    "deserialize")
+                                            "deserialize")
                                     .returns(ClassName.get(ZonedDateTime.class))
                                     .addAnnotation(Override.class)
                                     .addModifiers(Modifier.PUBLIC)
                                     .addParameter(ParameterSpec.builder(JsonParser.class, "jsonParser").build())
-                                    .addParameter(ParameterSpec.builder(DeserializationContext.class, "deserializationContext").build())
+                                    .addParameter(ParameterSpec.builder(DeserializationContext.class,
+                                            "deserializationContext").build())
                                     .addException(IOException.class)
 
                                     .addStatement("String date = jsonParser.getText()")
@@ -152,7 +157,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
         //Add properties
         Map<String, Schema> schemaMap = schema.getProperties();
-        if (schemaMap != null)
+        if (schemaMap != null) {
             for (Map.Entry<String, Schema> entry : schemaMap.entrySet()) {
                 if (!entry.getKey().matches("[a-z][a-z_0-9]*")) throw new IllegalStateException(
                         String.format("Property '%s' of schema '%s' is not in snake case",
@@ -173,6 +178,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 FieldSpec fieldSpec = fieldBuilder.build();
                 classBuilder.addField(fieldSpec);
             }
+        }
         return classBuilder.build();
     }
 
