@@ -34,7 +34,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     @Override
     BuilderHolder builder(String name) {
-        return new BuilderHolder(TypeSpec.interfaceBuilder( name)) {
+        return new BuilderHolder(TypeSpec.interfaceBuilder(name)) {
             @Override
             TypeSpec build() {
                 return builder.build();

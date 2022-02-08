@@ -1,7 +1,7 @@
 package ru.curs.hurdygurdy;
 
 public final class CaseUtils {
-    private CaseUtils(){
+    private CaseUtils() {
 
     }
 

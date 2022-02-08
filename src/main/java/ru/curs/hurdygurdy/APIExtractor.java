@@ -17,8 +17,8 @@ import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     final TypeDefiner<T> typeDefiner;
-    private final boolean generateResponseParameter;
     final boolean generateApiInterface;
+    private final boolean generateResponseParameter;
 
     abstract class BuilderHolder {
         final B builder;
@@ -30,7 +30,9 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         abstract T build();
     }
 
-    protected APIExtractor(TypeDefiner<T> typeDefiner, boolean generateResponseParameter, boolean generateApiInterface) {
+    protected APIExtractor(TypeDefiner<T> typeDefiner,
+                           boolean generateResponseParameter,
+                           boolean generateApiInterface) {
         this.typeDefiner = typeDefiner;
         this.generateResponseParameter = generateResponseParameter;
         this.generateApiInterface = generateApiInterface;
@@ -47,12 +49,13 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         }
     }
 
-    private BuilderHolder generateClass(OpenAPI openAPI, Paths paths, String name, boolean generateResponseParameter) {
+    private BuilderHolder generateClass(OpenAPI openAPI, Paths paths, String name, boolean responseParameter) {
         BuilderHolder builderHolder = builder(name);
         for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
-            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
+            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry
+                    : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
                 buildMethod(openAPI, builderHolder.builder, stringPathItemEntry,
-                        operationEntry, generateResponseParameter);
+                        operationEntry, responseParameter);
             }
         }
         return builderHolder;
