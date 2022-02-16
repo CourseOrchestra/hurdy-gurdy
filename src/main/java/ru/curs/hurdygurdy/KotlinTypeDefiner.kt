@@ -151,7 +151,7 @@ class KotlinTypeDefiner internal constructor(
                 )
                 ensureJsonZonedDateTimeDeserializer()
             }
-
+            
             value.default?.let {
                 if (value.type == "array") {
                     paramSpec.defaultValue("listOf()")

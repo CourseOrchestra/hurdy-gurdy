@@ -29,18 +29,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
                             boolean generateResponseParameter,
                             boolean generateApiInterface) {
-        super(typeDefiner, generateResponseParameter, generateApiInterface);
+        super(typeDefiner, generateResponseParameter, generateApiInterface,
+                TypeSpec::interfaceBuilder,
+                TypeSpec.Builder::build);
     }
 
-    @Override
-    BuilderHolder builder(String name) {
-        return new BuilderHolder(TypeSpec.interfaceBuilder(name)) {
-            @Override
-            TypeSpec build() {
-                return builder.build();
-            }
-        };
-    }
 
     @Override
     void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
@@ -151,6 +144,4 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         } else return null;
 
     }
-
-
 }

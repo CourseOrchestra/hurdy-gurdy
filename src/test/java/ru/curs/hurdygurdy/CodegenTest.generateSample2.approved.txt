@@ -11,7 +11,6 @@
 package com.example.controller;
 
 import com.example.dto.PlayerActivitiesDTO;
-import com.example.dto.PlayersDTO;
 import java.lang.Integer;
 import java.lang.String;
 import javax.servlet.http.HttpServletResponse;
@@ -23,9 +22,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 interface Controller {
-  @PostMapping("/api/v1/players")
-  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
-
   @PostMapping("/api/v1/activity")
   void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
 
@@ -43,6 +39,19 @@ interface Controller {
       @RequestParam(required = false, name = "foo") String foo,
       @RequestParam(required = true, name = "bar") Integer bar,
       @RequestHeader(required = true, name = "baz") String baz, HttpServletResponse response);
+}
+---
+/com/example/controller/PlayerController.java
+package com.example.controller;
+
+import com.example.dto.PlayersDTO;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+interface PlayerController {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
 }
 ---
 /com/example/dto

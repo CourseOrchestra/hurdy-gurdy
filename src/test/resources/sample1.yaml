@@ -11,8 +11,6 @@ tags:
 paths:
   /menu:
     get:
-      tags:
-        - menu
       summary: Get menu items
       operationId: getMenu
       responses:

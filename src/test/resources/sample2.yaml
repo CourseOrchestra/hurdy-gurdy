@@ -8,6 +8,8 @@ paths:
   /api/v1/players:
     post:
       operationId: syncPlayers
+      tags:
+        - player
       requestBody:
         content:
           application/json:
@@ -19,8 +21,6 @@ paths:
           description: record created
   /api/v1/activity:
     post:
-      tags:
-        - ss_controller
       operationId: syncPlayerActivities
       requestBody:
         content:
@@ -33,8 +33,6 @@ paths:
           description: record created
   /api/v1/hello:
     get:
-      tags:
-        - ss_controller
       operationId: hello
       responses:
         "200":
@@ -66,8 +64,6 @@ paths:
           schema:
             type: string
           required: true
-      tags:
-        - ss_controller
       operationId: hello
       responses:
         "200":
