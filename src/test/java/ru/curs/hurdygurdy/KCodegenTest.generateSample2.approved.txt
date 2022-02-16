@@ -11,7 +11,6 @@
 package com.example.controller
 
 import com.example.dto.PlayerActivitiesDTO
-import com.example.dto.PlayersDTO
 import javax.servlet.http.HttpServletResponse
 import kotlin.Int
 import kotlin.String
@@ -24,9 +23,6 @@ import org.springframework.web.bind.`annotation`.RequestHeader
 import org.springframework.web.bind.`annotation`.RequestParam
 
 public interface Controller {
-  @PostMapping(value = ["/api/v1/players"])
-  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse): Unit
-
   @PostMapping(value = ["/api/v1/activity"])
   public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?,
       response: HttpServletResponse): Unit
@@ -48,6 +44,20 @@ public interface Controller {
     @RequestHeader(required = true, name = "baz") baz: String?,
     response: HttpServletResponse
   ): String?
+}
+---
+/com/example/controller/PlayerController.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import javax.servlet.http.HttpServletResponse
+import kotlin.Unit
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface PlayerController {
+  @PostMapping(value = ["/api/v1/players"])
+  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse): Unit
 }
 ---
 /com/example/dto

@@ -29,13 +29,13 @@ class KotlinAPIExtractor(
     generateResponseParameter: Boolean,
     generateApiInterface: Boolean
 ) :
-    APIExtractor<TypeSpec, TypeSpec.Builder>(typeDefiner, generateResponseParameter, generateApiInterface) {
-
-    internal override fun builder(name: String): BuilderHolder {
-        return object : BuilderHolder(TypeSpec.interfaceBuilder(name)) {
-            override fun build(): TypeSpec = builder.build()
-        }
-    }
+    APIExtractor<TypeSpec, TypeSpec.Builder>(
+        typeDefiner,
+        generateResponseParameter,
+        generateApiInterface,
+        TypeSpec::interfaceBuilder,
+        TypeSpec.Builder::build
+    ) {
 
     public override fun buildMethod(
         openAPI: OpenAPI,

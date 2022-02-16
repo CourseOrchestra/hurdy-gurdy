@@ -6,6 +6,10 @@ public final class CaseUtils {
     }
 
     public static String snakeToCamel(String snakeText) {
+        return snakeToCamel(snakeText, false);
+    }
+
+    public static String snakeToCamel(String snakeText, boolean capitalizeFirst) {
         if (snakeText == null) {
             return null;
         }
@@ -15,7 +19,11 @@ public final class CaseUtils {
             char c = snakeText.charAt(i);
             switch (state) {
                 case 0:
-                    result.append(c);
+                    if (capitalizeFirst) {
+                        result.append(Character.toUpperCase(c));
+                    } else {
+                        result.append(c);
+                    }
                     state = 1;
                     break;
                 case 1:

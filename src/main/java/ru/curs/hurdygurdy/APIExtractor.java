@@ -9,10 +9,13 @@ import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.parameters.Parameter;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
@@ -20,50 +23,54 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     final boolean generateApiInterface;
     private final boolean generateResponseParameter;
 
-    abstract class BuilderHolder {
-        final B builder;
-
-        protected BuilderHolder(B builder) {
-            this.builder = builder;
-        }
-
-        abstract T build();
-    }
+    private final Map<String, B> builders = new HashMap<>();
+    private final Function<String, B> builderSupplier;
+    private final Function<B, T> buildInvoker;
 
     protected APIExtractor(TypeDefiner<T> typeDefiner,
                            boolean generateResponseParameter,
-                           boolean generateApiInterface) {
+                           boolean generateApiInterface,
+                           Function<String, B> builderSupplier,
+                           Function<B, T> buildInvoker) {
         this.typeDefiner = typeDefiner;
         this.generateResponseParameter = generateResponseParameter;
         this.generateApiInterface = generateApiInterface;
+        this.builderSupplier = builderSupplier;
+        this.buildInvoker = buildInvoker;
+    }
+
+    private B builder(String className) {
+        return builders.computeIfAbsent(className, k -> builderSupplier.apply(className));
     }
 
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
-        BuilderHolder builderHolder = generateClass(openAPI, paths, "Controller", generateResponseParameter);
-        typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, builderHolder.build());
+        generateClass(openAPI, paths, "Controller", generateResponseParameter);
+        builders.values().stream().map(buildInvoker).forEach(t ->
+                typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
         if (generateApiInterface) {
-            builderHolder = generateClass(openAPI, paths, "Api", false);
-            typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, builderHolder.build());
+            builders.clear();
+            generateClass(openAPI, paths, "Api", false);
+            builders.values().stream().map(buildInvoker).forEach(t ->
+                    typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
         }
     }
 
-    private BuilderHolder generateClass(OpenAPI openAPI, Paths paths, String name, boolean responseParameter) {
-        BuilderHolder builderHolder = builder(name);
+    private void generateClass(OpenAPI openAPI, Paths paths, String name, boolean responseParameter) {
         for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
             for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry
                     : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
-                buildMethod(openAPI, builderHolder.builder, stringPathItemEntry,
+                List<String> tags = operationEntry.getValue().getTags();
+                String typeName = CaseUtils.snakeToCamel(tags != null && !tags.isEmpty() ? tags.get(0) : "", true)
+                        + name;
+                buildMethod(openAPI, builder(typeName), stringPathItemEntry,
                         operationEntry, responseParameter);
             }
         }
-        return builderHolder;
     }
 
-    abstract BuilderHolder builder(String name);
-
-    abstract void buildMethod(OpenAPI openAPI, B classBuilder, Map.Entry<String, PathItem> stringPathItemEntry,
+    abstract void buildMethod(OpenAPI openAPI, B builder, Map.Entry<String, PathItem> stringPathItemEntry,
                               Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
                               boolean generateResponseParameter);
 
@@ -85,5 +92,4 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
                         Optional.ofNullable(operation.getParameters()).stream())
                 .flatMap(Collection::stream);
     }
-
 }
