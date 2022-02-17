@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FunSpec
@@ -146,19 +147,24 @@ class KotlinTypeDefiner internal constructor(
             ) {
                 paramSpec.addAnnotation(
                     AnnotationSpec.builder(JsonDeserialize::class)
-                        .addMember("using = ZonedDateTimeDeserializer::class.java")
+                        .addMember("using = ZonedDateTimeDeserializer::class")
                         .build()
                 )
                 ensureJsonZonedDateTimeDeserializer()
             }
-            
-            value.default?.let {
+
+            val default = value.default
+            if (default != null)  {
                 if (value.type == "array") {
                     paramSpec.defaultValue("listOf()")
                 } else {
                     paramSpec.defaultValue(
-                        if (typeName == String::class.asTypeName()) "%S" else "%L", it
+                        if (typeName == String::class.asTypeName()) "%S" else "%L", default
                     )
+                }
+            } else {
+                if (typeName.isNullable) {
+                    paramSpec.defaultValue("null")
                 }
             }
 

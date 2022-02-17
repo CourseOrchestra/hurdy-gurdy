@@ -116,4 +116,6 @@ components:
         float_value:
           type: number
           default: 3.14
-
+        date_vale:
+          type: string
+          format: date-time
