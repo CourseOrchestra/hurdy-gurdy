@@ -47,5 +47,5 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class ToveDTO(
-  public val name: String?
+  public val name: String? = null
 )

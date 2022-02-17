@@ -1,0 +1,162 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/AdminController.kt
+package com.example.controller
+
+import com.example.dto.CreateUpdateUserRequest
+import com.example.dto.UserResponse
+import javax.servlet.http.HttpServletResponse
+import kotlin.Long
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.DeleteMapping
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.PutMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface AdminController {
+  @GetMapping(
+    value = ["/api/v1/admin/user"],
+    produces = ["application/json"]
+  )
+  public fun list(response: HttpServletResponse): List<UserResponse>
+
+  @PostMapping(
+    value = ["/api/v1/admin/user"],
+    produces = ["application/json"]
+  )
+  public fun create(@RequestBody request: CreateUpdateUserRequest, response: HttpServletResponse):
+      UserResponse
+
+  @GetMapping(
+    value = ["/api/v1/admin/user/{id}"],
+    produces = ["application/json"]
+  )
+  public fun `get`(@PathVariable(name = "id") id: Long, response: HttpServletResponse): UserResponse
+
+  @PutMapping(
+    value = ["/api/v1/admin/user/{id}"],
+    produces = ["application/json"]
+  )
+  public fun update(
+    @RequestBody request: CreateUpdateUserRequest,
+    @PathVariable(name = "id") id: Long,
+    response: HttpServletResponse
+  ): UserResponse
+
+  @DeleteMapping(
+    value = ["/api/v1/admin/user/{id}"],
+    produces = ["application/json"]
+  )
+  public fun delete(@PathVariable(name = "id") id: Long, response: HttpServletResponse):
+      UserResponse
+}
+---
+/com/example/dto
+---
+/com/example/dto/CreateUpdateUserRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class CreateUpdateUserRequest(
+  public val email: String,
+  public val password: String? = null,
+  public val role: UserRole,
+  public val fullname: String = "",
+  public val organization: String = "",
+  public val enabled: Boolean = true
+)
+---
+/com/example/dto/DatabaseConnectionAccessLevel.kt
+package com.example.dto
+
+public enum class DatabaseConnectionAccessLevel {
+  PRIVATE,
+  READ_ONLY,
+  READ_AND_WRITE,
+}
+---
+/com/example/dto/DatabaseConnectionAuthType.kt
+package com.example.dto
+
+public enum class DatabaseConnectionAuthType {
+  CREDENTIALS,
+  NO_AUTH,
+}
+---
+/com/example/dto/DatabaseConnectionRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class DatabaseConnectionRequest(
+  public val type: DatabaseType,
+  public val host: String? = null,
+  public val port: Int? = null,
+  public val userName: String? = null,
+  public val password: String? = null,
+  public val name: String,
+  public val jdbcUrl: String,
+  public val authType: DatabaseConnectionAuthType,
+  public val accessLevel: DatabaseConnectionAccessLevel
+)
+---
+/com/example/dto/DatabaseType.kt
+package com.example.dto
+
+public enum class DatabaseType {
+  NONE,
+  POSTGRES,
+  MYSQL,
+  MARIADB,
+  SQLITE,
+  ORACLE,
+  MSSQL,
+}
+---
+/com/example/dto/UserResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UserResponse(
+  public val id: Long,
+  public val email: String,
+  public val fullname: String = "",
+  public val organization: String = "",
+  public val role: UserRole,
+  public val enabled: Boolean = true
+)
+---
+/com/example/dto/UserRole.kt
+package com.example.dto
+
+public enum class UserRole {
+  NONE,
+  USER,
+  OPERATOR,
+  ADMINISTRATOR,
+  OWNER,
+}

@@ -44,6 +44,12 @@ class KCodegenTest {
     }
 
     @Test
+    void generateSample3() throws IOException {
+        codegen.generate(Path.of("src/test/resources/sample3.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void doNotGenerateResponseParameter() throws IOException {
         codegen = new KotlinCodegen("com.example", false, true);
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);

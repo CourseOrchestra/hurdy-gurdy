@@ -75,11 +75,11 @@ import kotlin.String
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class DepositDTO(
   public val player: PlayerDTO,
-  public val playerenum: PlayerEnum?,
-  public val depositId: String?,
-  public val amountCents: Long?,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  public val processedAt: ZonedDateTime?
+  public val playerenum: PlayerEnum? = null,
+  public val depositId: String? = null,
+  public val amountCents: Long? = null,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  public val processedAt: ZonedDateTime? = null
 )
 ---
 /com/example/dto/PlayerActivitiesDTO.kt
@@ -93,11 +93,11 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class PlayerActivitiesDTO(
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  public val from: ZonedDateTime?,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  public val to: ZonedDateTime?,
-  public val items: List<PlayerActivityDTO>?
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  public val from: ZonedDateTime? = null,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  public val to: ZonedDateTime? = null,
+  public val items: List<PlayerActivityDTO>? = null
 )
 ---
 /com/example/dto/PlayerActivityDTO.kt
@@ -111,21 +111,21 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class PlayerActivityDTO(
-  public val tag: String?,
-  public val userId: String?,
-  public val currency: String?,
-  public val betsSumCents: Long?,
-  public val wagerCents: Long?,
-  public val additionalDeductionsSumCents: Long?,
-  public val roundsCount: Long?,
-  public val bonusIssuesSumCents: Long?,
-  public val chargebacksSumCents: Long?,
-  public val chargebacksCount: Long?,
-  public val depositsSumCents: Long?,
-  public val depositsCount: Long?,
-  public val cashoutsSumCents: Long?,
-  public val cashoutsCount: Long?,
-  public val deposits: List<DepositDTO>?
+  public val tag: String? = null,
+  public val userId: String? = null,
+  public val currency: String? = null,
+  public val betsSumCents: Long? = null,
+  public val wagerCents: Long? = null,
+  public val additionalDeductionsSumCents: Long? = null,
+  public val roundsCount: Long? = null,
+  public val bonusIssuesSumCents: Long? = null,
+  public val chargebacksSumCents: Long? = null,
+  public val chargebacksCount: Long? = null,
+  public val depositsSumCents: Long? = null,
+  public val depositsCount: Long? = null,
+  public val cashoutsSumCents: Long? = null,
+  public val cashoutsCount: Long? = null,
+  public val deposits: List<DepositDTO>? = null
 )
 ---
 /com/example/dto/PlayerDTO.kt
@@ -141,19 +141,19 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class PlayerDTO(
-  public val tag: String?,
-  public val email: String?,
-  public val userId: String?,
-  public val dateOfBirth: LocalDate?,
-  public val firstName: String?,
-  public val lastName: String?,
-  public val nickname: String?,
-  public val gender: Gender?,
-  public val country: String?,
-  public val language: String?,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class.java)
-  public val signUpAt: ZonedDateTime?,
-  public val duplicate: Boolean?
+  public val tag: String? = null,
+  public val email: String? = null,
+  public val userId: String? = null,
+  public val dateOfBirth: LocalDate? = null,
+  public val firstName: String? = null,
+  public val lastName: String? = null,
+  public val nickname: String? = null,
+  public val gender: Gender? = null,
+  public val country: String? = null,
+  public val language: String? = null,
+  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  public val signUpAt: ZonedDateTime? = null,
+  public val duplicate: Boolean? = null
 ) {
   public enum class Gender {
     m,
@@ -180,7 +180,7 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class PlayersDTO(
-  public val players: List<PlayerDTO>?
+  public val players: List<PlayerDTO>? = null
 )
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt
