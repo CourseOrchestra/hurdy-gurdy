@@ -69,6 +69,7 @@ paths:
           description: parameter for filtering bills by affiliate id
           schema:
             type: integer
+            default: 42
       responses:
         "200":
           description: bills

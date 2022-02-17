@@ -204,7 +204,7 @@ public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
       return ZonedDateTime.parse(date, formatter)
     }
     catch (e: DateTimeException) {
-      throw JsonParseException(jsonParser, e.getMessage())
+      throw JsonParseException(jsonParser, e.message)
     }
   }
 }

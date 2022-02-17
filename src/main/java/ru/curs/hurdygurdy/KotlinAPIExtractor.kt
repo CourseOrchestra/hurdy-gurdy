@@ -89,16 +89,18 @@ class KotlinAPIExtractor(
                 )
             }
             .forEach { parameter: Parameter ->
+                val builder = AnnotationSpec.builder(RequestParam::class)
+                    .addMember("required = %L", parameter.required)
+                    .addMember("name = %S", parameter.name)
+                parameter.schema?.default?.let { builder.addMember("defaultValue = %S", it.toString()) }
+                val annotationSpec = builder.build()
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
                     )
                         .addAnnotation(
-                            AnnotationSpec.builder(
-                                RequestParam::class
-                            ).addMember("required = %L", parameter.required)
-                                .addMember("name = %S", parameter.name).build()
+                            annotationSpec
                         ).build()
                 )
             }

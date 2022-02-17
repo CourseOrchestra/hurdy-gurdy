@@ -41,8 +41,8 @@ public interface Api {
     value = ["/api/v1/bills"],
     produces = ["application/json"]
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id") affiliateId: Int?):
-      Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
+      affiliateId: Int?): Int?
 }
 ---
 /com/example/controller/Controller.kt
@@ -79,8 +79,8 @@ public interface Controller {
     value = ["/api/v1/bills"],
     produces = ["application/json"]
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id") affiliateId: Int?):
-      Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
+      affiliateId: Int?): Int?
 }
 ---
 /com/example/dto
@@ -146,7 +146,7 @@ public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
       return ZonedDateTime.parse(date, formatter)
     }
     catch (e: DateTimeException) {
-      throw JsonParseException(jsonParser, e.getMessage())
+      throw JsonParseException(jsonParser, e.message)
     }
   }
 }

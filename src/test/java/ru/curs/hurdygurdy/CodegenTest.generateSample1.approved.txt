@@ -42,7 +42,8 @@ interface Controller {
       value = "/api/v1/bills",
       produces = "application/json"
   )
-  int getBills(@RequestParam(required = false, name = "affiliate_id") Integer affiliateId,
+  int getBills(
+      @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId,
       HttpServletResponse response);
 }
 ---

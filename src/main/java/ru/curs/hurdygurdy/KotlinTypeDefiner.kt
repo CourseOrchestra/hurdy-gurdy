@@ -215,7 +215,7 @@ class KotlinTypeDefiner internal constructor(
                         )
                         .endControlFlow()
                         .beginControlFlow("catch (e: %T)", DateTimeException::class)
-                        .addStatement("throw %T(jsonParser, e.getMessage())", JsonParseException::class)
+                        .addStatement("throw %T(jsonParser, e.message)", JsonParseException::class)
                         .endControlFlow()
                         .build()
                 )
