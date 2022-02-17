@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -66,15 +67,25 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .build()));
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
-                                CaseUtils.snakeToCamel(parameter.getName()))
-                        .addAnnotation(
-                                AnnotationSpec.builder(
-                                                RequestParam.class
-                                        ).addMember("required", "$L", parameter.getRequired())
-                                        .addMember("name", "$S", parameter.getName()).build()
-                        ).build()));
+                .forEach(parameter -> {
+                            AnnotationSpec.Builder builder = AnnotationSpec.builder(
+                                            RequestParam.class
+                                    ).addMember("required", "$L", parameter.getRequired())
+                                    .addMember("name", "$S", parameter.getName());
+
+                            Optional.ofNullable(parameter.getSchema())
+                                    .map(Schema::getDefault)
+                                    .ifPresent(
+                                            d -> builder.addMember("defaultValue", "$S", d.toString()));
+
+                            AnnotationSpec annotationSpec = builder.build();
+                            methodBuilder.addParameter(ParameterSpec.builder(
+                                            safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                                    classBuilder)),
+                                            CaseUtils.snakeToCamel(parameter.getName()))
+                                    .addAnnotation(annotationSpec).build());
+                        }
+                );
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
