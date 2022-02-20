@@ -11,7 +11,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 <plugin>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>1.0</version>
+    <version>1.14</version>
     <configuration>
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>
