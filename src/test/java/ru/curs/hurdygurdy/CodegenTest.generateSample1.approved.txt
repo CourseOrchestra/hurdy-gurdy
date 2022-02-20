@@ -69,6 +69,7 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.lang.Double;
 import java.lang.Integer;
 import java.lang.Serializable;
@@ -99,6 +100,9 @@ public class MenuItemDTO implements Serializable {
   @JsonDeserialize(
       using = ZonedDateTimeDeserializer.class
   )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
   private ZonedDateTime dateVale;
 }
 ---
@@ -128,5 +132,26 @@ public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
     catch (DateTimeException e) {
       throw new JsonParseException(jsonParser, e.getMessage());
     }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeSerializer extends JsonSerializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider serializers)
+      throws IOException {
+    gen.writeString(formatter.format(value));
   }
 }

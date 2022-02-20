@@ -1,17 +1,20 @@
 package ru.curs.hurdygurdy
 
+import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.annotation.JsonNaming
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FunSpec
@@ -34,7 +37,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.function.BiConsumer
-import java.util.regex.Pattern
 
 class KotlinTypeDefiner internal constructor(
     rootPackage: String?,
@@ -147,9 +149,16 @@ class KotlinTypeDefiner internal constructor(
             ) {
                 paramSpec.addAnnotation(
                     AnnotationSpec.builder(JsonDeserialize::class)
+                        .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
                         .addMember("using = ZonedDateTimeDeserializer::class")
                         .build()
                 )
+                    .addAnnotation(
+                        AnnotationSpec.builder(JsonSerialize::class)
+                            .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                            .addMember("using = ZonedDateTimeSerializer::class")
+                            .build()
+                    )
                 ensureJsonZonedDateTimeDeserializer()
             }
 
@@ -182,7 +191,7 @@ class KotlinTypeDefiner internal constructor(
 
     private fun ensureJsonZonedDateTimeDeserializer() {
         if (!hasJsonZonedDateTimeDeserializer) {
-            val typeSpec = TypeSpec.classBuilder("ZonedDateTimeDeserializer")
+            val deserTypeSpec = TypeSpec.classBuilder("ZonedDateTimeDeserializer")
                 .superclass(
                     JsonDeserializer::class.asClassName()
                         .parameterizedBy(ZonedDateTime::class.asClassName())
@@ -220,7 +229,40 @@ class KotlinTypeDefiner internal constructor(
                         .build()
                 )
                 .build()
-            typeSpecBiConsumer.accept(ClassCategory.DTO, typeSpec)
+            typeSpecBiConsumer.accept(ClassCategory.DTO, deserTypeSpec)
+            val serTypeSpec = TypeSpec.classBuilder("ZonedDateTimeSerializer")
+                .superclass(
+                    JsonSerializer::class.asClassName()
+                        .parameterizedBy(ZonedDateTime::class.asClassName())
+                )
+                .addProperty(
+                    PropertySpec.builder(
+                        "formatter",
+                        DateTimeFormatter::class,
+                    )
+                        .addModifiers(KModifier.PRIVATE)
+                        .initializer("%T.ISO_OFFSET_DATE_TIME", DateTimeFormatter::class)
+                        .build()
+                )
+                .addFunction(
+                    FunSpec.builder(
+                        "serialize"
+                    )
+                        .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
+                        .addParameter(
+                            ParameterSpec.builder("value", ZonedDateTime::class).build()
+                        )
+                        .addParameter(
+                            ParameterSpec.builder("gen", JsonGenerator::class).build()
+                        )
+                        .addParameter(
+                            ParameterSpec.builder("serializers", SerializerProvider::class).build()
+                        )
+                        .addStatement("gen.writeString(formatter.format(value))")
+                        .build()
+                )
+                .build()
+            typeSpecBiConsumer.accept(ClassCategory.DTO, serTypeSpec)
             hasJsonZonedDateTimeDeserializer = true
         }
     }
