@@ -1,12 +1,16 @@
 package ru.curs.hurdygurdy;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -141,6 +145,33 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                     .build())
                             .build();
             typeSpecBiConsumer.accept(ClassCategory.DTO, typeSpec);
+            typeSpec =
+                    TypeSpec.classBuilder("ZonedDateTimeSerializer")
+                            .superclass(ParameterizedTypeName.get(
+                                    ClassName.get(JsonSerializer.class),
+                                    ClassName.get(ZonedDateTime.class)
+                            ))
+                            .addModifiers(Modifier.PUBLIC)
+                            .addField(FieldSpec.builder(ClassName.get(DateTimeFormatter.class),
+                                            "formatter")
+                                    .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                                    .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
+                                    .build())
+                            .addMethod(MethodSpec.methodBuilder(
+                                            "serialize")
+                                    .addAnnotation(Override.class)
+                                    .addModifiers(Modifier.PUBLIC)
+                                    .addParameter(ParameterSpec.builder(ZonedDateTime.class, "value").build())
+                                    .addParameter(ParameterSpec.builder(JsonGenerator.class,
+                                            "gen").build())
+                                    .addParameter(ParameterSpec.builder(SerializerProvider.class,
+                                            "serializers").build())
+                                    .addException(IOException.class)
+
+                                    .addStatement("gen.writeString(formatter.format(value))")
+                                    .build())
+                            .build();
+            typeSpecBiConsumer.accept(ClassCategory.DTO, typeSpec);
             hasJsonZonedDateTimeDeserializer = true;
         }
     }
@@ -171,8 +202,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(
                                     ClassName.get(JsonDeserialize.class))
-                            .addMember("using", "ZonedDateTimeDeserializer.class")
-                            .build());
+                            .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                            .addAnnotation(AnnotationSpec.builder(
+                                            ClassName.get(JsonSerialize.class))
+                                    .addMember("using", "ZonedDateTimeSerializer.class").build());
                     ensureJsonZonedDateTimeDeserializer();
                 }
                 FieldSpec fieldSpec = fieldBuilder.build();

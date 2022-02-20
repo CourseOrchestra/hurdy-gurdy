@@ -68,6 +68,7 @@ package com.example.dto
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
 import java.time.ZonedDateTime
 import kotlin.Long
 import kotlin.String
@@ -78,7 +79,8 @@ public data class DepositDTO(
   public val playerenum: PlayerEnum? = null,
   public val depositId: String? = null,
   public val amountCents: Long? = null,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val processedAt: ZonedDateTime? = null
 )
 ---
@@ -88,14 +90,17 @@ package com.example.dto
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
 import java.time.ZonedDateTime
 import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class PlayerActivitiesDTO(
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val from: ZonedDateTime? = null,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val to: ZonedDateTime? = null,
   public val items: List<PlayerActivityDTO>? = null
 )
@@ -134,6 +139,7 @@ package com.example.dto
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import kotlin.Boolean
@@ -151,7 +157,8 @@ public data class PlayerDTO(
   public val gender: Gender? = null,
   public val country: String? = null,
   public val language: String? = null,
-  @JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val signUpAt: ZonedDateTime? = null,
   public val duplicate: Boolean? = null
 ) {
@@ -206,5 +213,27 @@ public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
     catch (e: DateTimeException) {
       throw JsonParseException(jsonParser, e.message)
     }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.Unit
+
+public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun serialize(
+    `value`: ZonedDateTime,
+    gen: JsonGenerator,
+    serializers: SerializerProvider
+  ): Unit {
+    gen.writeString(formatter.format(value))
   }
 }

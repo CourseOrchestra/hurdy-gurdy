@@ -62,6 +62,7 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.lang.Long;
 import java.lang.String;
 import java.time.ZonedDateTime;
@@ -81,6 +82,9 @@ public class DepositDTO {
   @JsonDeserialize(
       using = ZonedDateTimeDeserializer.class
   )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
   private ZonedDateTime processedAt;
 }
 ---
@@ -90,6 +94,7 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.time.ZonedDateTime;
 import java.util.List;
 import lombok.Data;
@@ -100,10 +105,16 @@ public class PlayerActivitiesDTO {
   @JsonDeserialize(
       using = ZonedDateTimeDeserializer.class
   )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
   private ZonedDateTime from;
 
   @JsonDeserialize(
       using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
   )
   private ZonedDateTime to;
 
@@ -160,6 +171,7 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.lang.String;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -190,6 +202,9 @@ public class PlayerDTO {
 
   @JsonDeserialize(
       using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
   )
   private ZonedDateTime signUpAt;
 
@@ -255,5 +270,26 @@ public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
     catch (DateTimeException e) {
       throw new JsonParseException(jsonParser, e.getMessage());
     }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeSerializer extends JsonSerializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider serializers)
+      throws IOException {
+    gen.writeString(formatter.format(value));
   }
 }
