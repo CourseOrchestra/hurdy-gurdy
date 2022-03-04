@@ -218,6 +218,7 @@ components:
     # Concrete classes
     #---------------------------------------------------------------------------
     'Car':
+      nullable: false
       allOf:
         - $ref: "#/components/schemas/Vehicle"
         - type: object
@@ -225,6 +226,7 @@ components:
             'car_property':
               type: string
     'Truck':
+      nullable: false
       allOf:
         - $ref: "#/components/schemas/Vehicle"
         - type: object

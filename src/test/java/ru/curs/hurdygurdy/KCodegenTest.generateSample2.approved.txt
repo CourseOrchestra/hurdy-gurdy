@@ -228,14 +228,20 @@ public data class Truck(
 /com/example/dto/Vehicle.kt
 package com.example.dto
 
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
-import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class Vehicle(
-  public val vehicleType: String? = null
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "vehicle_type"
 )
+@JsonSubTypes(JsonSubTypes.Type(value = Car::class, name = "CAR"),
+JsonSubTypes.Type(value = Truck::class, name = "TRUCK"))
+public sealed class Vehicle()
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt
 package com.example.dto

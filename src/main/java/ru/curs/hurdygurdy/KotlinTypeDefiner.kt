@@ -1,5 +1,8 @@
 package ru.curs.hurdygurdy
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.core.JsonParser
@@ -15,6 +18,7 @@ import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FunSpec
@@ -28,6 +32,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.joinToCode
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.ComposedSchema
@@ -155,16 +160,54 @@ class KotlinTypeDefiner internal constructor(
                     PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
                 ).build()
             )
-            .addModifiers(KModifier.DATA)
+
+        //This class is a superclass
+        if (schema.discriminator != null) {
+            classBuilder.addModifiers(KModifier.SEALED)
+            classBuilder.addAnnotation(
+                AnnotationSpec
+                    .builder(JsonTypeInfo::class)
+                    .addMember("use = %T.%L", JsonTypeInfo.Id::class, JsonTypeInfo.Id.NAME.name)
+                    .addMember("include = %T.%L", As::class, As.PROPERTY.name)
+                    .addMember("property = %S", schema.discriminator.propertyName)
+                    .build()
+            )
+        } else {
+            classBuilder.addModifiers(KModifier.DATA)
+        }
+
+        val subclassMapping = getSubclassMapping(schema)
+        if (subclassMapping.isNotEmpty()) {
+            val mappings =
+                subclassMapping
+                    .map { (key, value) ->
+                        AnnotationSpec.builder(JsonSubTypes.Type::class)
+                            .addMember("value = %T::class", referencedTypeName(value, openAPI))
+                            .addMember("name = %S", key).build()
+                    }
+                    .map { CodeBlock.of("%L", it) }.joinToCode(",\n")
+            classBuilder.addAnnotation(
+                AnnotationSpec.builder(JsonSubTypes::class)
+                    .addMember(mappings)
+                    .build()
+            )
+        }
+
+        //This class extends interfaces
         getExtendsList(schema).asSequence()
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
+
         //Add properties
         val schemaMap: Map<String, Schema<*>>? = schema.properties
         val constructorBuilder = FunSpec.constructorBuilder()
         if (schemaMap != null) for ((key, value) in schemaMap) {
             check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
                 String.format("Property '%s' of schema '%s' is not in snake case", key, name)
+            }
+            if (schema.discriminator != null && key == schema.discriminator.propertyName) {
+                //Skip the descriminator property
+                continue
             }
             val typeName = defineKotlinType(value, openAPI, classBuilder)
 
