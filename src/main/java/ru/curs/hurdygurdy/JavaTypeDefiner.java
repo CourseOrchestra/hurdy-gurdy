@@ -1,5 +1,7 @@
 package ru.curs.hurdygurdy;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -13,6 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
@@ -21,6 +24,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
 
@@ -104,10 +108,14 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     }
             }
         } else {
-            Matcher matcher = Pattern.compile("/([^/$]+)$").matcher($ref);
-            matcher.find();
-            return ClassName.get(String.join(".", rootPackage, "dto"), matcher.group(1));
+            return referencedClassName($ref);
         }
+    }
+
+    private ClassName referencedClassName(String ref) {
+        Matcher matcher = Pattern.compile("/([^/$]+)$").matcher(ref);
+        matcher.find();
+        return ClassName.get(String.join(".", rootPackage, "dto"), matcher.group(1));
     }
 
     private void ensureJsonZonedDateTimeDeserializer() {
@@ -178,14 +186,56 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     @Override
     TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI) {
+        if (schema instanceof ComposedSchema) {
+            var cs = (ComposedSchema) schema;
+            ClassName baseClass = ClassName.get(Object.class);
+            Schema<?> currentSchema = schema;
+            for (Schema<?> s : cs.getAllOf()) {
+                if (s.get$ref() != null) {
+                    baseClass = referencedClassName(s.get$ref());
+                } else {
+                    currentSchema = s;
+                }
+            }
+            return getDTOClass(name, currentSchema, openAPI, baseClass);
+        } else {
+            return getDTOClass(name, schema, openAPI, ClassName.get(Object.class));
+        }
+    }
 
-
+    private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass) {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name)
+                .superclass(baseClass)
                 .addAnnotation(Data.class)
                 .addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
                         "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build())
                 .addModifiers(Modifier.PUBLIC);
+        //This class is a superclass
+        if (schema.getDiscriminator() != null) {
+            classBuilder.addAnnotation(AnnotationSpec
+                    .builder(JsonTypeInfo.class)
+                    .addMember("use", "$T.$L", JsonTypeInfo.Id.class, JsonTypeInfo.Id.NAME.name())
+                    .addMember("include", "$T.$L", JsonTypeInfo.As.class, JsonTypeInfo.As.PROPERTY.name())
+                    .addMember("property", "$S", schema.getDiscriminator().getPropertyName())
+                    .build());
+        }
+        var subclassMapping = getSubclassMapping(schema);
+        if (!subclassMapping.isEmpty()) {
+            CodeBlock collect = subclassMapping.entrySet().stream()
+                    .map(e ->
+                            AnnotationSpec.builder(JsonSubTypes.Type.class)
+                                    .addMember("value", "$T.class", referencedClassName(e.getValue()))
+                                    .addMember("name", "$S", e.getKey()).build())
+                    .map(a -> CodeBlock.of("$L", a))
+                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
+            classBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
+                    .addMember("value", "$L", collect)
+                    .build());
+        }
+
+        //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
+
         //Add properties
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
@@ -194,6 +244,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         String.format("Property '%s' of schema '%s' is not in snake case",
                                 entry.getKey(), name)
                 );
+                if (schema.getDiscriminator() != null
+                        && entry.getKey().equals(schema.getDiscriminator().getPropertyName())) {
+                    //Skip the descriminator property
+                    continue;
+                }
                 TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder);
                 FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         typeName,
@@ -201,8 +256,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 if (typeName instanceof ClassName && "ZonedDateTime"
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(
-                                    ClassName.get(JsonDeserialize.class))
-                            .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                                            ClassName.get(JsonDeserialize.class))
+                                    .addMember("using", "ZonedDateTimeDeserializer.class").build())
                             .addAnnotation(AnnotationSpec.builder(
                                             ClassName.get(JsonSerialize.class))
                                     .addMember("using", "ZonedDateTimeSerializer.class").build());

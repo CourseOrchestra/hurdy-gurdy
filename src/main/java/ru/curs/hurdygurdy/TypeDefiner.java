@@ -1,10 +1,13 @@
 package ru.curs.hurdygurdy;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Schema;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
@@ -26,7 +29,7 @@ public abstract class TypeDefiner<T> {
     }
 
     @SuppressWarnings("unchecked")
-    List<String> getExtendsList(Schema<?> schema) {
+    final List<String> getExtendsList(Schema<?> schema) {
         List<String> extendsList = new ArrayList<>();
         Optional.ofNullable(schema.getExtensions()).map(e -> e.get("x-extends"))
                 .ifPresent(e -> {
@@ -38,6 +41,11 @@ public abstract class TypeDefiner<T> {
                         }
                 );
         return extendsList;
+    }
+
+    final Map<String, String> getSubclassMapping(Schema<?> schema) {
+        return Optional.ofNullable(schema.getDiscriminator())
+                .map(Discriminator::getMapping).orElse(Collections.emptyMap());
     }
 
     abstract T getEnum(String name, Schema<?> schema, OpenAPI openAPI);
