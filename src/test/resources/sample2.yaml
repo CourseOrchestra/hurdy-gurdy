@@ -195,3 +195,39 @@ components:
         - good
         - bad
         - ugly
+    'Parent':
+      type: object
+      properties:
+        'vehicle':
+          $ref: '#/components/schemas/Vehicle'
+    #---------------------------------------------------------------------------
+    # Abstract class with discriminator 'vehicle_type'
+    #---------------------------------------------------------------------------
+    'Vehicle':
+      type: object
+      nullable: false
+      properties:
+        'vehicle_type':
+          type: string
+      discriminator:
+        propertyName: vehicle_type
+        mapping:
+          'CAR': '#/components/schemas/Car'
+          'TRUCK': '#/components/schemas/Truck'
+    #---------------------------------------------------------------------------
+    # Concrete classes
+    #---------------------------------------------------------------------------
+    'Car':
+      allOf:
+        - $ref: "#/components/schemas/Vehicle"
+        - type: object
+          properties:
+            'car_property':
+              type: string
+    'Truck':
+      allOf:
+        - $ref: "#/components/schemas/Vehicle"
+        - type: object
+          properties:
+            'truck_property':
+              type: string

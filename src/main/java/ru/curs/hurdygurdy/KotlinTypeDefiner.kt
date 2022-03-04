@@ -30,6 +30,7 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
 import java.time.DateTimeException
 import java.time.LocalDate
@@ -105,14 +106,22 @@ class KotlinTypeDefiner internal constructor(
                 }
             }
         } else {
-            val name = Regex("/([^/$]+)$").find(`$ref`)?.groups?.get(1)?.value
-                ?: throw java.lang.IllegalStateException("Cannot parse reference $`$ref`")
-            val nullable = openAPI.components?.schemas?.get(name)?.nullable ?: true
-            return ClassName(java.lang.String.join(".", rootPackage, "dto"), name)
-                .copy(nullable = nullable)
+            return referencedTypeName(`$ref`, openAPI)
         }
         return result.copy(nullable = schema.nullable ?: true)
     }
+
+    private fun referencedTypeName(
+        `$ref`: String,
+        openAPI: OpenAPI
+    ): TypeName {
+        val name = Regex("/([^/$]+)$").find(`$ref`)?.groups?.get(1)?.value
+            ?: throw java.lang.IllegalStateException("Cannot parse reference $`$ref`")
+        val nullable = openAPI.components?.schemas?.get(name)?.nullable ?: true
+        return ClassName(java.lang.String.join(".", rootPackage, "dto"), name)
+            .copy(nullable = nullable)
+    }
+
 
     override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
@@ -121,7 +130,25 @@ class KotlinTypeDefiner internal constructor(
     }
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
+        return if (schema is ComposedSchema) {
+            var baseClass: TypeName = Any::class.asClassName()
+            var currentSchema = schema
+            for (s in schema.allOf) {
+                if (s.`$ref` != null) {
+                    baseClass = referencedTypeName(s.`$ref`, openAPI)
+                } else {
+                    currentSchema = s
+                }
+            }
+            getDTOClass(name, currentSchema, openAPI, baseClass)
+        } else {
+            getDTOClass(name, schema, openAPI, Any::class.asClassName())
+        }
+    }
+
+    private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder = TypeSpec.classBuilder(name)
+            .superclass(baseClass)
             .addAnnotation(
                 AnnotationSpec.builder(JsonNaming::class).addMember(
                     "value = %T::class",

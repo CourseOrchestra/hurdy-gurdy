@@ -56,6 +56,20 @@ interface PlayerController {
 ---
 /com/example/dto
 ---
+/com/example/dto/Car.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Car extends Vehicle {
+  private String carProperty;
+}
+---
 /com/example/dto/DepositDTO.java
 package com.example.dto;
 
@@ -86,6 +100,19 @@ public class DepositDTO {
       using = ZonedDateTimeSerializer.class
   )
   private ZonedDateTime processedAt;
+}
+---
+/com/example/dto/Parent.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Parent {
+  private Vehicle vehicle;
 }
 ---
 /com/example/dto/PlayerActivitiesDTO.java
@@ -242,6 +269,34 @@ import lombok.Data;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PlayersDTO {
   private List<PlayerDTO> players;
+}
+---
+/com/example/dto/Truck.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Truck extends Vehicle {
+  private String truckProperty;
+}
+---
+/com/example/dto/Vehicle.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Vehicle {
+  private String vehicleType;
 }
 ---
 /com/example/dto/ZonedDateTimeDeserializer.java
