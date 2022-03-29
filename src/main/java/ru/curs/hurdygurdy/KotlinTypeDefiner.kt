@@ -172,7 +172,7 @@ class KotlinTypeDefiner internal constructor(
                     .addMember("property = %S", schema.discriminator.propertyName)
                     .build()
             )
-        } else {
+        } else if (!schema.properties.isNullOrEmpty()) {
             classBuilder.addModifiers(KModifier.DATA)
         }
 
