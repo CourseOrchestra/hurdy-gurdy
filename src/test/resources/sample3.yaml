@@ -214,3 +214,6 @@ components:
           $ref: '#/components/schemas/DatabaseConnectionAuthType'
         access_level:
           $ref: '#/components/schemas/DatabaseConnectionAccessLevel'
+
+    ClassWithNoFields:
+      type: object
