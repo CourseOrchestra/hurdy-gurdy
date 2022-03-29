@@ -21,18 +21,18 @@ import org.springframework.web.bind.`annotation`.RequestBody
 public interface Controller {
   @GetMapping(
     value = ["/api/v1/tove/{id}"],
-    produces = ["application/json"]
+    produces = ["application/json"],
   )
   public fun getTove(@PathVariable(name = "id") id: Int?, response: HttpServletResponse): ToveDTO?
 
   @PutMapping(
     value = ["/api/v1/tove/{id}"],
-    produces = ["application/json"]
+    produces = ["application/json"],
   )
   public fun updateTove(
     @RequestBody request: ToveDTO?,
     @PathVariable(name = "id") id: Int?,
-    response: HttpServletResponse
+    response: HttpServletResponse,
   ): ToveDTO?
 }
 ---
@@ -47,5 +47,5 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class ToveDTO(
-  public val name: String? = null
+  public val name: String? = null,
 )
