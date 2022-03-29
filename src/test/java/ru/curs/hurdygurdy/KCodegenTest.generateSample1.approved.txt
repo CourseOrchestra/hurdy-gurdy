@@ -24,7 +24,7 @@ import org.springframework.web.bind.`annotation`.RequestParam
 public interface Controller {
   @GetMapping(
     value = ["/menu"],
-    produces = ["application/json"]
+    produces = ["application/json"],
   )
   public fun getMenu(response: HttpServletResponse): MenuDTO?
 
@@ -33,17 +33,17 @@ public interface Controller {
 
   @GetMapping(
     value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
-    produces = ["text/csv"]
+    produces = ["text/csv"],
   )
   public fun affiliatePlayerActivitiesCSV(
     @PathVariable(name = "id") id: Int?,
     @RequestParam(required = false, name = "status") status: Boolean?,
-    response: HttpServletResponse
+    response: HttpServletResponse,
   ): String?
 
   @GetMapping(
     value = ["/api/v1/bills"],
-    produces = ["application/json"]
+    produces = ["application/json"],
   )
   public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
       affiliateId: Int?, response: HttpServletResponse): Int?
@@ -60,7 +60,7 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class MenuDTO(
-  public val menuItems: List<MenuItemDTO>
+  public val menuItems: List<MenuItemDTO>,
 )
 ---
 /com/example/dto/MenuItemDTO.kt
@@ -90,7 +90,7 @@ public data class MenuItemDTO(
   public val floatValue: Double? = 3.14,
   @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
-  public val dateVale: ZonedDateTime? = null
+  public val dateVale: ZonedDateTime? = null,
 ) : Serializable
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt
@@ -135,7 +135,7 @@ public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
   public override fun serialize(
     `value`: ZonedDateTime,
     gen: JsonGenerator,
-    serializers: SerializerProvider
+    serializers: SerializerProvider,
   ): Unit {
     gen.writeString(formatter.format(value))
   }
