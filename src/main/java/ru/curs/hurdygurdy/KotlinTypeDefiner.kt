@@ -152,14 +152,18 @@ class KotlinTypeDefiner internal constructor(
     }
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
-        val classBuilder = TypeSpec.classBuilder(name)
-            .superclass(baseClass)
-            .addAnnotation(
-                AnnotationSpec.builder(JsonNaming::class).addMember(
-                    "value = %T::class",
-                    PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
-                ).build()
-            )
+        val classBuilder =
+            (if (schema.properties.isNullOrEmpty())
+                TypeSpec.objectBuilder(name)
+            else
+                TypeSpec.classBuilder(name))
+                .superclass(baseClass)
+                .addAnnotation(
+                    AnnotationSpec.builder(JsonNaming::class).addMember(
+                        "value = %T::class",
+                        PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
+                    ).build()
+                )
 
         //This class is a superclass
         if (schema.discriminator != null) {
@@ -198,64 +202,66 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
-        //Add properties
-        val schemaMap: Map<String, Schema<*>>? = schema.properties
-        val constructorBuilder = FunSpec.constructorBuilder()
-        if (schemaMap != null) for ((key, value) in schemaMap) {
-            check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
-                String.format("Property '%s' of schema '%s' is not in snake case", key, name)
-            }
-            if (schema.discriminator != null && key == schema.discriminator.propertyName) {
-                //Skip the descriminator property
-                continue
-            }
-            val typeName = defineKotlinType(value, openAPI, classBuilder)
+        if (!schema.properties.isNullOrEmpty()) {
+            //Add properties
+            val schemaMap: Map<String, Schema<*>>? = schema.properties
+            val constructorBuilder = FunSpec.constructorBuilder()
+            if (schemaMap != null) for ((key, value) in schemaMap) {
+                check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
+                    String.format("Property '%s' of schema '%s' is not in snake case", key, name)
+                }
+                if (schema.discriminator != null && key == schema.discriminator.propertyName) {
+                    //Skip the descriminator property
+                    continue
+                }
+                val typeName = defineKotlinType(value, openAPI, classBuilder)
 
-            val propertyName = CaseUtils.snakeToCamel(key)
-            val paramSpec =
-                ParameterSpec.builder(propertyName, typeName)
+                val propertyName = CaseUtils.snakeToCamel(key)
+                val paramSpec =
+                    ParameterSpec.builder(propertyName, typeName)
 
-            if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)
-            ) {
-                paramSpec.addAnnotation(
-                    AnnotationSpec.builder(JsonDeserialize::class)
-                        .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
-                        .addMember("using = ZonedDateTimeDeserializer::class")
-                        .build()
-                )
-                    .addAnnotation(
-                        AnnotationSpec.builder(JsonSerialize::class)
-                            .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
-                            .addMember("using = ZonedDateTimeSerializer::class")
+                if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)
+                ) {
+                    paramSpec.addAnnotation(
+                        AnnotationSpec.builder(JsonDeserialize::class)
+                            .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
+                            .addMember("using = ZonedDateTimeDeserializer::class")
                             .build()
                     )
-                ensureJsonZonedDateTimeDeserializer()
-            }
+                        .addAnnotation(
+                            AnnotationSpec.builder(JsonSerialize::class)
+                                .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                                .addMember("using = ZonedDateTimeSerializer::class")
+                                .build()
+                        )
+                    ensureJsonZonedDateTimeDeserializer()
+                }
 
-            val default = value.default
-            if (default != null)  {
-                if (value.type == "array") {
-                    paramSpec.defaultValue("listOf()")
+                val default = value.default
+                if (default != null) {
+                    if (value.type == "array") {
+                        paramSpec.defaultValue("listOf()")
+                    } else {
+                        paramSpec.defaultValue(
+                            if (typeName == String::class.asTypeName()) "%S" else "%L", default
+                        )
+                    }
                 } else {
-                    paramSpec.defaultValue(
-                        if (typeName == String::class.asTypeName()) "%S" else "%L", default
-                    )
+                    if (typeName.isNullable) {
+                        paramSpec.defaultValue("null")
+                    }
                 }
-            } else {
-                if (typeName.isNullable) {
-                    paramSpec.defaultValue("null")
-                }
+
+                val param = paramSpec.build()
+                constructorBuilder.addParameter(param)
+
+                val propertySpec = PropertySpec
+                    .builder(propertyName, typeName)
+                    .initializer(propertyName).build()
+                classBuilder.addProperty(propertySpec)
             }
-
-            val param = paramSpec.build()
-            constructorBuilder.addParameter(param)
-
-            val propertySpec = PropertySpec
-                .builder(propertyName, typeName)
-                .initializer(propertyName).build()
-            classBuilder.addProperty(propertySpec)
-        }
         classBuilder.primaryConstructor(constructorBuilder.build())
+        }
         return classBuilder.build()
     }
 
