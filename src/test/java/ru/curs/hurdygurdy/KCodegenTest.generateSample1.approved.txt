@@ -10,6 +10,7 @@
 /com/example/controller/Controller.kt
 package com.example.controller
 
+import com.example.dto.DatabaseConnectionRequest
 import com.example.dto.MenuDTO
 import javax.servlet.http.HttpServletResponse
 import kotlin.Boolean
@@ -47,6 +48,12 @@ public interface Controller {
   )
   public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
       affiliateId: Int?, response: HttpServletResponse): Int?
+
+  @GetMapping(
+    value = ["/api/v1/external"],
+    produces = ["text/csv"],
+  )
+  public fun `external`(response: HttpServletResponse): DatabaseConnectionRequest?
 }
 ---
 /com/example/dto

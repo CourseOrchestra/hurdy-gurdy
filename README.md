@@ -126,3 +126,48 @@ public data class Car(
     public val carProperty: String? = null
 ) : Vehicle()
 ```
+
+## Make DTO classes implement interfaces
+
+You can use `x-extends` [extended property](https://swagger.io/docs/specification/openapi-extensions/) on schema element in order to make DTO implement given interface or interfaces: 
+
+```yaml
+components:
+  schemas:
+    MenuItemDTO:
+      type: object
+      nullable: false
+      x-extends:
+        - java.lang.Serializable
+      title: MenuItemDTO
+      properties:
+        [....]
+```
+## References to external specifications
+You can use references to external specification files if they are available on the same file system as the original one. However, hurdy-gurdy does not attempt to generate code for referenced specifications: we believe this should be done explicitly for every spec. Hurdy-gurdy just uses `x-package` extension property on the referenced specification in order to define the location of referenced DTOs.
+
+For example, given the following spec fragment:
+
+```yaml
+  /api/v1/external:
+    get:
+      operationId: external
+      responses:
+        "200":
+          description: external file
+          content:
+            text/csv:
+              schema:
+                $ref: 'externalfile.yaml#/components/schemas/DatabaseConnectionRequest'
+```
+
+The `externalfile.yaml` file should be located in the same folder and it should contain `x-package` property:
+
+```yaml
+openapi: 3.0.1
+info:
+paths:
+x-package: com.example
+```
+Then code generator will suggest that `com.example.dto.DatabaseConnectionRequest` class exists on the classpath.
+

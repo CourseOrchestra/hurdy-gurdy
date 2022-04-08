@@ -1,0 +1,45 @@
+openapi: 3.0.1
+info:
+
+paths:
+
+x-package: com.example
+
+components:
+  schemas:
+    DatabaseConnectionRequest:
+      type: object
+      nullable: false
+      properties:
+        type:
+          $ref: '#/components/schemas/DatabaseType'
+        host:
+          description: Database host url
+          type: string
+          default: null
+        port:
+          description: Database port like 5432
+          type: integer
+          default: null
+        user_name:
+          description: Database user name
+          type: string
+          default: null
+        password:
+          description: Database password
+          type: string
+          default: null
+        name:
+          description: Connection name
+          example: My Connection
+          type: string
+          nullable: false
+        jdbc_url:
+          description: JDBC URL
+          example: jdbc:postgresql://127.0.0.1:5432/postgres
+          type: string
+          nullable: false
+        auth_type:
+          $ref: '#/components/schemas/DatabaseConnectionAuthType'
+        access_level:
+          $ref: '#/components/schemas/DatabaseConnectionAccessLevel'

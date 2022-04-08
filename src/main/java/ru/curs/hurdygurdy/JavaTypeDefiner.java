@@ -38,8 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
@@ -113,9 +111,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private ClassName referencedClassName(String ref) {
-        Matcher matcher = Pattern.compile("/([^/$]+)$").matcher(ref);
-        matcher.find();
-        return ClassName.get(String.join(".", rootPackage, "dto"), matcher.group(1));
+        String className = getClassName(ref);
+        String packageName = getPackage(ref);
+        return ClassName.get(String.join(".", packageName, "dto"), className);
     }
 
     private void ensureJsonZonedDateTimeDeserializer() {

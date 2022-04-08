@@ -10,6 +10,7 @@
 /com/example/controller/Api.java
 package com.example.controller;
 
+import com.example.dto.DatabaseConnectionRequest;
 import com.example.dto.MenuDTO;
 import java.lang.Boolean;
 import java.lang.Integer;
@@ -42,11 +43,18 @@ interface Api {
   )
   int getBills(
       @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId);
+
+  @GetMapping(
+      value = "/api/v1/external",
+      produces = "text/csv"
+  )
+  DatabaseConnectionRequest external();
 }
 ---
 /com/example/controller/Controller.java
 package com.example.controller;
 
+import com.example.dto.DatabaseConnectionRequest;
 import com.example.dto.MenuDTO;
 import java.lang.Boolean;
 import java.lang.Integer;
@@ -79,6 +87,12 @@ interface Controller {
   )
   int getBills(
       @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId);
+
+  @GetMapping(
+      value = "/api/v1/external",
+      produces = "text/csv"
+  )
+  DatabaseConnectionRequest external();
 }
 ---
 /com/example/dto

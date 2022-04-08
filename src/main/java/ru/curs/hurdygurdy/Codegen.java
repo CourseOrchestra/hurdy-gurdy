@@ -20,11 +20,12 @@ public abstract class Codegen<T> {
     private OpenAPI openAPI;
     private final Map<ClassCategory, List<T>> typeSpecs = new EnumMap<>(ClassCategory.class);
     private final List<TypeSpecExtractor<T>> typeSpecExtractors;
+    private final TypeDefiner<T> typeDefiner;
 
 
     public Codegen(String rootPackage, TypeProducersFactory<T> typeProducersFactory) {
         this.rootPackage = rootPackage;
-        TypeDefiner<T> typeDefiner = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
+        typeDefiner = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
         typeSpecExtractors = typeProducersFactory.typeSpecExtractors(typeDefiner);
     }
 
@@ -46,7 +47,7 @@ public abstract class Codegen<T> {
         if (!Files.isDirectory(resultDirectory)) throw new IllegalArgumentException(
                 String.format("File %s is not a directory", resultDirectory));
 
-
+        typeDefiner.init(sourceFile);
         typeSpecExtractors.forEach(e -> e.extractTypeSpecs(openAPI, this::addTypeSpec));
         generate(resultDirectory);
     }
