@@ -77,6 +77,19 @@ paths:
             application/json:
               schema:
                 type: integer
+
+
+  /api/v1/external:
+    get:
+      operationId: external
+      responses:
+        "200":
+          description: external file
+          content:
+            text/csv:
+              schema:
+                $ref: 'externalfile.yaml#/components/schemas/DatabaseConnectionRequest'
+
 components:
   schemas:
     MenuItemDTO:

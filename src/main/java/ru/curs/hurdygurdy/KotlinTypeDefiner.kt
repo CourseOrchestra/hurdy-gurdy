@@ -120,10 +120,10 @@ class KotlinTypeDefiner internal constructor(
         `$ref`: String,
         openAPI: OpenAPI
     ): TypeName {
-        val name = Regex("/([^/$]+)$").find(`$ref`)?.groups?.get(1)?.value
-            ?: throw java.lang.IllegalStateException("Cannot parse reference $`$ref`")
+        val name = getClassName(`$ref`)
+        val packageName = getPackage(`$ref`)
         val nullable = openAPI.components?.schemas?.get(name)?.nullable ?: true
-        return ClassName(java.lang.String.join(".", rootPackage, "dto"), name)
+        return ClassName(java.lang.String.join(".", packageName, "dto"), name)
             .copy(nullable = nullable)
     }
 
