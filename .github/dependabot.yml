@@ -25,3 +25,7 @@ updates:
       - dependency-name: org.sonatype.plugins:nexus-staging-maven-plugin
         versions:
           - ">1.6.8"
+      - dependency-name: io.swagger.parser.v3:swagger-parser
+        versions:
+          #this version breaks openapi-codegen
+          - "2.0.32"
