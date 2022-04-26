@@ -1,6 +1,7 @@
 package ru.curs.hurdygurdy;
 
 import io.swagger.parser.OpenAPIParser;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Schema;
@@ -26,7 +27,7 @@ public abstract class TypeDefiner<T> {
 
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final String rootPackage;
-    final Map<String, String> externalPackages = new HashMap<>();
+    final Map<String, DTOMeta> externalClasses = new HashMap<>();
     private Path sourceFile;
 
     TypeDefiner(String rootPackage, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
@@ -78,27 +79,33 @@ public abstract class TypeDefiner<T> {
 
     void init(Path currentSourceFile) {
         this.sourceFile = currentSourceFile;
-        externalPackages.clear();
+        externalClasses.clear();
     }
 
-    String getPackage(String ref) {
-        String fileName = getClassFile(ref);
+
+    DTOMeta getReferencedTypeInfo(OpenAPI currentOpenAPI, String ref) {
+        String fileName = extractGroup(ref, FILE_NAME_PATTERN);
+        String className = extractGroup(ref, CLASS_NAME_PATTERN);
         if (fileName.isBlank()) {
-            return rootPackage;
+            return new DTOMeta(className,
+                    rootPackage,
+                    fileName,
+                    getNullable(currentOpenAPI, className));
         } else {
-            return externalPackages.computeIfAbsent(fileName, f -> {
+            return externalClasses.computeIfAbsent(ref, f -> {
                 ParseOptions parseOptions = new ParseOptions();
                 Path externalFile = sourceFile.resolveSibling(fileName);
                 try {
                     final SwaggerParseResult parseResult = new OpenAPIParser()
                             .readContents(Files.readString(externalFile), null, parseOptions);
                     OpenAPI openAPI = parseResult.getOpenAPI();
-                    return Optional.ofNullable(openAPI.getExtensions())
+                    String packageName = Optional.ofNullable(openAPI.getExtensions())
                             .map(e -> e.get("x-package"))
                             .map(String.class::cast)
                             .orElseThrow(() -> new IllegalStateException(
                                     String.format(
                                             "x-package not defined for externally linked file %s ", externalFile)));
+                    return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className));
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
@@ -106,12 +113,12 @@ public abstract class TypeDefiner<T> {
         }
     }
 
-    String getClassName(String ref) {
-        return extractGroup(ref, CLASS_NAME_PATTERN);
-    }
-
-    private String getClassFile(String ref) {
-        return extractGroup(ref, FILE_NAME_PATTERN);
+    private boolean getNullable(OpenAPI currentOpenAPI, String className) {
+        return Optional.ofNullable(currentOpenAPI.getComponents())
+                .map(Components::getSchemas)
+                .map(map -> map.get(className))
+                .map(Schema::getNullable)
+                .orElse(true);
     }
 
     private String extractGroup(String ref, Pattern pattern) {

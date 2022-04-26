@@ -106,14 +106,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     }
             }
         } else {
-            return referencedClassName($ref);
+            return referencedClassName(openAPI, $ref);
         }
     }
 
-    private ClassName referencedClassName(String ref) {
-        String className = getClassName(ref);
-        String packageName = getPackage(ref);
-        return ClassName.get(String.join(".", packageName, "dto"), className);
+    private ClassName referencedClassName(OpenAPI openAPI, String ref) {
+        DTOMeta meta = getReferencedTypeInfo(openAPI, ref);
+        return ClassName.get(String.join(".", meta.getPackageName(), "dto"), meta.getClassName());
     }
 
     private void ensureJsonZonedDateTimeDeserializer() {
@@ -190,7 +189,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             Schema<?> currentSchema = schema;
             for (Schema<?> s : cs.getAllOf()) {
                 if (s.get$ref() != null) {
-                    baseClass = referencedClassName(s.get$ref());
+                    baseClass = referencedClassName(openAPI, s.get$ref());
                 } else {
                     currentSchema = s;
                 }
@@ -222,7 +221,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             CodeBlock collect = subclassMapping.entrySet().stream()
                     .map(e ->
                             AnnotationSpec.builder(JsonSubTypes.Type.class)
-                                    .addMember("value", "$T.class", referencedClassName(e.getValue()))
+                                    .addMember("value", "$T.class", referencedClassName(openAPI, e.getValue()))
                                     .addMember("name", "$S", e.getKey()).build())
                     .map(a -> CodeBlock.of("$L", a))
                     .collect(CodeBlock.joining(",\n", "{\n", "}"));

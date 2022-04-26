@@ -43,3 +43,10 @@ components:
           $ref: '#/components/schemas/DatabaseConnectionAuthType'
         access_level:
           $ref: '#/components/schemas/DatabaseConnectionAccessLevel'
+
+    NullableType:
+      type: object
+      nullable: true
+      properties:
+        type:
+          $ref: '#/components/schemas/DatabaseType'

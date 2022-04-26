@@ -12,12 +12,15 @@ package com.example.controller;
 
 import com.example.dto.DatabaseConnectionRequest;
 import com.example.dto.MenuDTO;
+import com.example.dto.NullableType;
 import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 interface Api {
@@ -44,11 +47,17 @@ interface Api {
   int getBills(
       @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId);
 
-  @GetMapping(
+  @PutMapping(
       value = "/api/v1/external",
       produces = "text/csv"
   )
-  DatabaseConnectionRequest external();
+  int external(@RequestBody DatabaseConnectionRequest request);
+
+  @PutMapping(
+      value = "/api/v1/external2",
+      produces = "text/csv"
+  )
+  String external2(@RequestBody NullableType request);
 }
 ---
 /com/example/controller/Controller.java
@@ -56,12 +65,15 @@ package com.example.controller;
 
 import com.example.dto.DatabaseConnectionRequest;
 import com.example.dto.MenuDTO;
+import com.example.dto.NullableType;
 import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 interface Controller {
@@ -88,11 +100,17 @@ interface Controller {
   int getBills(
       @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId);
 
-  @GetMapping(
+  @PutMapping(
       value = "/api/v1/external",
       produces = "text/csv"
   )
-  DatabaseConnectionRequest external();
+  int external(@RequestBody DatabaseConnectionRequest request);
+
+  @PutMapping(
+      value = "/api/v1/external2",
+      produces = "text/csv"
+  )
+  String external2(@RequestBody NullableType request);
 }
 ---
 /com/example/dto

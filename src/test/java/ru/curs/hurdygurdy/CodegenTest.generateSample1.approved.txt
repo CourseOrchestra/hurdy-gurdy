@@ -12,6 +12,7 @@ package com.example.controller;
 
 import com.example.dto.DatabaseConnectionRequest;
 import com.example.dto.MenuDTO;
+import com.example.dto.NullableType;
 import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
@@ -19,6 +20,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 interface Controller {
@@ -47,11 +50,17 @@ interface Controller {
       @RequestParam(required = false, name = "affiliate_id", defaultValue = "42") Integer affiliateId,
       HttpServletResponse response);
 
-  @GetMapping(
+  @PutMapping(
       value = "/api/v1/external",
       produces = "text/csv"
   )
-  DatabaseConnectionRequest external(HttpServletResponse response);
+  int external(@RequestBody DatabaseConnectionRequest request, HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/external2",
+      produces = "text/csv"
+  )
+  String external2(@RequestBody NullableType request, HttpServletResponse response);
 }
 ---
 /com/example/dto
