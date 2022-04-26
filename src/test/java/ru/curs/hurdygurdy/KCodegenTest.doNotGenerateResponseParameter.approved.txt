@@ -12,6 +12,7 @@ package com.example.controller
 
 import com.example.dto.DatabaseConnectionRequest
 import com.example.dto.MenuDTO
+import com.example.dto.NullableType
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
@@ -19,6 +20,8 @@ import kotlin.Unit
 import org.springframework.web.bind.`annotation`.DeleteMapping
 import org.springframework.web.bind.`annotation`.GetMapping
 import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PutMapping
+import org.springframework.web.bind.`annotation`.RequestBody
 import org.springframework.web.bind.`annotation`.RequestParam
 
 public interface Api {
@@ -45,11 +48,17 @@ public interface Api {
   public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
       affiliateId: Int?): Int?
 
-  @GetMapping(
+  @PutMapping(
     value = ["/api/v1/external"],
     produces = ["text/csv"],
   )
-  public fun `external`(): DatabaseConnectionRequest?
+  public fun `external`(@RequestBody request: DatabaseConnectionRequest): Int?
+
+  @PutMapping(
+    value = ["/api/v1/external2"],
+    produces = ["text/csv"],
+  )
+  public fun external2(@RequestBody request: NullableType?): String?
 }
 ---
 /com/example/controller/Controller.kt
@@ -57,6 +66,7 @@ package com.example.controller
 
 import com.example.dto.DatabaseConnectionRequest
 import com.example.dto.MenuDTO
+import com.example.dto.NullableType
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
@@ -64,6 +74,8 @@ import kotlin.Unit
 import org.springframework.web.bind.`annotation`.DeleteMapping
 import org.springframework.web.bind.`annotation`.GetMapping
 import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PutMapping
+import org.springframework.web.bind.`annotation`.RequestBody
 import org.springframework.web.bind.`annotation`.RequestParam
 
 public interface Controller {
@@ -90,11 +102,17 @@ public interface Controller {
   public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
       affiliateId: Int?): Int?
 
-  @GetMapping(
+  @PutMapping(
     value = ["/api/v1/external"],
     produces = ["text/csv"],
   )
-  public fun `external`(): DatabaseConnectionRequest?
+  public fun `external`(@RequestBody request: DatabaseConnectionRequest): Int?
+
+  @PutMapping(
+    value = ["/api/v1/external2"],
+    produces = ["text/csv"],
+  )
+  public fun external2(@RequestBody request: NullableType?): String?
 }
 ---
 /com/example/dto

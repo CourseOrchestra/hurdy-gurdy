@@ -120,11 +120,9 @@ class KotlinTypeDefiner internal constructor(
         `$ref`: String,
         openAPI: OpenAPI
     ): TypeName {
-        val name = getClassName(`$ref`)
-        val packageName = getPackage(`$ref`)
-        val nullable = openAPI.components?.schemas?.get(name)?.nullable ?: true
-        return ClassName(java.lang.String.join(".", packageName, "dto"), name)
-            .copy(nullable = nullable)
+        val meta = getReferencedTypeInfo(openAPI, `$ref`)
+        return ClassName(java.lang.String.join(".", meta.packageName, "dto"), meta.className)
+            .copy(nullable = meta.isNullable)
     }
 
 

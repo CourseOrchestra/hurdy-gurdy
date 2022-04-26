@@ -80,15 +80,36 @@ paths:
 
 
   /api/v1/external:
-    get:
+    put:
       operationId: external
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: 'externalfile.yaml#/components/schemas/DatabaseConnectionRequest'
       responses:
         "200":
           description: external file
           content:
             text/csv:
               schema:
-                $ref: 'externalfile.yaml#/components/schemas/DatabaseConnectionRequest'
+                type: integer
+
+  /api/v1/external2:
+    put:
+      operationId: external2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: 'externalfile.yaml#/components/schemas/NullableType'
+      responses:
+        "200":
+          description: external file
+          content:
+            text/csv:
+              schema:
+                type: string
 
 components:
   schemas:
