@@ -71,6 +71,12 @@ class KCodegenTest {
         Approvals.verify(getContent(result));
     }
 
+    @Test
+    void generateMultipart() throws IOException {
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
     String getContent(Path path) throws IOException {
         return Files.walk(path)
                 .sorted()

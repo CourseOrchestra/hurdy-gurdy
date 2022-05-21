@@ -13,17 +13,11 @@ import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.media.Content
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.parameters.RequestBody
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
+import kotlin.streams.asSequence
 
 class KotlinAPIExtractor(
     typeDefiner: TypeDefiner<TypeSpec>,
@@ -51,14 +45,16 @@ class KotlinAPIExtractor(
         getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.key)?.let(methodBuilder::addAnnotation)
         //we are deriving the returning type from the schema of the successful result
         methodBuilder.returns(determineReturnKotlinType(operationEntry.value, openAPI, classBuilder))
-        Optional.ofNullable(operationEntry.value.requestBody).map { obj: RequestBody -> obj.content }
-            .map { getContentType(it, openAPI, classBuilder) }
-            .ifPresent { typeName: TypeName ->
+        Optional.ofNullable(operationEntry.value.requestBody)
+            .map { obj: RequestBody -> obj.content }
+            .stream().asSequence()
+            .flatMap { getContentType(it, openAPI, classBuilder) }
+            .forEach { paramSpec: RequestPartParams ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        "request",
-                        typeName
-                    ).addAnnotation(org.springframework.web.bind.annotation.RequestBody::class).build()
+                        paramSpec.name,
+                        paramSpec.typeName
+                    ).addAnnotation(paramSpec.annotation).build()
                 )
             }
 
@@ -160,19 +156,57 @@ class KotlinAPIExtractor(
     }
 
     private fun determineReturnKotlinType(operation: Operation, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName =
-        getSuccessfulReply(operation).map { c: Content ->
-            getContentType(
-                c,
-                openAPI,
-                parent
-            )
-        }.orElse(UNIT)
+        getSuccessfulReply(operation)
+            .stream().asSequence()
+            .flatMap { c: Content ->
+                getContentType(c, openAPI, parent)
+            }
+            .map { it.typeName }
+            .firstOrNull() ?: UNIT
 
-    private fun getContentType(content: Content, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName =
-        Optional.ofNullable(content)
-            .flatMap(::getMediaType)
-            .map { it.value }
-            .map { it.schema }
-            .map { typeDefiner.defineKotlinType(it, openAPI, parent) }
-            .orElse(UNIT)
+    private data class RequestPartParams(
+        val typeName: TypeName,
+        val name: String,
+        val annotation: AnnotationSpec
+    )
+
+    private fun getContentType(
+        content: Content,
+        openAPI: OpenAPI,
+        parent: TypeSpec.Builder
+    ): Sequence<RequestPartParams> {
+        val mediaTypeEntry = Optional.ofNullable(content)
+            .flatMap { getMediaType(it) }
+        if (mediaTypeEntry.isEmpty) {
+            return sequenceOf()
+        } else {
+            val entry = mediaTypeEntry.get()
+            if ("multipart/form-data".equals(entry.key, ignoreCase = true)) {
+                //Multipart
+                return entry.value.schema?.properties?.asSequence().orEmpty()
+                    .map { (name, schema) ->
+                        RequestPartParams(
+                            name = name,
+                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent),
+                            annotation = AnnotationSpec.builder(RequestPart::class)
+                                .addMember("name = %S", name).build()
+                        )
+                    }
+
+            } else {
+                //Single-part
+                return Optional.ofNullable(entry.value.schema).stream().asSequence()
+                    .map { typeDefiner.defineKotlinType(it, openAPI, parent) }
+                    .map {
+                        RequestPartParams(
+                            name = "request",
+                            typeName = it,
+                            annotation = AnnotationSpec
+                                .builder(org.springframework.web.bind.annotation.RequestBody::class)
+                                .build()
+                        )
+                    }
+            }
+        }
+    }
 }
