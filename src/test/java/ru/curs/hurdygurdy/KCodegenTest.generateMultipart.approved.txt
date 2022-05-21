@@ -1,0 +1,44 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.RunWorkflowRequest
+import javax.servlet.http.HttpServletResponse
+import kotlin.String
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestPart
+
+public interface Controller {
+  @PostMapping(
+    value = ["/api/v1/workflow-run"],
+    produces = ["application/json"],
+  )
+  public fun runWorkflow(
+    @RequestPart(name = "runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest,
+    @RequestPart(name = "config") config: String?,
+    response: HttpServletResponse,
+  ): RunWorkflowRequest
+}
+---
+/com/example/dto
+---
+/com/example/dto/RunWorkflowRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class RunWorkflowRequest(
+  public val inputConnection: String? = null,
+  public val outputConnection: String? = null,
+)
