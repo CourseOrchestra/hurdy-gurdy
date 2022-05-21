@@ -20,11 +20,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 
 import javax.lang.model.element.Modifier;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
@@ -48,19 +50,22 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         methodBuilder.addAnnotation(getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.getKey()));
         //we are deriving the returning type from the schema of the successful result
         methodBuilder.returns(determineReturnJavaType(operationEntry.getValue(), openAPI, classBuilder));
-        Optional.ofNullable(operationEntry.getValue().getRequestBody()).map(RequestBody::getContent)
-                .map(c -> getContentType(c, openAPI, classBuilder)).ifPresent(typeName ->
+        Optional.ofNullable(operationEntry.getValue().getRequestBody())
+                .map(RequestBody::getContent)
+                .stream()
+                .flatMap(c -> getContentTypes(c, openAPI, classBuilder))
+                .forEach(paramSpec ->
                         methodBuilder.addParameter(ParameterSpec.builder(
-                                        typeName,
-                                        "request")
-                                .addAnnotation(org.springframework.web.bind.annotation.RequestBody.class).build())
+                                paramSpec.typeName,
+                                paramSpec.name)
+                                .addAnnotation(paramSpec.annotation).build())
                 );
 
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
-                                CaseUtils.snakeToCamel(parameter.getName()))
+                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        CaseUtils.snakeToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(PathVariable.class)
                                         .addMember("name", "$S", parameter.getName()).build()
@@ -70,8 +75,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> {
                             AnnotationSpec.Builder builder = AnnotationSpec.builder(
-                                            RequestParam.class
-                                    ).addMember("required", "$L", parameter.getRequired())
+                                    RequestParam.class
+                            ).addMember("required", "$L", parameter.getRequired())
                                     .addMember("name", "$S", parameter.getName());
 
                             Optional.ofNullable(parameter.getSchema())
@@ -81,21 +86,21 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
                             AnnotationSpec annotationSpec = builder.build();
                             methodBuilder.addParameter(ParameterSpec.builder(
-                                            safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                                    classBuilder)),
-                                            CaseUtils.snakeToCamel(parameter.getName()))
+                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                            classBuilder)),
+                                    CaseUtils.snakeToCamel(parameter.getName()))
                                     .addAnnotation(annotationSpec).build());
                         }
                 );
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
-                                CaseUtils.kebabToCamel(parameter.getName()))
+                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        CaseUtils.kebabToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(
-                                                RequestHeader.class
-                                        ).addMember("required", "$L", parameter.getRequired())
+                                        RequestHeader.class
+                                ).addMember("required", "$L", parameter.getRequired())
                                         .addMember("name", "$S", parameter.getName()).build()
                         ).build()));
         if (generateResponseParameter) {
@@ -115,17 +120,56 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     }
 
     private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI, TypeSpec.Builder parent) {
-        return getSuccessfulReply(operation).map(c -> getContentType(c, openAPI, parent)).orElse(TypeName.VOID);
+        return getSuccessfulReply(operation)
+                .stream()
+                .flatMap(c -> getContentTypes(c, openAPI, parent))
+                .map(p -> p.typeName)
+                .findFirst()
+                .orElse(TypeName.VOID);
     }
 
-    private TypeName getContentType(Content content, OpenAPI openAPI, TypeSpec.Builder parent) {
-        return Optional.ofNullable(content)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getValue)
-                .map(MediaType::getSchema)
-                .map(s -> typeDefiner.defineJavaType(s, openAPI, parent))
-                .map(JavaAPIExtractor::safeUnbox)
-                .orElse(TypeName.VOID);
+    private static class RequestPartParams {
+        final TypeName typeName;
+        final String name;
+        final AnnotationSpec annotation;
+
+        RequestPartParams(TypeName typeName, String name, AnnotationSpec annotation) {
+            this.typeName = typeName;
+            this.name = name;
+            this.annotation = annotation;
+        }
+    }
+
+    private Stream<RequestPartParams> getContentTypes(Content content, OpenAPI openAPI, TypeSpec.Builder parent) {
+        final Optional<Map.Entry<String, MediaType>> mediaTypeEntry =
+                Optional.ofNullable(content)
+                        .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType);
+        if (mediaTypeEntry.isEmpty()) {
+            return Stream.of();
+        } else {
+            Map.Entry<String, MediaType> entry = mediaTypeEntry.get();
+            if ("multipart/form-data".equalsIgnoreCase(entry.getKey())) {
+                //Multipart
+                return ((Schema<?>) entry.getValue().getSchema())
+                        .getProperties()
+                        .entrySet()
+                        .stream()
+                        .map(e -> new RequestPartParams(
+                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI, parent)),
+                                e.getKey(),
+                                AnnotationSpec.builder(RequestPart.class)
+                                        .addMember("name", "$S", e.getKey()).build()));
+            } else {
+                //Single-part
+                return Optional.ofNullable(entry.getValue().getSchema()).stream()
+                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent))
+                        .map(JavaAPIExtractor::safeUnbox).map(t ->
+                                new RequestPartParams(t,
+                                        "request",
+                                        AnnotationSpec.builder(
+                                                org.springframework.web.bind.annotation.RequestBody.class).build()));
+            }
+        }
     }
 
     private AnnotationSpec getControllerMethodAnnotationSpec(Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
@@ -152,7 +196,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
                     .addMember("value", "$S", path);
             getSuccessfulReply(operationEntry.getValue())
-                    .flatMap(APIExtractor::getMediaType)
+                    .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
                     .map(Map.Entry::getKey)
                     .ifPresent(mt -> builder.addMember("produces", "$S", mt));
             return builder.build();

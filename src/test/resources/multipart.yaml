@@ -1,0 +1,47 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/workflow-run:
+    description: run workflow
+    post:
+      operationId: runWorkflow
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                runWorkflowRequest:
+                  $ref: '#/components/schemas/RunWorkflowRequest'
+                config:
+                  type: string
+                  format: binary
+            encoding:
+              runWorkflowRequest:
+                contentType: application/json
+              config:
+                contentType: application/octet-stream
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunWorkflowRequest'
+
+components:
+  schemas:
+    RunWorkflowRequest:
+      type: object
+      title: RunWorkflowRequest
+      nullable: false
+      properties:
+        input_connection:
+          type: string
+        output_connection:
+          type: string

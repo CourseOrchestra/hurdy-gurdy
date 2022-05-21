@@ -57,6 +57,12 @@ class CodegenTest {
     }
 
     @Test
+    void generateMultipart() throws IOException {
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void generateFromSpecs() throws IOException {
         codegen.addTypeSpec(ClassCategory.DTO, TypeSpec.interfaceBuilder("Intf1").build());
         codegen.addTypeSpec(ClassCategory.DTO, TypeSpec.interfaceBuilder("Intf2").build());
