@@ -1,0 +1,50 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+
+components:
+  schemas:
+    Categories:
+      type: object
+      title: Category for Categorical Generator
+      nullable: true
+      properties:
+        type:
+          type: string
+      discriminator:
+        propertyName: type
+        mapping:
+          'string': '#/components/schemas/StringCategories'
+          'boolean': '#/components/schemas/BooleanCategories'
+
+    StringCategories:
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/Categories"
+        - type: object
+          properties:
+            'car_property':
+              type: string
+    BooleanCategories:
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/Categories"
+        - type: object
+          properties:
+            'truck_property':
+              type: string

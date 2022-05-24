@@ -199,7 +199,14 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
                     .map(Map.Entry::getKey)
                     .ifPresent(mt -> builder.addMember("produces", "$S", mt));
+            Optional.ofNullable(operationEntry.getValue().getRequestBody())
+                    .map(RequestBody::getContent)
+                    .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                    .map(Map.Entry::getKey)
+                    .filter(s -> !s.isBlank() && !s.equals("application/json"))
+                    .ifPresent(mt -> builder.addMember("consumes", "$S", mt));
             return builder.build();
+
         } else return null;
 
     }

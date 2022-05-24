@@ -37,6 +37,7 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
+import org.springframework.web.multipart.MultipartFile
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -56,23 +57,24 @@ class KotlinTypeDefiner internal constructor(
         val result = if (`$ref` == null) {
             val internalType = schema.type
             when (internalType) {
-                "string" -> if ("date" == schema.format)
-                    LocalDate::class.asTypeName()
-                else if ("date-time" == schema.format)
-                    ZonedDateTime::class.asTypeName()
-                else if ("uuid" == schema.format)
-                    UUID::class.asTypeName()
-                else if (schema.enum != null) {
-                    //internal enum
-                    val simpleName = schema.title ?: throw IllegalStateException("Inline enum schema must have a title")
-                    val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
-                    for (e in schema.enum) {
-                        enumBuilder.addEnumConstant(e.toString())
+                "string" -> when {
+                    "date" == schema.format -> LocalDate::class.asTypeName()
+                    "date-time" == schema.format -> ZonedDateTime::class.asTypeName()
+                    "uuid" == schema.format -> UUID::class.asTypeName()
+                    "binary" == schema.format -> MultipartFile::class.asTypeName()
+                    schema.enum != null -> {
+                        //internal enum
+                        val simpleName = schema.title ?: throw IllegalStateException("Inline enum schema must have a title")
+                        val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
+                        for (e in schema.enum) {
+                            enumBuilder.addEnumConstant(e.toString())
+                        }
+                        val internalEnum: TypeSpec = enumBuilder.build()
+                        parent.addType(internalEnum)
+                        ClassName("", simpleName)
                     }
-                    val internalEnum: TypeSpec = enumBuilder.build()
-                    parent.addType(internalEnum)
-                    ClassName("", simpleName)
-                } else String::class.asTypeName()
+                    else -> String::class.asTypeName()
+                }
                 "number" ->
                     if ("float" == schema.format) FLOAT else DOUBLE
                 "integer" -> if ("int64" == schema.format) LONG else INT
@@ -138,7 +140,7 @@ class KotlinTypeDefiner internal constructor(
             var currentSchema = schema
             for (s in schema.allOf) {
                 if (s.`$ref` != null) {
-                    baseClass = referencedTypeName(s.`$ref`, openAPI)
+                    baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
                 } else {
                     currentSchema = s
                 }

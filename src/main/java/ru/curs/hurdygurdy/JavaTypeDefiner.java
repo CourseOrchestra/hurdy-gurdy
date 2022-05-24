@@ -27,6 +27,7 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
@@ -60,6 +61,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         return TypeName.get(ZonedDateTime.class);
                     } else if ("uuid".equals(schema.getFormat())) {
                         return ClassName.get(UUID.class);
+                    } else if ("binary".equals(schema.getFormat())) {
+                        return ClassName.get(MultipartFile.class);
                     } else if (schema.getEnum() != null) {
                         //internal enum
                         String simpleName = schema.getTitle();
@@ -130,7 +133,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                     .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
                                     .build())
                             .addMethod(MethodSpec.methodBuilder(
-                                            "deserialize")
+                                    "deserialize")
                                     .returns(ClassName.get(ZonedDateTime.class))
                                     .addAnnotation(Override.class)
                                     .addModifiers(Modifier.PUBLIC)
@@ -158,12 +161,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                             ))
                             .addModifiers(Modifier.PUBLIC)
                             .addField(FieldSpec.builder(ClassName.get(DateTimeFormatter.class),
-                                            "formatter")
+                                    "formatter")
                                     .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                                     .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
                                     .build())
                             .addMethod(MethodSpec.methodBuilder(
-                                            "serialize")
+                                    "serialize")
                                     .addAnnotation(Override.class)
                                     .addModifiers(Modifier.PUBLIC)
                                     .addParameter(ParameterSpec.builder(ZonedDateTime.class, "value").build())
@@ -253,10 +256,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 if (typeName instanceof ClassName && "ZonedDateTime"
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(
-                                            ClassName.get(JsonDeserialize.class))
-                                    .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                            ClassName.get(JsonDeserialize.class))
+                            .addMember("using", "ZonedDateTimeDeserializer.class").build())
                             .addAnnotation(AnnotationSpec.builder(
-                                            ClassName.get(JsonSerialize.class))
+                                    ClassName.get(JsonSerialize.class))
                                     .addMember("using", "ZonedDateTimeSerializer.class").build());
                     ensureJsonZonedDateTimeDeserializer();
                 }
