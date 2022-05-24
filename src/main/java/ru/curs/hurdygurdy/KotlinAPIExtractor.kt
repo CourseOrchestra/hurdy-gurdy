@@ -151,6 +151,13 @@ class KotlinAPIExtractor(
                 .flatMap(::getMediaType)
                 .map { it.key }
                 .ifPresent { builder.addMember("produces = [%S]", it) }
+
+            Optional.ofNullable(operationEntry.value.requestBody)
+                .map { it.content }
+                .flatMap(::getMediaType)
+                .map { it.key }
+                .filter { it.isNotBlank() && it != "application/json" }
+                .ifPresent { builder.addMember("consumes = [%S]", it) }
             builder.build()
         } else null
     }

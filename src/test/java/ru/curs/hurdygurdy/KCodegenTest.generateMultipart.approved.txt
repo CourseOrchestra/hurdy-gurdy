@@ -12,18 +12,19 @@ package com.example.controller
 
 import com.example.dto.RunWorkflowRequest
 import javax.servlet.http.HttpServletResponse
-import kotlin.String
 import org.springframework.web.bind.`annotation`.PostMapping
 import org.springframework.web.bind.`annotation`.RequestPart
+import org.springframework.web.multipart.MultipartFile
 
 public interface Controller {
   @PostMapping(
     value = ["/api/v1/workflow-run"],
     produces = ["application/json"],
+    consumes = ["multipart/form-data"],
   )
   public fun runWorkflow(
     @RequestPart(name = "runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest,
-    @RequestPart(name = "config") config: String?,
+    @RequestPart(name = "config") config: MultipartFile?,
     response: HttpServletResponse,
   ): RunWorkflowRequest
 }
