@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class KCodegenTest {
-    private KotlinCodegen codegen = new KotlinCodegen("com.example", true, false);
+    private KotlinCodegen codegen = new KotlinCodegen(
+            GeneratorParams.rootPackage("com.example").generateResponseParameter(true));
     Path result;
 
     @BeforeEach
@@ -51,7 +52,10 @@ class KCodegenTest {
 
     @Test
     void doNotGenerateResponseParameter() throws IOException {
-        codegen = new KotlinCodegen("com.example", false, true);
+        codegen = new KotlinCodegen(GeneratorParams
+                .rootPackage("com.example")
+                .generateResponseParameter(false)
+                .generateApiInterface(true));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
         Approvals.verify(getContent(result));
     }

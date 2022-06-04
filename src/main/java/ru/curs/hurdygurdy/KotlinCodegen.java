@@ -9,17 +9,17 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 public class KotlinCodegen extends Codegen<TypeSpec> {
-    public KotlinCodegen(String rootPackage, boolean generateResponseParameter, boolean generateApiInterface) {
-        super(rootPackage, new TypeProducersFactory<>() {
+    public KotlinCodegen(GeneratorParams params) {
+        super(params, new TypeProducersFactory<>() {
             @Override
             public TypeDefiner<TypeSpec> createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
-                return new KotlinTypeDefiner(rootPackage, typeSpecBiConsumer);
+                return new KotlinTypeDefiner(params, typeSpecBiConsumer);
             }
 
             @Override
             public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(TypeDefiner<TypeSpec> typeDefiner) {
                 return List.of(new KotlinDTOExtractor(typeDefiner),
-                        new KotlinAPIExtractor(typeDefiner, generateResponseParameter, generateApiInterface));
+                        new KotlinAPIExtractor(typeDefiner, params));
             }
         });
     }

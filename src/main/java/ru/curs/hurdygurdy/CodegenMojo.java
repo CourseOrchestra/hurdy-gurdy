@@ -38,10 +38,14 @@ public class CodegenMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        GeneratorParams params =
+                GeneratorParams.rootPackage(rootPackage)
+                        .generateResponseParameter(generateResponseParameter)
+                        .generateApiInterface(generateApiInterface);
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language)
-                        ? new JavaCodegen(rootPackage, generateResponseParameter, generateApiInterface)
-                        : new KotlinCodegen(rootPackage, generateResponseParameter, generateApiInterface);
+                        ? new JavaCodegen(params)
+                        : new KotlinCodegen(params);
         try {
             Path targetPath = getTargetPath();
             codegen.generate(Path.of(spec), targetPath);

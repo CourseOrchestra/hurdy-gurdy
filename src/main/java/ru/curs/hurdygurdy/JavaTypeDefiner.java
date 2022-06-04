@@ -43,8 +43,8 @@ import java.util.function.BiConsumer;
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
 
-    public JavaTypeDefiner(String rootPackage, BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
-        super(rootPackage, typeSpecBiConsumer);
+    public JavaTypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+        super(params, typeSpecBiConsumer);
     }
 
     @Override
@@ -100,7 +100,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI));
-                        return ClassName.get(String.join(".", rootPackage, "dto"),
+                        return ClassName.get(String.join(".", params.getRootPackage(), "dto"),
                                 simpleName);
                     } else {
                         //This means failure, in fact.

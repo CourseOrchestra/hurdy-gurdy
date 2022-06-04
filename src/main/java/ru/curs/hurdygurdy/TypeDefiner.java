@@ -26,12 +26,12 @@ public abstract class TypeDefiner<T> {
     private static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
 
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
-    final String rootPackage;
+    final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
     private Path sourceFile;
 
-    TypeDefiner(String rootPackage, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
-        this.rootPackage = rootPackage;
+    TypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
+        this.params = params;
         this.typeSpecBiConsumer = typeSpecBiConsumer;
     }
 
@@ -103,7 +103,7 @@ public abstract class TypeDefiner<T> {
         String className = extractGroup(ref, CLASS_NAME_PATTERN);
         if (fileName.isBlank()) {
             return new DTOMeta(className,
-                    rootPackage,
+                    params.getRootPackage(),
                     fileName,
                     getNullable(currentOpenAPI, className));
         } else {

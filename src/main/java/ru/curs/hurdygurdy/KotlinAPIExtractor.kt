@@ -1,6 +1,5 @@
 package ru.curs.hurdygurdy
 
-import com.spun.util.StringUtils
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -22,13 +21,11 @@ import kotlin.streams.asSequence
 
 class KotlinAPIExtractor(
     typeDefiner: TypeDefiner<TypeSpec>,
-    generateResponseParameter: Boolean,
-    generateApiInterface: Boolean
+    params: GeneratorParams
 ) :
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         typeDefiner,
-        generateResponseParameter,
-        generateApiInterface,
+        params,
         TypeSpec::interfaceBuilder,
         TypeSpec.Builder::build
     ) {

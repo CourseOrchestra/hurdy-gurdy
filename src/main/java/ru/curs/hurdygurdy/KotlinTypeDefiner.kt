@@ -46,9 +46,9 @@ import java.util.*
 import java.util.function.BiConsumer
 
 class KotlinTypeDefiner internal constructor(
-    rootPackage: String?,
+    params: GeneratorParams,
     typeSpecBiConsumer: BiConsumer<ClassCategory?, TypeSpec?>?
-) : TypeDefiner<TypeSpec?>(rootPackage, typeSpecBiConsumer) {
+) : TypeDefiner<TypeSpec?>(params, typeSpecBiConsumer) {
 
     private var hasJsonZonedDateTimeDeserializer = false
 
@@ -94,7 +94,7 @@ class KotlinTypeDefiner internal constructor(
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
-                            java.lang.String.join(".", rootPackage, "dto"),
+                            java.lang.String.join(".", params.rootPackage, "dto"),
                             simpleName
                         )
                     } else {
@@ -107,7 +107,7 @@ class KotlinTypeDefiner internal constructor(
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
-                            java.lang.String.join(".", rootPackage, "dto"),
+                            java.lang.String.join(".", params.rootPackage, "dto"),
                             simpleName
                         )
                     } else {

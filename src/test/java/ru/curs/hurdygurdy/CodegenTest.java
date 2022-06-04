@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class CodegenTest {
-    private JavaCodegen codegen = new JavaCodegen("com.example", true, false);
+    private JavaCodegen codegen = new JavaCodegen(
+            GeneratorParams.rootPackage("com.example").generateResponseParameter(true));
     Path result;
 
     @BeforeEach
@@ -45,7 +46,9 @@ class CodegenTest {
 
     @Test
     void doNotGenerateResponseParameter() throws IOException {
-        codegen = new JavaCodegen("com.example", false, true);
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .generateApiInterface(true));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
         Approvals.verify(getContent(result));
     }

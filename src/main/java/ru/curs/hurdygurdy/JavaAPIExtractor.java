@@ -31,9 +31,8 @@ import java.util.stream.Stream;
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
-                            boolean generateResponseParameter,
-                            boolean generateApiInterface) {
-        super(typeDefiner, generateResponseParameter, generateApiInterface,
+                            GeneratorParams params) {
+        super(typeDefiner, params,
                 TypeSpec::interfaceBuilder,
                 TypeSpec.Builder::build);
     }

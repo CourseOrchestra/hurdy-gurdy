@@ -22,21 +22,18 @@ import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     final TypeDefiner<T> typeDefiner;
-    final boolean generateApiInterface;
-    private final boolean generateResponseParameter;
+    private final GeneratorParams params;
 
     private final Map<String, B> builders = new HashMap<>();
     private final Function<String, B> builderSupplier;
     private final Function<B, T> buildInvoker;
 
     protected APIExtractor(TypeDefiner<T> typeDefiner,
-                           boolean generateResponseParameter,
-                           boolean generateApiInterface,
+                           GeneratorParams params,
                            Function<String, B> builderSupplier,
                            Function<B, T> buildInvoker) {
         this.typeDefiner = typeDefiner;
-        this.generateResponseParameter = generateResponseParameter;
-        this.generateApiInterface = generateApiInterface;
+        this.params = params;
         this.builderSupplier = builderSupplier;
         this.buildInvoker = buildInvoker;
     }
@@ -48,10 +45,10 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
-        generateClass(openAPI, paths, "Controller", generateResponseParameter);
+        generateClass(openAPI, paths, "Controller", params.isGenerateResponseParameter());
         builders.values().stream().map(buildInvoker).forEach(t ->
                 typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
-        if (generateApiInterface) {
+        if (params.isGenerateApiInterface()) {
             builders.clear();
             generateClass(openAPI, paths, "Api", false);
             builders.values().stream().map(buildInvoker).forEach(t ->
