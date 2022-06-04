@@ -58,6 +58,17 @@ public abstract class TypeDefiner<T> {
         return extendsList;
     }
 
+    final String getEnumName(Schema<?> schema, String typeNameFallback) {
+        String simpleName = schema.getTitle();
+        if (simpleName == null) {
+            simpleName = typeNameFallback;
+        }
+        if (simpleName == null) {
+            throw new IllegalStateException("Inline enum schema must have a title");
+        }
+        return simpleName;
+    }
+
     final Map<String, String> getSubclassMapping(Schema<?> schema) {
         return Optional.ofNullable(schema.getDiscriminator())
                 .map(Discriminator::getMapping).orElse(Collections.emptyMap());
@@ -67,13 +78,17 @@ public abstract class TypeDefiner<T> {
 
     abstract T getDTOClass(String name, Schema<?> schema, OpenAPI openAPI);
 
-    com.squareup.javapoet.TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI,
-                                                  com.squareup.javapoet.TypeSpec.Builder parent) {
+    com.squareup.javapoet.TypeName defineJavaType(Schema<?> schema,
+                                                  OpenAPI openAPI,
+                                                  com.squareup.javapoet.TypeSpec.Builder parent,
+                                                  String typeNameFallback) {
         throw new IllegalStateException();
     }
 
-    com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema, OpenAPI openAPI,
-                                                      com.squareup.kotlinpoet.TypeSpec.Builder parent) {
+    com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema,
+                                                      OpenAPI openAPI,
+                                                      com.squareup.kotlinpoet.TypeSpec.Builder parent,
+                                                      String typeNameFallback) {
         throw new IllegalStateException();
     }
 

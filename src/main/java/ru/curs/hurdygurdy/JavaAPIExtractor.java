@@ -65,7 +65,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
                         CaseUtils.snakeToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(PathVariable.class)
@@ -88,7 +88,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                             AnnotationSpec annotationSpec = builder.build();
                             methodBuilder.addParameter(ParameterSpec.builder(
                                     safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder)),
+                                            classBuilder, null)),
                                     CaseUtils.snakeToCamel(parameter.getName()))
                                     .addAnnotation(annotationSpec).build());
                         }
@@ -96,7 +96,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
                         CaseUtils.kebabToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(
@@ -156,14 +156,15 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .entrySet()
                         .stream()
                         .map(e -> new RequestPartParams(
-                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI, parent)),
+                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI,
+                                        parent, null)),
                                 e.getKey(),
                                 AnnotationSpec.builder(RequestPart.class)
                                         .addMember("name", "$S", e.getKey()).build()));
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.getValue().getSchema()).stream()
-                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent))
+                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent, null))
                         .map(JavaAPIExtractor::safeUnbox).map(t ->
                                 new RequestPartParams(t,
                                         "request",

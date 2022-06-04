@@ -56,5 +56,13 @@ components:
           type: integer
           format: int64,
           readOnly: false
+        # A name with dollar sign prefix
         $name:
           type: integer
+        # Anonymous enum
+        mail_protocol:
+          type: string
+          enum:
+            - "SMTP"
+            - "SMTPS"
+            - "SMTP_TLS"

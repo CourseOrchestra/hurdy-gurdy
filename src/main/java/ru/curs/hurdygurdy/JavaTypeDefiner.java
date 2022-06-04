@@ -48,7 +48,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     @Override
-    public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
+    public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
+                                   String typeNameFallback) {
         @SuppressWarnings("LocalVariableName")
         String $ref = schema.get$ref();
         if ($ref == null) {
@@ -65,10 +66,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         return ClassName.get(MultipartFile.class);
                     } else if (schema.getEnum() != null) {
                         //internal enum
-                        String simpleName = schema.getTitle();
-                        if (simpleName == null) {
-                            throw new IllegalStateException("Inline enum schema must have a title");
-                        }
+                        String simpleName = getEnumName(schema, typeNameFallback);
                         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(Modifier.PUBLIC);
                         for (Object e : schema.getEnum()) {
                             enumBuilder.addEnumConstant(e.toString());
@@ -95,10 +93,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 case "array":
                     Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
                     return ParameterizedTypeName.get(ClassName.get(List.class),
-                            defineJavaType(itemsSchema, openAPI, parent));
+                            defineJavaType(itemsSchema, openAPI, parent,
+                                    typeNameFallback == null ? null : typeNameFallback + "Item"));
                 case "object":
                 default:
-                    String simpleName = schema.getTitle();
+                    String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI));
                         return ClassName.get(String.join(".", rootPackage, "dto"),
@@ -249,7 +248,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     //Skip the descriminator property
                     continue;
                 }
-                TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder);
+                TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder,
+                        CaseUtils.snakeToCamel(entry.getKey(), true));
                 FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         typeName,
                         CaseUtils.snakeToCamel(entry.getKey()), Modifier.PRIVATE);

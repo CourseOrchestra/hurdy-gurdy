@@ -14,28 +14,25 @@ public final class CaseUtils {
         for (int i = 0; i < pathText.length(); i++) {
             char c = pathText.charAt(i);
             switch (state) {
-                case 0: {
+                case 0:
                     if (!(c == '/' || c == '{')) {
                         result.append(c);
                         state = 1;
                     }
                     break;
-                }
-                case 1: {
+                case 1:
                     if (c == '/') {
                         state = 2;
                     } else if (c != '}') {
                         result.append(c);
                     }
                     break;
-                }
-                case 2: {
+                case 2:
                     if (!(c == '/' || c == '{')) {
                         result.append(Character.toUpperCase(c));
                         state = 1;
                     }
                     break;
-                }
             }
         }
         return result.toString();

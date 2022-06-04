@@ -52,7 +52,10 @@ class KotlinTypeDefiner internal constructor(
 
     private var hasJsonZonedDateTimeDeserializer = false
 
-    public override fun defineKotlinType(schema: Schema<*>, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName {
+    public override fun defineKotlinType(
+        schema: Schema<*>, openAPI: OpenAPI,
+        parent: TypeSpec.Builder, typeNameFallback: String?
+    ): TypeName {
         val `$ref` = schema.`$ref`
         val result = if (`$ref` == null) {
             val internalType = schema.type
@@ -64,7 +67,7 @@ class KotlinTypeDefiner internal constructor(
                     "binary" == schema.format -> MultipartFile::class.asTypeName()
                     schema.enum != null -> {
                         //internal enum
-                        val simpleName = schema.title ?: throw IllegalStateException("Inline enum schema must have a title")
+                        val simpleName = getEnumName(schema, typeNameFallback)
                         val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
                         for (e in schema.enum) {
                             enumBuilder.addEnumConstant(e.toString())
@@ -82,7 +85,7 @@ class KotlinTypeDefiner internal constructor(
                 "array" -> {
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
                     List::class.asTypeName().parameterizedBy(
-                        defineKotlinType(itemsSchema, openAPI, parent)
+                        defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"))
                             .copy(nullable = false)
                     )
                 }
@@ -214,7 +217,10 @@ class KotlinTypeDefiner internal constructor(
                     //Skip the descriminator property
                     continue
                 }
-                val typeName = defineKotlinType(value, openAPI, classBuilder)
+                val typeName = defineKotlinType(
+                    value, openAPI, classBuilder,
+                    CaseUtils.snakeToCamel(key, true)
+                )
 
                 val propertyName = CaseUtils.snakeToCamel(key)
                 val paramSpec =
@@ -260,7 +266,7 @@ class KotlinTypeDefiner internal constructor(
                     .initializer(propertyName).build()
                 classBuilder.addProperty(propertySpec)
             }
-        classBuilder.primaryConstructor(constructorBuilder.build())
+            classBuilder.primaryConstructor(constructorBuilder.build())
         }
         return classBuilder.build()
     }
