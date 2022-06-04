@@ -240,7 +240,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
             for (Map.Entry<String, Schema> entry : schemaMap.entrySet()) {
-                if (!entry.getKey().matches("[a-z][a-z_0-9]*")) throw new IllegalStateException(
+                if (!entry.getKey().matches("[$a-z][a-z_0-9]*")) throw new IllegalStateException(
                         String.format("Property '%s' of schema '%s' is not in snake case",
                                 entry.getKey(), name)
                 );

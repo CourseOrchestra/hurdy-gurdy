@@ -10,12 +10,14 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
@@ -64,14 +66,22 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
                 List<String> tags = operationEntry.getValue().getTags();
                 String typeName = CaseUtils.snakeToCamel(tags != null && !tags.isEmpty() ? tags.get(0) : "", true)
                         + name;
+                String operationId = CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId());
+                if (operationId == null) {
+                    operationId = CaseUtils.pathToCamel(stringPathItemEntry.getKey())
+                            + CaseUtils.snakeToCamel(operationEntry.getKey().name().toLowerCase(), true);
+                }
                 buildMethod(openAPI, builder(typeName), stringPathItemEntry,
-                        operationEntry, responseParameter);
+                        operationEntry, operationId, responseParameter);
             }
         }
     }
 
-    abstract void buildMethod(OpenAPI openAPI, B builder, Map.Entry<String, PathItem> stringPathItemEntry,
+    abstract void buildMethod(OpenAPI openAPI,
+                              B builder,
+                              Map.Entry<String, PathItem> stringPathItemEntry,
                               Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                              String operationId,
                               boolean generateResponseParameter);
 
     static Optional<Content> getSuccessfulReply(Operation operation) {
@@ -88,8 +98,16 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
 
     static Stream<Parameter> getParameterStream(PathItem path, Operation operation) {
         return Stream.concat(
-                        Optional.ofNullable(path.getParameters()).stream(),
-                        Optional.ofNullable(operation.getParameters()).stream())
-                .flatMap(Collection::stream);
+                Optional.ofNullable(path.getParameters()).stream(),
+                Optional.ofNullable(operation.getParameters()).stream())
+                .flatMap(Collection::stream)
+                //Parameters with the same name defined in operation have priority
+                .collect(Collectors.toMap(
+                        Parameter::getName,
+                        p -> p,
+                        (a, b) -> b,
+                        //We must respect the order of declaration
+                        LinkedHashMap::new))
+                .values().stream();
     }
 }

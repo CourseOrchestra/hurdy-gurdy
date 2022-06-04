@@ -78,6 +78,12 @@ class KCodegenTest {
     }
 
     @Test
+    void paramsOverriding() throws IOException {
+        codegen.generate(Path.of("src/test/resources/twoparams.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void nullableParent() throws IOException {
         codegen.generate(Path.of("src/test/resources/nullableparent.yaml"), result);
         Approvals.verify(getContent(result));

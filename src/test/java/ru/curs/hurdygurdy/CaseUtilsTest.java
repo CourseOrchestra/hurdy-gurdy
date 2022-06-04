@@ -69,4 +69,38 @@ class CaseUtilsTest {
     void kebabToCamelAlreadyCamel(){
         assertThat(CaseUtils.kebabToCamel("thisIsCamel")).isEqualTo("thisIsCamel");
     }
+
+    @Test
+    void pathToCamelNull() {
+        assertThat(CaseUtils.pathToCamel(null)).isNull();
+    }
+
+    @Test
+    void pathToCamelBlank() {
+        assertThat(CaseUtils.pathToCamel("")).isEmpty();
+    }
+
+
+    @Test
+    void pathToCamel() {
+        assertThat(CaseUtils.pathToCamel("/path/to/camel")).isEqualTo("pathToCamel");
+        assertThat(CaseUtils.pathToCamel("//path//to//camel")).isEqualTo("pathToCamel");
+    }
+
+
+    @Test
+    void pathToCamelSinglePart(){
+        assertThat(CaseUtils.pathToCamel("path")).isEqualTo("path");
+        assertThat(CaseUtils.pathToCamel("/path")).isEqualTo("path");
+        assertThat(CaseUtils.pathToCamel("{path}")).isEqualTo("path");
+        assertThat(CaseUtils.pathToCamel("/{path}")).isEqualTo("path");
+
+    }
+
+    @Test
+    void pathToCamelWithParameters() {
+        assertThat(CaseUtils.pathToCamel(
+                "/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"))
+                .isEqualTo("adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementId");
+    }
 }

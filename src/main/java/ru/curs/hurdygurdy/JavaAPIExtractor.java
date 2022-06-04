@@ -43,9 +43,10 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
                      Map.Entry<String, PathItem> stringPathItemEntry,
                      Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                     String operationId,
                      boolean generateResponseParameter) {
         MethodSpec.Builder methodBuilder = MethodSpec
-                .methodBuilder(CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId()))
+                .methodBuilder(operationId)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
         methodBuilder.addAnnotation(getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.getKey()));
         //we are deriving the returning type from the schema of the successful result

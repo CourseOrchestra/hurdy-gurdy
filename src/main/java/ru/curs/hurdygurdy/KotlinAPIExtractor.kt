@@ -1,5 +1,6 @@
 package ru.curs.hurdygurdy
 
+import com.spun.util.StringUtils
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -37,10 +38,11 @@ class KotlinAPIExtractor(
         classBuilder: TypeSpec.Builder,
         stringPathItemEntry: Map.Entry<String, PathItem>,
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        operationId: String,
         generateResponseParameter: Boolean
     ) {
         val methodBuilder = FunSpec
-            .builder(CaseUtils.snakeToCamel(operationEntry.value.operationId))
+            .builder(operationId)
             .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
         getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.key)?.let(methodBuilder::addAnnotation)
         //we are deriving the returning type from the schema of the successful result

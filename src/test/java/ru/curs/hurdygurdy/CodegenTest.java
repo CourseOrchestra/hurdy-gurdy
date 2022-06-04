@@ -71,6 +71,12 @@ class CodegenTest {
         Approvals.verify(getContent(result));
     }
 
+    @Test
+    void paramsOverriding() throws IOException {
+        codegen.generate(Path.of("src/test/resources/twoparams.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
     String getContent(Path path) throws IOException {
         return Files.walk(path)
                 .sorted()

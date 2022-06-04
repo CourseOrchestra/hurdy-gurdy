@@ -5,6 +5,42 @@ public final class CaseUtils {
 
     }
 
+    public static String pathToCamel(String pathText) {
+        if (pathText == null) {
+            return null;
+        }
+        int state = 0;
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < pathText.length(); i++) {
+            char c = pathText.charAt(i);
+            switch (state) {
+                case 0: {
+                    if (!(c == '/' || c == '{')) {
+                        result.append(c);
+                        state = 1;
+                    }
+                    break;
+                }
+                case 1: {
+                    if (c == '/') {
+                        state = 2;
+                    } else if (c != '}') {
+                        result.append(c);
+                    }
+                    break;
+                }
+                case 2: {
+                    if (!(c == '/' || c == '{')) {
+                        result.append(Character.toUpperCase(c));
+                        state = 1;
+                    }
+                    break;
+                }
+            }
+        }
+        return result.toString();
+    }
+
     public static String snakeToCamel(String snakeText) {
         return snakeToCamel(snakeText, false);
     }
