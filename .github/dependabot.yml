@@ -22,9 +22,6 @@ updates:
         versions:
           # Because it's not yet compatible with the current Spring Web
           - ">= 10.0.0"
-      - dependency-name: org.sonatype.plugins:nexus-staging-maven-plugin
-        versions:
-          - ">1.6.8"
       - dependency-name: io.swagger.parser.v3:swagger-parser
         versions:
           #this version breaks openapi-codegen
