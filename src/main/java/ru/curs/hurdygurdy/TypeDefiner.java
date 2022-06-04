@@ -26,12 +26,12 @@ public abstract class TypeDefiner<T> {
     private static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
 
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
-    final String rootPackage;
+    final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
     private Path sourceFile;
 
-    TypeDefiner(String rootPackage, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
-        this.rootPackage = rootPackage;
+    TypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
+        this.params = params;
         this.typeSpecBiConsumer = typeSpecBiConsumer;
     }
 
@@ -58,6 +58,26 @@ public abstract class TypeDefiner<T> {
         return extendsList;
     }
 
+    final String getEnumName(Schema<?> schema, String typeNameFallback) {
+        String simpleName = schema.getTitle();
+        if (simpleName == null) {
+            simpleName = typeNameFallback;
+        }
+        if (simpleName == null) {
+            throw new IllegalStateException("Inline enum schema must have a title");
+        }
+        return simpleName;
+    }
+
+    final void checkPropertyName(String name, String propertyName) {
+        if (params.isForceSnakeCaseForProperties()
+                && !propertyName.matches("[$a-z][a-z_0-9]*")) throw new IllegalStateException(
+                String.format("Property '%s' of schema '%s' is not in snake case",
+                        propertyName, name)
+        );
+    }
+
+
     final Map<String, String> getSubclassMapping(Schema<?> schema) {
         return Optional.ofNullable(schema.getDiscriminator())
                 .map(Discriminator::getMapping).orElse(Collections.emptyMap());
@@ -67,13 +87,17 @@ public abstract class TypeDefiner<T> {
 
     abstract T getDTOClass(String name, Schema<?> schema, OpenAPI openAPI);
 
-    com.squareup.javapoet.TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI,
-                                                  com.squareup.javapoet.TypeSpec.Builder parent) {
+    com.squareup.javapoet.TypeName defineJavaType(Schema<?> schema,
+                                                  OpenAPI openAPI,
+                                                  com.squareup.javapoet.TypeSpec.Builder parent,
+                                                  String typeNameFallback) {
         throw new IllegalStateException();
     }
 
-    com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema, OpenAPI openAPI,
-                                                      com.squareup.kotlinpoet.TypeSpec.Builder parent) {
+    com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema,
+                                                      OpenAPI openAPI,
+                                                      com.squareup.kotlinpoet.TypeSpec.Builder parent,
+                                                      String typeNameFallback) {
         throw new IllegalStateException();
     }
 
@@ -88,7 +112,7 @@ public abstract class TypeDefiner<T> {
         String className = extractGroup(ref, CLASS_NAME_PATTERN);
         if (fileName.isBlank()) {
             return new DTOMeta(className,
-                    rootPackage,
+                    params.getRootPackage(),
                     fileName,
                     getNullable(currentOpenAPI, className));
         } else {

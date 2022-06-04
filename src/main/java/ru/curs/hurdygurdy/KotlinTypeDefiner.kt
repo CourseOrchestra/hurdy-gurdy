@@ -46,13 +46,16 @@ import java.util.*
 import java.util.function.BiConsumer
 
 class KotlinTypeDefiner internal constructor(
-    rootPackage: String?,
+    params: GeneratorParams,
     typeSpecBiConsumer: BiConsumer<ClassCategory?, TypeSpec?>?
-) : TypeDefiner<TypeSpec?>(rootPackage, typeSpecBiConsumer) {
+) : TypeDefiner<TypeSpec?>(params, typeSpecBiConsumer) {
 
     private var hasJsonZonedDateTimeDeserializer = false
 
-    public override fun defineKotlinType(schema: Schema<*>, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName {
+    public override fun defineKotlinType(
+        schema: Schema<*>, openAPI: OpenAPI,
+        parent: TypeSpec.Builder, typeNameFallback: String?
+    ): TypeName {
         val `$ref` = schema.`$ref`
         val result = if (`$ref` == null) {
             val internalType = schema.type
@@ -64,7 +67,7 @@ class KotlinTypeDefiner internal constructor(
                     "binary" == schema.format -> MultipartFile::class.asTypeName()
                     schema.enum != null -> {
                         //internal enum
-                        val simpleName = schema.title ?: throw IllegalStateException("Inline enum schema must have a title")
+                        val simpleName = getEnumName(schema, typeNameFallback)
                         val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
                         for (e in schema.enum) {
                             enumBuilder.addEnumConstant(e.toString())
@@ -82,7 +85,7 @@ class KotlinTypeDefiner internal constructor(
                 "array" -> {
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
                     List::class.asTypeName().parameterizedBy(
-                        defineKotlinType(itemsSchema, openAPI, parent)
+                        defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"))
                             .copy(nullable = false)
                     )
                 }
@@ -91,7 +94,7 @@ class KotlinTypeDefiner internal constructor(
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
-                            java.lang.String.join(".", rootPackage, "dto"),
+                            java.lang.String.join(".", params.rootPackage, "dto"),
                             simpleName
                         )
                     } else {
@@ -104,7 +107,7 @@ class KotlinTypeDefiner internal constructor(
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
-                            java.lang.String.join(".", rootPackage, "dto"),
+                            java.lang.String.join(".", params.rootPackage, "dto"),
                             simpleName
                         )
                     } else {
@@ -158,12 +161,15 @@ class KotlinTypeDefiner internal constructor(
             else
                 TypeSpec.classBuilder(name))
                 .superclass(baseClass)
-                .addAnnotation(
-                    AnnotationSpec.builder(JsonNaming::class).addMember(
-                        "value = %T::class",
-                        PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
-                    ).build()
-                )
+
+        if (params.isForceSnakeCaseForProperties) {
+            classBuilder.addAnnotation(
+                AnnotationSpec.builder(JsonNaming::class).addMember(
+                    "value = %T::class",
+                    PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
+                ).build()
+            )
+        }
 
         //This class is a superclass
         if (schema.discriminator != null) {
@@ -207,16 +213,22 @@ class KotlinTypeDefiner internal constructor(
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
             if (schemaMap != null) for ((key, value) in schemaMap) {
-                check(key.matches(Regex("[a-z][a-z_0-9]*"))) {
-                    String.format("Property '%s' of schema '%s' is not in snake case", key, name)
-                }
+                checkPropertyName(name, key)
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
                     continue
                 }
-                val typeName = defineKotlinType(value, openAPI, classBuilder)
+                val typeName = defineKotlinType(
+                    value, openAPI, classBuilder,
+                    CaseUtils.snakeToCamel(key, true)
+                )
 
-                val propertyName = CaseUtils.snakeToCamel(key)
+                val propertyName =
+                    if (params.isForceSnakeCaseForProperties) {
+                        CaseUtils.snakeToCamel(key)
+                    } else {
+                        key
+                    }
                 val paramSpec =
                     ParameterSpec.builder(propertyName, typeName)
 
@@ -260,7 +272,7 @@ class KotlinTypeDefiner internal constructor(
                     .initializer(propertyName).build()
                 classBuilder.addProperty(propertySpec)
             }
-        classBuilder.primaryConstructor(constructorBuilder.build())
+            classBuilder.primaryConstructor(constructorBuilder.build())
         }
         return classBuilder.build()
     }

@@ -1,0 +1,55 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.BuildBundleElement
+import javax.servlet.http.HttpServletResponse
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "buildBundleElementId") buildBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    response: HttpServletResponse,
+  ): BuildBundleElement?
+}
+---
+/com/example/dto
+---
+/com/example/dto/BuildBundleElement.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class BuildBundleElement(
+  public val id: String? = null,
+  public val assembleDate: Int? = null,
+  public val `$name`: Int? = null,
+  public val mailProtocol: MailProtocol? = null,
+) {
+  public enum class MailProtocol {
+    SMTP,
+    SMTPS,
+    SMTP_TLS,
+  }
+}

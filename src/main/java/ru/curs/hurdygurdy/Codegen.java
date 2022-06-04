@@ -16,15 +16,15 @@ import java.util.Map;
 
 public abstract class Codegen<T> {
 
-    private final String rootPackage;
+    private final GeneratorParams params;
     private OpenAPI openAPI;
     private final Map<ClassCategory, List<T>> typeSpecs = new EnumMap<>(ClassCategory.class);
     private final List<TypeSpecExtractor<T>> typeSpecExtractors;
     private final TypeDefiner<T> typeDefiner;
 
 
-    public Codegen(String rootPackage, TypeProducersFactory<T> typeProducersFactory) {
-        this.rootPackage = rootPackage;
+    public Codegen(GeneratorParams params, TypeProducersFactory<T> typeProducersFactory) {
+        this.params = params;
         typeDefiner = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
         typeSpecExtractors = typeProducersFactory.typeSpecExtractors(typeDefiner);
     }
@@ -56,7 +56,7 @@ public abstract class Codegen<T> {
     void generate(Path resultDirectory) throws IOException {
         for (Map.Entry<ClassCategory, List<T>> typeSpecsEntry : typeSpecs.entrySet()) {
             for (T typeSpec : typeSpecsEntry.getValue()) {
-                final String packageName = String.join(".", rootPackage,
+                final String packageName = String.join(".", params.getRootPackage(),
                         typeSpecsEntry.getKey().getPackageName());
                 writeFile(resultDirectory, packageName, typeSpec);
             }

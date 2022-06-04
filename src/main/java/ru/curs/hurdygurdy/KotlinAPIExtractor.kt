@@ -21,13 +21,11 @@ import kotlin.streams.asSequence
 
 class KotlinAPIExtractor(
     typeDefiner: TypeDefiner<TypeSpec>,
-    generateResponseParameter: Boolean,
-    generateApiInterface: Boolean
+    params: GeneratorParams
 ) :
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         typeDefiner,
-        generateResponseParameter,
-        generateApiInterface,
+        params,
         TypeSpec::interfaceBuilder,
         TypeSpec.Builder::build
     ) {
@@ -37,10 +35,11 @@ class KotlinAPIExtractor(
         classBuilder: TypeSpec.Builder,
         stringPathItemEntry: Map.Entry<String, PathItem>,
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        operationId: String,
         generateResponseParameter: Boolean
     ) {
         val methodBuilder = FunSpec
-            .builder(CaseUtils.snakeToCamel(operationEntry.value.operationId))
+            .builder(operationId)
             .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
         getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.key)?.let(methodBuilder::addAnnotation)
         //we are deriving the returning type from the schema of the successful result
@@ -69,7 +68,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(PathVariable::class)
@@ -94,7 +93,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
                     )
                         .addAnnotation(
                             annotationSpec
@@ -112,7 +111,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.kebabToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(
@@ -194,7 +193,7 @@ class KotlinAPIExtractor(
                     .map { (name, schema) ->
                         RequestPartParams(
                             name = name,
-                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent),
+                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent, null),
                             annotation = AnnotationSpec.builder(RequestPart::class)
                                 .addMember("name = %S", name).build()
                         )
@@ -203,7 +202,7 @@ class KotlinAPIExtractor(
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.value.schema).stream().asSequence()
-                    .map { typeDefiner.defineKotlinType(it, openAPI, parent) }
+                    .map { typeDefiner.defineKotlinType(it, openAPI, parent, null) }
                     .map {
                         RequestPartParams(
                             name = "request",

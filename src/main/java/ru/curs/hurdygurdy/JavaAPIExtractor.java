@@ -31,9 +31,8 @@ import java.util.stream.Stream;
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
-                            boolean generateResponseParameter,
-                            boolean generateApiInterface) {
-        super(typeDefiner, generateResponseParameter, generateApiInterface,
+                            GeneratorParams params) {
+        super(typeDefiner, params,
                 TypeSpec::interfaceBuilder,
                 TypeSpec.Builder::build);
     }
@@ -43,9 +42,10 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
                      Map.Entry<String, PathItem> stringPathItemEntry,
                      Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                     String operationId,
                      boolean generateResponseParameter) {
         MethodSpec.Builder methodBuilder = MethodSpec
-                .methodBuilder(CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId()))
+                .methodBuilder(operationId)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
         methodBuilder.addAnnotation(getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.getKey()));
         //we are deriving the returning type from the schema of the successful result
@@ -64,7 +64,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
                         CaseUtils.snakeToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(PathVariable.class)
@@ -87,7 +87,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                             AnnotationSpec annotationSpec = builder.build();
                             methodBuilder.addParameter(ParameterSpec.builder(
                                     safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder)),
+                                            classBuilder, null)),
                                     CaseUtils.snakeToCamel(parameter.getName()))
                                     .addAnnotation(annotationSpec).build());
                         }
@@ -95,7 +95,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder)),
+                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
                         CaseUtils.kebabToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(
@@ -155,14 +155,15 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .entrySet()
                         .stream()
                         .map(e -> new RequestPartParams(
-                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI, parent)),
+                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI,
+                                        parent, null)),
                                 e.getKey(),
                                 AnnotationSpec.builder(RequestPart.class)
                                         .addMember("name", "$S", e.getKey()).build()));
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.getValue().getSchema()).stream()
-                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent))
+                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent, null))
                         .map(JavaAPIExtractor::safeUnbox).map(t ->
                                 new RequestPartParams(t,
                                         "request",

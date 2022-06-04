@@ -1,0 +1,68 @@
+openapi: 3.0.1
+info:
+  title: Something
+  version: "1.0"
+
+paths:
+  /admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}:
+    description: This resource lets you work with the values in a specific set of builds (build bundle).
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: buildBundleElementId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      parameters:
+        - name: fields
+          in: query
+          schema:
+            type: string
+          example: $type,assembleDate,color($type,background,foreground,id),id,name,ordinal
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: buildBundleElementId
+          in: path
+          required: true
+          schema:
+            type: string
+
+      responses:
+        200:
+          description: single BuildBundleElement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildBundleElement'
+
+components:
+  schemas:
+    BuildBundleElement:
+      description: Represents a build - a single element of a builds bundle.
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        assemble_date:
+          type: integer
+          format: int64,
+          readOnly: false
+        # A name with dollar sign prefix
+        $name:
+          type: integer
+        # Anonymous enum
+        mail_protocol:
+          type: string
+          enum:
+            - "SMTP"
+            - "SMTPS"
+            - "SMTP_TLS"

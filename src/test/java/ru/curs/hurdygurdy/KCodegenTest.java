@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class KCodegenTest {
-    private KotlinCodegen codegen = new KotlinCodegen("com.example", true, false);
+    private KotlinCodegen codegen = new KotlinCodegen(
+            GeneratorParams.rootPackage("com.example").generateResponseParameter(true));
     Path result;
 
     @BeforeEach
@@ -51,7 +52,10 @@ class KCodegenTest {
 
     @Test
     void doNotGenerateResponseParameter() throws IOException {
-        codegen = new KotlinCodegen("com.example", false, true);
+        codegen = new KotlinCodegen(GeneratorParams
+                .rootPackage("com.example")
+                .generateResponseParameter(false)
+                .generateApiInterface(true));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
         Approvals.verify(getContent(result));
     }
@@ -74,6 +78,20 @@ class KCodegenTest {
     @Test
     void generateMultipart() throws IOException {
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
+    void paramsOverriding() throws IOException {
+        codegen.generate(Path.of("src/test/resources/twoparams.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
+    void camelCase() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/camelcase.yaml"), result);
         Approvals.verify(getContent(result));
     }
 
