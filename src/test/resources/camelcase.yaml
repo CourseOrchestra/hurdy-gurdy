@@ -1,0 +1,34 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+
+components:
+  schemas:
+    Something:
+      type: object
+      nullable: true
+      properties:
+        simple:
+          type: string
+        camelCase:
+          type: integer
+        snake_case:
+          type: string
+          format: uuid
+
+

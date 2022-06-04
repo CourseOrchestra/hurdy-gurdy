@@ -33,6 +33,9 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "generateApiInterface", required = false)
     boolean generateApiInterface = false;
 
+    @Parameter(property = "forceSnakeCaseForProperties", required = false)
+    boolean forceSnakeCaseForProperties = true;
+
     @Component
     MavenProject project;
 
@@ -41,7 +44,8 @@ public class CodegenMojo extends AbstractMojo {
         GeneratorParams params =
                 GeneratorParams.rootPackage(rootPackage)
                         .generateResponseParameter(generateResponseParameter)
-                        .generateApiInterface(generateApiInterface);
+                        .generateApiInterface(generateApiInterface)
+                        .forceSnakeCaseForProperties(forceSnakeCaseForProperties);
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language)
                         ? new JavaCodegen(params)

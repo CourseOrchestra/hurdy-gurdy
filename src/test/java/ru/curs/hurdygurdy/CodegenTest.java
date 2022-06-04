@@ -80,6 +80,14 @@ class CodegenTest {
         Approvals.verify(getContent(result));
     }
 
+    @Test
+    void camelCase() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/camelcase.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
     String getContent(Path path) throws IOException {
         return Files.walk(path)
                 .sorted()

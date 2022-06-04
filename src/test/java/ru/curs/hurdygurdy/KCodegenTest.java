@@ -88,6 +88,14 @@ class KCodegenTest {
     }
 
     @Test
+    void camelCase() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/camelcase.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void nullableParent() throws IOException {
         codegen.generate(Path.of("src/test/resources/nullableparent.yaml"), result);
         Approvals.verify(getContent(result));

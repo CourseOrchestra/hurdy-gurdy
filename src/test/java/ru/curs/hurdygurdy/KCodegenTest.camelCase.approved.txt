@@ -1,0 +1,37 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+
+public interface Controller {
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(): String?
+}
+---
+/com/example/dto
+---
+/com/example/dto/Something.kt
+package com.example.dto
+
+import java.util.UUID
+import kotlin.Int
+import kotlin.String
+
+public data class Something(
+  public val simple: String? = null,
+  public val camelCase: Int? = null,
+  public val snake_case: UUID? = null,
+)

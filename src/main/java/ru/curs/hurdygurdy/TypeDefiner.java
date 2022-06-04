@@ -69,6 +69,15 @@ public abstract class TypeDefiner<T> {
         return simpleName;
     }
 
+    final void checkPropertyName(String name, String propertyName) {
+        if (params.isForceSnakeCaseForProperties()
+                && !propertyName.matches("[$a-z][a-z_0-9]*")) throw new IllegalStateException(
+                String.format("Property '%s' of schema '%s' is not in snake case",
+                        propertyName, name)
+        );
+    }
+
+
     final Map<String, String> getSubclassMapping(Schema<?> schema) {
         return Optional.ofNullable(schema.getDiscriminator())
                 .map(Discriminator::getMapping).orElse(Collections.emptyMap());

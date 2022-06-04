@@ -206,9 +206,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name)
                 .superclass(baseClass)
                 .addAnnotation(Data.class)
-                .addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
-                        "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build())
                 .addModifiers(Modifier.PUBLIC);
+
+        if (params.isForceSnakeCaseForProperties()) {
+            classBuilder.addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
+                    "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build());
+        }
+
         //This class is a superclass
         if (schema.getDiscriminator() != null) {
             classBuilder.addAnnotation(AnnotationSpec
@@ -239,10 +243,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
             for (Map.Entry<String, Schema> entry : schemaMap.entrySet()) {
-                if (!entry.getKey().matches("[$a-z][a-z_0-9]*")) throw new IllegalStateException(
-                        String.format("Property '%s' of schema '%s' is not in snake case",
-                                entry.getKey(), name)
-                );
+                checkPropertyName(name, entry.getKey());
                 if (schema.getDiscriminator() != null
                         && entry.getKey().equals(schema.getDiscriminator().getPropertyName())) {
                     //Skip the descriminator property
@@ -250,9 +251,15 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 }
                 TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder,
                         CaseUtils.snakeToCamel(entry.getKey(), true));
+
+                String propertyName =
+                        params.isForceSnakeCaseForProperties()
+                                ? CaseUtils.snakeToCamel(entry.getKey())
+                                : entry.getKey();
+
                 FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         typeName,
-                        CaseUtils.snakeToCamel(entry.getKey()), Modifier.PRIVATE);
+                        propertyName, Modifier.PRIVATE);
                 if (typeName instanceof ClassName && "ZonedDateTime"
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(

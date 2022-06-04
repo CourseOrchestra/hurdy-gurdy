@@ -1,0 +1,41 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+
+interface Controller {
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello();
+}
+---
+/com/example/dto
+---
+/com/example/dto/Something.java
+package com.example.dto;
+
+import java.lang.Integer;
+import java.lang.String;
+import java.util.UUID;
+import lombok.Data;
+
+@Data
+public class Something {
+  private String simple;
+
+  private Integer camelCase;
+
+  private UUID snake_case;
+}

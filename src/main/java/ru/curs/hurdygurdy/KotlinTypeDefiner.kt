@@ -161,12 +161,15 @@ class KotlinTypeDefiner internal constructor(
             else
                 TypeSpec.classBuilder(name))
                 .superclass(baseClass)
-                .addAnnotation(
-                    AnnotationSpec.builder(JsonNaming::class).addMember(
-                        "value = %T::class",
-                        PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
-                    ).build()
-                )
+
+        if (params.isForceSnakeCaseForProperties) {
+            classBuilder.addAnnotation(
+                AnnotationSpec.builder(JsonNaming::class).addMember(
+                    "value = %T::class",
+                    PropertyNamingStrategies.SnakeCaseStrategy::class.asClassName()
+                ).build()
+            )
+        }
 
         //This class is a superclass
         if (schema.discriminator != null) {
@@ -210,9 +213,7 @@ class KotlinTypeDefiner internal constructor(
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
             if (schemaMap != null) for ((key, value) in schemaMap) {
-                check(key.matches(Regex("[\$a-z][a-z_0-9]*"))) {
-                    String.format("Property '%s' of schema '%s' is not in snake case", key, name)
-                }
+                checkPropertyName(name, key)
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
                     continue
@@ -222,7 +223,12 @@ class KotlinTypeDefiner internal constructor(
                     CaseUtils.snakeToCamel(key, true)
                 )
 
-                val propertyName = CaseUtils.snakeToCamel(key)
+                val propertyName =
+                    if (params.isForceSnakeCaseForProperties) {
+                        CaseUtils.snakeToCamel(key)
+                    } else {
+                        key
+                    }
                 val paramSpec =
                     ParameterSpec.builder(propertyName, typeName)
 
