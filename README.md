@@ -35,12 +35,21 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 ## Usage example (in Kotlin code, e.g. Gradle's buildSrc)
 
 ```kotlin
-val codegen = KotlinCodegen("com.example.project", true)
+val codegen = KotlinCodegen(GeneratorParams.rootPackage("com.example.project"))
 val yamlPath = project.layout.projectDirectory.asFile.toPath().resolve("src/main/openapi/api.yaml")
 val resultPath = project.layout.buildDirectory.get().asFile.toPath().resolve("generated-sources")
 Files.createDirectories(resultPath)
 codegen.generate(yamlPath, resultPath)
 ```
+
+## Configuration parameters
+
+| Parameter name | Type | Default value | Description |
+|--------------------------|------|---------------|-------------|
+|`rootPackage`|String | | Sets the root package for all the generated classes. `Controller` and `Api` interfaces will be generated in `controller` subpackage, and all the DTOs will be generated in `dto` subpackage.
+|`generateResponseParameter`|boolean|false|Set to true if you need to have `HttpServletResponse` parameter in each generated `Controller` method. You might need this in order to return specific HTTP status codes.
+|`generateApiInterface`|boolean|false|Set to true if you need to generate an interface called `Api` besides `Controller`. `Api` methods do not have `HttpServletResponse` parameter.
+|`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
 
 ## Inheritance hierarchy compatible with openapi-codegen
 
