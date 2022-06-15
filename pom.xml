@@ -94,7 +94,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>5.3.20</version>
+            <version>5.3.21</version>
             <scope>compile</scope>
         </dependency>
 
