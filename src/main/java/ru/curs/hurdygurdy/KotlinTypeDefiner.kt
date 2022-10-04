@@ -86,7 +86,7 @@ class KotlinTypeDefiner internal constructor(
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
                     List::class.asTypeName().parameterizedBy(
                         defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"))
-                            .copy(nullable = false)
+                            .copy(nullable = (itemsSchema.nullable ?: false))
                     )
                 }
                 "object" -> {
