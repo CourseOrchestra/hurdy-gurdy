@@ -155,6 +155,8 @@ public class MenuItemDTO implements Serializable {
 
   private List<MenuItemDTO> menuItems;
 
+  private List<String> menuTips;
+
   private boolean boolValue;
 
   private Integer intValue;

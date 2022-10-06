@@ -138,6 +138,13 @@ components:
           items:
             $ref: "#/components/schemas/MenuItemDTO"
           default: []
+        menu_tips:
+          description: "Menu pop-over tips"
+          type: array
+          nullable: false
+          items:
+            type: string
+            nullable: true
         bool_value:
           type: boolean
           default: false

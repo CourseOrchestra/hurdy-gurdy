@@ -150,6 +150,7 @@ public data class MenuItemDTO(
   public val enabled: Boolean? = null,
   public val name: String = "Default name",
   public val menuItems: List<MenuItemDTO> = listOf(),
+  public val menuTips: List<String?>,
   public val boolValue: Boolean? = false,
   public val intValue: Int? = 42,
   public val strValue: String? = null,
