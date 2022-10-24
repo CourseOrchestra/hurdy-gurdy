@@ -161,3 +161,7 @@ components:
         date_vale:
           type: string
           format: date-time
+        nullable_with_default:
+          type: string
+          nullable: true
+          default: 'self'

@@ -255,7 +255,7 @@ class KotlinTypeDefiner internal constructor(
                         paramSpec.defaultValue("listOf()")
                     } else {
                         paramSpec.defaultValue(
-                            if (typeName == String::class.asTypeName()) "%S" else "%L", default
+                            if (typeName.copy(nullable = false) == String::class.asTypeName()) "%S" else "%L", default
                         )
                     }
                 } else {
