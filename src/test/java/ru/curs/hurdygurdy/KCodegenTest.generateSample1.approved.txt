@@ -109,6 +109,7 @@ public data class MenuItemDTO(
   @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val dateVale: ZonedDateTime? = null,
+  public val nullableWithDefault: String? = "self",
 ) : Serializable
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt

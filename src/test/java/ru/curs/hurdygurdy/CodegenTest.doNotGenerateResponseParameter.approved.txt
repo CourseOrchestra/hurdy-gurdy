@@ -172,6 +172,8 @@ public class MenuItemDTO implements Serializable {
       using = ZonedDateTimeSerializer.class
   )
   private ZonedDateTime dateVale;
+
+  private String nullableWithDefault;
 }
 ---
 /com/example/dto/ZonedDateTimeDeserializer.java
