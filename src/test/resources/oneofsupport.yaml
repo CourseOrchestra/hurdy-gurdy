@@ -1,0 +1,45 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+
+components:
+  schemas:
+    UserConfig:
+      oneOf:
+        - $ref: "#/components/schemas/UserConfigSingleDB"
+        - $ref: "#/components/schemas/UserConfigMultipleDB"
+
+    UserConfigSingleDB:
+      type: object
+      nullable: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: false
+
+    UserConfigMultipleDB:
+      type: object
+      nullable: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: false
+
+

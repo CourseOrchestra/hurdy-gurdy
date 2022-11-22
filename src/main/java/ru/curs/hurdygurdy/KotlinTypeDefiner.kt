@@ -139,6 +139,9 @@ class KotlinTypeDefiner internal constructor(
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         return if (schema is ComposedSchema) {
+            if (schema.oneOf != null) {
+                return getDTOClass(name, schema, openAPI, Any::class.asClassName())
+            }
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
             for (s in schema.allOf) {
@@ -156,7 +159,7 @@ class KotlinTypeDefiner internal constructor(
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder =
-            (if (schema.properties.isNullOrEmpty())
+            (if (schema.properties.isNullOrEmpty() && schema.oneOf.isNullOrEmpty())
                 TypeSpec.objectBuilder(name)
             else
                 TypeSpec.classBuilder(name))
@@ -208,6 +211,24 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
+        if (schema.oneOf != null) {
+            classBuilder.addModifiers(KModifier.DATA)
+            val constructorBuilder = FunSpec.constructorBuilder()
+            for (s in schema.oneOf) {
+                if (s.`$ref` != null) {
+                    val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
+                    val propertyName = (typeName as ClassName).simpleName.replaceFirstChar { c -> c.lowercase() }
+                    val param = ParameterSpec.builder(propertyName, typeName).defaultValue("null").build()
+                    constructorBuilder.addParameter(param)
+
+                    val propertySpec = PropertySpec.builder(propertyName, typeName).initializer(propertyName).build()
+                    classBuilder.addProperty(propertySpec)
+                }
+            }
+            classBuilder.primaryConstructor(constructorBuilder.build())
+        }
+
+        //TODO: additionalProperties
         if (!schema.properties.isNullOrEmpty()) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
