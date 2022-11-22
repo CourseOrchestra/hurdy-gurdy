@@ -1,0 +1,52 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import javax.servlet.http.HttpServletResponse
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+
+public interface Controller {
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(response: HttpServletResponse): String?
+}
+---
+/com/example/dto
+---
+/com/example/dto/Message.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Message(
+  public val code: Int? = null,
+  public val text: String? = null,
+)
+---
+/com/example/dto/Messages.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Messages {
+  public val messages: Map<String, Message> = emptyMap()
+}
