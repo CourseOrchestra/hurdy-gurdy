@@ -1,5 +1,7 @@
 package ru.curs.hurdygurdy
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter
+import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As
@@ -76,10 +78,13 @@ class KotlinTypeDefiner internal constructor(
                         parent.addType(internalEnum)
                         ClassName("", simpleName)
                     }
+
                     else -> String::class.asTypeName()
                 }
+
                 "number" ->
                     if ("float" == schema.format) FLOAT else DOUBLE
+
                 "integer" -> if ("int64" == schema.format) LONG else INT
                 "boolean" -> BOOLEAN
                 "array" -> {
@@ -89,6 +94,7 @@ class KotlinTypeDefiner internal constructor(
                             .copy(nullable = (itemsSchema.nullable ?: false))
                     )
                 }
+
                 "object" -> {
                     val simpleName = schema.title
                     if (simpleName != null) {
@@ -102,6 +108,7 @@ class KotlinTypeDefiner internal constructor(
                         ANY
                     }
                 }
+
                 else -> {
                     val simpleName = schema.title
                     if (simpleName != null) {
@@ -156,7 +163,7 @@ class KotlinTypeDefiner internal constructor(
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder =
-            (if (schema.properties.isNullOrEmpty())
+            (if (schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
                 TypeSpec.objectBuilder(name)
             else
                 TypeSpec.classBuilder(name))
@@ -208,7 +215,7 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
-        if (!schema.properties.isNullOrEmpty()) {
+        if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
@@ -272,6 +279,39 @@ class KotlinTypeDefiner internal constructor(
                     .initializer(propertyName).build()
                 classBuilder.addProperty(propertySpec)
             }
+
+            //Dictionary support
+            if (schema.additionalProperties != null) {
+                val additionalProperties = schema.additionalProperties
+                val valueTypeName = if (additionalProperties is Schema<*>) {
+                    defineKotlinType(
+                        additionalProperties, openAPI, classBuilder, null
+                    )
+                } else {
+                    String::class.asTypeName()
+                }
+
+                val mapType = Map::class.asClassName().parameterizedBy(
+                    String::class.asTypeName(),
+                    valueTypeName
+                )
+
+                val param = ParameterSpec.builder("additionalProperties", mapType)
+                    .defaultValue("HashMap()")
+                    .addAnnotation(JsonAnySetter::class.java)
+                    .addAnnotation(
+                        AnnotationSpec.builder(JsonAnyGetter::class)
+                            .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                            .build()
+                    )
+                    .build()
+                constructorBuilder.addParameter(param)
+                val propertySpec = PropertySpec
+                    .builder("additionalProperties", mapType)
+                    .initializer("additionalProperties").build()
+                classBuilder.addProperty(propertySpec)
+            }
+
             classBuilder.primaryConstructor(constructorBuilder.build())
         }
         return classBuilder.build()
