@@ -24,19 +24,23 @@ public interface Controller {
 ---
 /com/example/dto
 ---
-/com/example/dto/UserConfig.kt
+/com/example/dto/OneOf.kt
 package com.example.dto
 
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class UserConfig(
-  public val userConfigSingleDB: UserConfigSingleDB? = null,
-  public val userConfigMultipleDB: UserConfigMultipleDB? = null,
+@JsonSubTypes(
+  JsonSubTypes.Type(Variant1::class),
+  JsonSubTypes.Type(Variant2::class),
 )
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+public interface OneOf
 ---
-/com/example/dto/UserConfigMultipleDB.kt
+/com/example/dto/Variant1.kt
 package com.example.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
@@ -44,11 +48,11 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 import kotlin.Long
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class UserConfigMultipleDB(
-  public val id: Long,
-)
+public data class Variant1(
+  public val id1: Long,
+) : OneOf
 ---
-/com/example/dto/UserConfigSingleDB.kt
+/com/example/dto/Variant2.kt
 package com.example.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
@@ -56,6 +60,6 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 import kotlin.Long
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class UserConfigSingleDB(
-  public val id: Long,
-)
+public data class Variant2(
+  public val id2: Long,
+) : OneOf

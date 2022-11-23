@@ -4,18 +4,19 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import ru.curs.hurdygurdy.example.UserConfig
+import ru.curs.hurdygurdy.example.OneOf
+import ru.curs.hurdygurdy.example.Variant1
+import ru.curs.hurdygurdy.example.Variant2
 
 class KOMTest {
 
     @Test
     fun testUserConfigOneOf() {
         val mapper = jacksonObjectMapper()
-        val userConfigSingleDBJson = """{ "user_config_single_db":{"id": 1 }}"""
-        val userConfig: UserConfig = mapper.readValue(userConfigSingleDBJson)
-
-        Assertions.assertNotNull(userConfig.userConfigSingleDB)
-        Assertions.assertNull(userConfig.userConfigMultipleDB)
+        val userConfigSingleDBJson = """{"id1": 1 }"""
+        val userConfig: OneOf = mapper.readValue(userConfigSingleDBJson)
+        Assertions.assertTrue(userConfig is Variant1)
+        Assertions.assertFalse(userConfig is Variant2)
     }
 
 }

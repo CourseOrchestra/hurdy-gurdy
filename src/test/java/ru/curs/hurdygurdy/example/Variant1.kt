@@ -5,6 +5,6 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 import kotlin.Long
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class UserConfigMultipleDB(
-    public val id: Long,
-)
+public data class Variant1(
+    public val id1: Long,
+) : OneOf

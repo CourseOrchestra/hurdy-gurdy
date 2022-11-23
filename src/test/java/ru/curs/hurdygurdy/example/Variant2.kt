@@ -1,10 +1,11 @@
 package ru.curs.hurdygurdy.example
 
+
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Long
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class UserConfig(
-    public val userConfigSingleDB: UserConfigSingleDB? = null,
-    public val userConfigMultipleDB: UserConfigMultipleDB? = null,
-)
+public data class Variant2(
+    public val id2: Long,
+) : OneOf

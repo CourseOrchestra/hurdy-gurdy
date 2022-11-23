@@ -141,17 +141,18 @@ class KotlinTypeDefiner internal constructor(
         return if (schema is ComposedSchema) {
             if (schema.oneOf != null) {
                 return getDTOClass(name, schema, openAPI, Any::class.asClassName())
-            }
-            var baseClass: TypeName = Any::class.asClassName()
-            var currentSchema = schema
-            for (s in schema.allOf) {
-                if (s.`$ref` != null) {
-                    baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
-                } else {
-                    currentSchema = s
+            } else {
+                var baseClass: TypeName = Any::class.asClassName()
+                var currentSchema = schema
+                for (s in schema.allOf) {
+                    if (s.`$ref` != null) {
+                        baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
+                    } else {
+                        currentSchema = s
+                    }
                 }
+                getDTOClass(name, currentSchema, openAPI, baseClass)
             }
-            getDTOClass(name, currentSchema, openAPI, baseClass)
         } else {
             getDTOClass(name, schema, openAPI, Any::class.asClassName())
         }
@@ -160,10 +161,13 @@ class KotlinTypeDefiner internal constructor(
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder =
             (if (schema.properties.isNullOrEmpty() && schema.additionalProperties == null && schema.oneOf.isNullOrEmpty())
-                TypeSpec.objectBuilder(name)
+                TypeSpec.objectBuilder(name).superclass(baseClass)
+            else if (!schema.oneOf.isNullOrEmpty())
+                TypeSpec.interfaceBuilder(name)
             else
-                TypeSpec.classBuilder(name))
-                .superclass(baseClass)
+                TypeSpec.classBuilder(name).superclass(baseClass))
+
+        addInterfaces(openAPI, name, classBuilder)
 
         if (params.isForceSnakeCaseForProperties) {
             classBuilder.addAnnotation(
@@ -211,22 +215,7 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
-        if (schema.oneOf != null) {
-            classBuilder.addModifiers(KModifier.DATA)
-            val constructorBuilder = FunSpec.constructorBuilder()
-            for (s in schema.oneOf) {
-                if (s.`$ref` != null) {
-                    val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
-                    val propertyName = (typeName as ClassName).simpleName.replaceFirstChar { c -> c.lowercase() }
-                    val param = ParameterSpec.builder(propertyName, typeName).defaultValue("null").build()
-                    constructorBuilder.addParameter(param)
-
-                    val propertySpec = PropertySpec.builder(propertyName, typeName).initializer(propertyName).build()
-                    classBuilder.addProperty(propertySpec)
-                }
-            }
-            classBuilder.primaryConstructor(constructorBuilder.build())
-        }
+        oneOfToInterface(schema, openAPI, classBuilder)
 
         if (schema.additionalProperties != null) {
             classBuilder.addModifiers(KModifier.DATA)
@@ -243,7 +232,7 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.addProperty(propertySpec)
         }
 
-        if (!schema.properties.isNullOrEmpty()) {
+        if (!schema.properties.isNullOrEmpty() && schema.oneOf == null) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
@@ -310,6 +299,60 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.primaryConstructor(constructorBuilder.build())
         }
         return classBuilder.build()
+    }
+
+    private fun oneOfToInterface(
+        schema: Schema<*>,
+        openAPI: OpenAPI,
+        classBuilder: TypeSpec.Builder
+    ) {
+        if (schema.oneOf != null) {
+            val builder = AnnotationSpec.builder(JsonSubTypes::class)
+            for (s in schema.oneOf) {
+                if (s.`$ref` != null) {
+                    val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
+                    val className = (typeName as ClassName).simpleName
+                    builder.addMember("JsonSubTypes.Type(${className}::class)")
+
+                }
+            }
+
+            classBuilder.addAnnotation(builder.build())
+
+            classBuilder.addAnnotation(
+                AnnotationSpec
+                    .builder(JsonTypeInfo::class)
+                    .addMember("use = JsonTypeInfo.Id.DEDUCTION")
+                    .build()
+            )
+        }
+    }
+
+    private fun addInterfaces(
+        openAPI: OpenAPI,
+        name: String,
+        classBuilder: TypeSpec.Builder
+    ) {
+        openAPI.components.schemas.forEach { schemaName, schema ->
+            if (schema is ComposedSchema) {
+                if (schema.oneOf != null) {
+                    val interfaceName = ClassName(
+                        java.lang.String.join(".", params.rootPackage, "dto"),
+                        schemaName
+                    ).copy(nullable = false)
+
+                    for (s in schema.oneOf) {
+                        if (s.`$ref` != null) {
+                            val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
+                            val className = (typeName as ClassName).simpleName
+                            if (className == name) {
+                                classBuilder.addSuperinterface(interfaceName)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun ensureJsonZonedDateTimeDeserializer() {

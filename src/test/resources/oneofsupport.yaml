@@ -19,25 +19,25 @@ paths:
 
 components:
   schemas:
-    UserConfig:
+    OneOf:
       oneOf:
-        - $ref: "#/components/schemas/UserConfigSingleDB"
-        - $ref: "#/components/schemas/UserConfigMultipleDB"
+        - $ref: "#/components/schemas/Variant1"
+        - $ref: "#/components/schemas/Variant2"
 
-    UserConfigSingleDB:
+    Variant1:
       type: object
       nullable: false
       properties:
-        id:
+        id1:
           type: integer
           format: int64
           nullable: false
 
-    UserConfigMultipleDB:
+    Variant2:
       type: object
       nullable: false
       properties:
-        id:
+        id2:
           type: integer
           format: int64
           nullable: false
