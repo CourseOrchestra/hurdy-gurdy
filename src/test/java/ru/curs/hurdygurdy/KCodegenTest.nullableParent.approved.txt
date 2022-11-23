@@ -50,8 +50,10 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
   include = JsonTypeInfo.As.PROPERTY,
   property = "type",
 )
-@JsonSubTypes(JsonSubTypes.Type(value = StringCategories::class, name = "string"),
-JsonSubTypes.Type(value = BooleanCategories::class, name = "boolean"))
+@JsonSubTypes(
+  JsonSubTypes.Type(value = StringCategories::class, name = "string"),
+  JsonSubTypes.Type(value = BooleanCategories::class, name = "boolean"),
+)
 public sealed class Categories()
 ---
 /com/example/dto/StringCategories.kt

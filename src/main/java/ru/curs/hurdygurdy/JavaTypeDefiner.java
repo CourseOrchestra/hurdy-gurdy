@@ -40,6 +40,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -188,11 +189,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     @Override
     TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI) {
-        if (schema instanceof ComposedSchema) {
-            var cs = (ComposedSchema) schema;
+        if (schema instanceof ComposedSchema && schema.getOneOf() == null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
-            for (Schema<?> s : cs.getAllOf()) {
+            for (Schema<?> s : schema.getAllOf()) {
                 if (s.get$ref() != null) {
                     baseClass = referencedClassName(openAPI, s.get$ref());
                 } else {
@@ -206,11 +206,15 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass) {
-        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name)
-                .superclass(baseClass)
-                .addAnnotation(Data.class)
-                .addModifiers(Modifier.PUBLIC);
-
+        TypeSpec.Builder classBuilder;
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            classBuilder = TypeSpec.interfaceBuilder(name);
+        } else {
+            classBuilder = TypeSpec.classBuilder(name)
+                    .superclass(baseClass)
+                    .addAnnotation(Data.class);
+        }
+        classBuilder.addModifiers(Modifier.PUBLIC);
         if (params.isForceSnakeCaseForProperties()) {
             classBuilder.addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
                     "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build());
@@ -241,6 +245,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
+        oneOfToInterface(schema, openAPI, classBuilder);
 
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
@@ -302,6 +307,30 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             classBuilder.addField(fieldSpec);
         }
         return classBuilder.build();
+    }
+
+    private void oneOfToInterface(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
+        if (schema.getOneOf() != null) {
+            var subtypesAnnotation = AnnotationSpec.builder(JsonSubTypes.class);
+
+            final CodeBlock collect = schema.getOneOf().stream()
+                    .map(Schema::get$ref)
+                    .filter(Objects::nonNull)
+                    .map(r -> referencedClassName(openAPI, r))
+                    .map(className ->
+                            AnnotationSpec.builder(JsonSubTypes.Type.class)
+                                    .addMember("value", "$T.class", className)
+                                    .build())
+                    .map(a -> CodeBlock.of("$L", a))
+                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
+            subtypesAnnotation.addMember("value", collect);
+            classBuilder.addAnnotation(subtypesAnnotation.build());
+            classBuilder.addAnnotation(
+                    AnnotationSpec
+                            .builder(JsonTypeInfo.class)
+                            .addMember("use", "$T.DEDUCTION", JsonTypeInfo.Id.class)
+                            .build());
+        }
     }
 
     @Override

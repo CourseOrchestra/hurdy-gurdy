@@ -239,8 +239,10 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
   include = JsonTypeInfo.As.PROPERTY,
   property = "vehicle_type",
 )
-@JsonSubTypes(JsonSubTypes.Type(value = Car::class, name = "CAR"),
-JsonSubTypes.Type(value = Truck::class, name = "TRUCK"))
+@JsonSubTypes(
+  JsonSubTypes.Type(value = Car::class, name = "CAR"),
+  JsonSubTypes.Type(value = Truck::class, name = "TRUCK"),
+)
 public sealed class Vehicle()
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt

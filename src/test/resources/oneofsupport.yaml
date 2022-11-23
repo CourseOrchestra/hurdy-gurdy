@@ -1,0 +1,43 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+
+components:
+  schemas:
+    OneOf:
+      oneOf:
+        - $ref: "#/components/schemas/Variant1"
+        - $ref: "#/components/schemas/Variant2"
+
+    Variant1:
+      type: object
+      nullable: false
+      properties:
+        id1:
+          type: integer
+          format: int64
+          nullable: false
+
+    Variant2:
+      type: object
+      nullable: false
+      properties:
+        id2:
+          type: integer
+          format: int64
+          nullable: false
