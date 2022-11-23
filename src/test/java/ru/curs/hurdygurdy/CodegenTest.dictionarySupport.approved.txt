@@ -1,0 +1,93 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import java.lang.String;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+
+interface Controller {
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/Message.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Message {
+  private Integer code;
+
+  private String text;
+}
+---
+/com/example/dto/Messages.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Messages {
+  private Integer intVal;
+
+  private String strVal;
+
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, Message> additionalProperties = new HashMap<>();
+}
+---
+/com/example/dto/ObjectWithAFreeDict.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ObjectWithAFreeDict {
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, String> additionalProperties = new HashMap<>();
+}

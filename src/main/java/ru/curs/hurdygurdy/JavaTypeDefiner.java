@@ -1,5 +1,7 @@
 package ru.curs.hurdygurdy;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -23,10 +25,10 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
+import lombok.Getter;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.lang.model.element.Modifier;
@@ -35,6 +37,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -91,7 +94,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 case "boolean":
                     return TypeName.BOOLEAN;
                 case "array":
-                    Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
+                    Schema<?> itemsSchema = schema.getItems();
                     return ParameterizedTypeName.get(ClassName.get(List.class),
                             defineJavaType(itemsSchema, openAPI, parent,
                                     typeNameFallback == null ? null : typeNameFallback + "Item"));
@@ -127,12 +130,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                             ))
                             .addModifiers(Modifier.PUBLIC)
                             .addField(FieldSpec.builder(ClassName.get(DateTimeFormatter.class),
-                                    "formatter")
+                                            "formatter")
                                     .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                                     .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
                                     .build())
                             .addMethod(MethodSpec.methodBuilder(
-                                    "deserialize")
+                                            "deserialize")
                                     .returns(ClassName.get(ZonedDateTime.class))
                                     .addAnnotation(Override.class)
                                     .addModifiers(Modifier.PUBLIC)
@@ -160,12 +163,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                             ))
                             .addModifiers(Modifier.PUBLIC)
                             .addField(FieldSpec.builder(ClassName.get(DateTimeFormatter.class),
-                                    "formatter")
+                                            "formatter")
                                     .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                                     .initializer("$T.ISO_OFFSET_DATE_TIME", DateTimeFormatter.class)
                                     .build())
                             .addMethod(MethodSpec.methodBuilder(
-                                    "serialize")
+                                            "serialize")
                                     .addAnnotation(Override.class)
                                     .addModifiers(Modifier.PUBLIC)
                                     .addParameter(ParameterSpec.builder(ZonedDateTime.class, "value").build())
@@ -239,9 +242,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
 
-        //Add properties
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
+            //Add properties
             for (Map.Entry<String, Schema> entry : schemaMap.entrySet()) {
                 checkPropertyName(name, entry.getKey());
                 if (schema.getDiscriminator() != null
@@ -263,16 +266,40 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 if (typeName instanceof ClassName && "ZonedDateTime"
                         .equals(((ClassName) typeName).simpleName())) {
                     fieldBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(JsonDeserialize.class))
-                            .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                                            ClassName.get(JsonDeserialize.class))
+                                    .addMember("using", "ZonedDateTimeDeserializer.class").build())
                             .addAnnotation(AnnotationSpec.builder(
-                                    ClassName.get(JsonSerialize.class))
+                                            ClassName.get(JsonSerialize.class))
                                     .addMember("using", "ZonedDateTimeSerializer.class").build());
                     ensureJsonZonedDateTimeDeserializer();
                 }
                 FieldSpec fieldSpec = fieldBuilder.build();
                 classBuilder.addField(fieldSpec);
             }
+        }
+
+        //Dictionary support
+        if (schema.getAdditionalProperties() != null) {
+            Object additionalProperties = schema.getAdditionalProperties();
+            TypeName valueTypeName;
+            if (additionalProperties instanceof Schema<?>) {
+                valueTypeName = defineJavaType((Schema<?>) additionalProperties,
+                        openAPI, classBuilder, null);
+            } else {
+                valueTypeName = TypeName.get(String.class);
+            }
+
+            ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
+                    TypeName.get(String.class), valueTypeName);
+
+            final FieldSpec fieldSpec = FieldSpec.builder(mapType,
+                            "additionalProperties", Modifier.PRIVATE
+                    ).initializer("new $T<>()", HashMap.class)
+                    .addAnnotation(JsonAnySetter.class)
+                    .addAnnotation(AnnotationSpec.builder(Getter.class
+                    ).addMember("onMethod_", "@$T", JsonAnyGetter.class).build()).build();
+
+            classBuilder.addField(fieldSpec);
         }
         return classBuilder.build();
     }

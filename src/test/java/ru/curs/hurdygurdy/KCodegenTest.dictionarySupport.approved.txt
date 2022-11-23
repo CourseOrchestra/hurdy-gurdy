@@ -41,12 +41,36 @@ public data class Message(
 /com/example/dto/Messages.kt
 package com.example.dto
 
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Messages(
+  public val intVal: Int? = null,
+  public val strVal: String? = null,
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, Message> = HashMap(),
+)
+---
+/com/example/dto/ObjectWithAFreeDict.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 import kotlin.String
 import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public data class Messages {
-  public val messages: Map<String, Message> = emptyMap()
-}
+public class ObjectWithAFreeDict(
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, String> = HashMap(),
+)

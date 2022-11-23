@@ -19,14 +19,25 @@ paths:
 
 components:
   schemas:
-    Messages:        # <---- dictionary
+    Messages: # <---- dictionary
       type: object
+      properties:
+        int_val:
+          type: integer
+        str_val:
+          type: string
       additionalProperties:
         $ref: '#/components/schemas/Message'
+
     Message:
       type: object
+      nullable: false
       properties:
         code:
           type: integer
         text:
           type: string
+
+    ObjectWithAFreeDict:
+      type: object
+      additionalProperties: true
