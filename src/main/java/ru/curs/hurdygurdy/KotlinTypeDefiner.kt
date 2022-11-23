@@ -209,10 +209,10 @@ class KotlinTypeDefiner internal constructor(
                             .addMember("value = %T::class", referencedTypeName(value, openAPI))
                             .addMember("name = %S", key).build()
                     }
-                    .map { CodeBlock.of("%L", it) }.joinToCode(",\n")
+                    .map { CodeBlock.of("%L", it) }
             classBuilder.addAnnotation(
                 AnnotationSpec.builder(JsonSubTypes::class)
-                    .addMember(mappings)
+                    .also { spec -> mappings.forEach { spec.addMember(it) } }
                     .build()
             )
         }
