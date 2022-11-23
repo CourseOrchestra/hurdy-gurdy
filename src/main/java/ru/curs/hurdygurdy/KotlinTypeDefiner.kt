@@ -145,21 +145,17 @@ class KotlinTypeDefiner internal constructor(
     }
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
-        return if (schema is ComposedSchema) {
-            if (schema.oneOf != null) {
-                return getDTOClass(name, schema, openAPI, Any::class.asClassName())
-            } else {
-                var baseClass: TypeName = Any::class.asClassName()
-                var currentSchema = schema
-                for (s in schema.allOf) {
-                    if (s.`$ref` != null) {
-                        baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
-                    } else {
-                        currentSchema = s
-                    }
+        return if (schema is ComposedSchema && schema.oneOf == null) {
+            var baseClass: TypeName = Any::class.asClassName()
+            var currentSchema = schema
+            for (s in schema.allOf) {
+                if (s.`$ref` != null) {
+                    baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
+                } else {
+                    currentSchema = s
                 }
-                getDTOClass(name, currentSchema, openAPI, baseClass)
             }
+            getDTOClass(name, currentSchema, openAPI, baseClass)
         } else {
             getDTOClass(name, schema, openAPI, Any::class.asClassName())
         }
@@ -167,7 +163,10 @@ class KotlinTypeDefiner internal constructor(
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder =
-            (if (schema.properties.isNullOrEmpty() && schema.additionalProperties == null && schema.oneOf.isNullOrEmpty())
+            (if (schema.properties.isNullOrEmpty() &&
+                schema.additionalProperties == null &&
+                schema.oneOf.isNullOrEmpty()
+            )
                 TypeSpec.objectBuilder(name).superclass(baseClass)
             else if (!schema.oneOf.isNullOrEmpty())
                 TypeSpec.interfaceBuilder(name)
@@ -328,19 +327,23 @@ class KotlinTypeDefiner internal constructor(
     private fun oneOfToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
         if (schema.oneOf != null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
-            for (s in schema.oneOf) {
-                if (s.`$ref` != null) {
-                    val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
-                    val className = (typeName as ClassName).simpleName
-                    builder.addMember("JsonSubTypes.Type(${className}::class)")
+            val subtypes = schema.oneOf.asSequence()
+                .map { it.`$ref` }
+                .filterNotNull()
+                .map { referencedTypeName(it, openAPI) }
+                .map { it.copy(nullable = false) }
+                .map {
+                    AnnotationSpec.builder(JsonSubTypes.Type::class)
+                        .addMember("%T::class", it)
+                        .build()
                 }
-            }
-
+                .map { CodeBlock.of("%L", it) }
+                .forEach { builder.addMember(it) }
             classBuilder.addAnnotation(builder.build())
             classBuilder.addAnnotation(
                 AnnotationSpec
                     .builder(JsonTypeInfo::class)
-                    .addMember("use = JsonTypeInfo.Id.DEDUCTION")
+                    .addMember("use = %T.DEDUCTION", JsonTypeInfo.Id::class)
                     .build()
             )
         }
