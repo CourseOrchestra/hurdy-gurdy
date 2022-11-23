@@ -156,7 +156,7 @@ class KotlinTypeDefiner internal constructor(
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
         val classBuilder =
-            (if (schema.properties.isNullOrEmpty())
+            (if (schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
                 TypeSpec.objectBuilder(name)
             else
                 TypeSpec.classBuilder(name))
@@ -207,6 +207,22 @@ class KotlinTypeDefiner internal constructor(
         getExtendsList(schema).asSequence()
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
+
+        //Dictionary support
+        if (schema.additionalProperties != null) {
+            classBuilder.addModifiers(KModifier.DATA)
+            val constructorBuilder = FunSpec.constructorBuilder()
+            val keySchema = (schema.additionalProperties as Schema<*>)
+            val valueTypeName = referencedTypeName(keySchema.`$ref`, openAPI).copy(nullable = false)
+            val propertyName = name.replaceFirstChar { c -> c.lowercase() }
+            val mapType = Map::class.asClassName().parameterizedBy(String::class.asTypeName(), valueTypeName).copy(nullable = false)
+
+            val param = ParameterSpec.builder(propertyName, mapType).defaultValue("emptyMap()").build()
+            constructorBuilder.addParameter(param)
+
+            val propertySpec = PropertySpec.builder(propertyName, mapType).initializer("emptyMap()").build()
+            classBuilder.addProperty(propertySpec)
+        }
 
         if (!schema.properties.isNullOrEmpty()) {
             //Add properties
