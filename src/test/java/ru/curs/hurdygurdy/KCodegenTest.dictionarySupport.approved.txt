@@ -69,7 +69,7 @@ import kotlin.String
 import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public class ObjectWithAFreeDict(
+public data class ObjectWithAFreeDict(
   @JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, String> = HashMap(),
