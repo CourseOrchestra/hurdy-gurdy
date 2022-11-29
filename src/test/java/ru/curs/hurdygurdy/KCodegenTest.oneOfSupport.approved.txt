@@ -38,7 +38,7 @@ import com.fasterxml.jackson.databind.`annotation`.JsonNaming
 )
 @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
-public interface OneOf
+public sealed interface OneOf
 ---
 /com/example/dto/Variant1.kt
 package com.example.dto

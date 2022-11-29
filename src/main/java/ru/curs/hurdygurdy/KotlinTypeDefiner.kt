@@ -346,6 +346,7 @@ class KotlinTypeDefiner internal constructor(
                     .addMember("use = %T.DEDUCTION", JsonTypeInfo.Id::class)
                     .build()
             )
+            classBuilder.addModifiers(KModifier.SEALED)
         }
     }
 
