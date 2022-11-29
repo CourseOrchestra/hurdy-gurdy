@@ -74,3 +74,21 @@ public data class ObjectWithAFreeDict(
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, String> = HashMap(),
 )
+---
+/com/example/dto/ObjectWithPrimitiveDictValues.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ObjectWithPrimitiveDictValues(
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, Boolean?> = HashMap(),
+)

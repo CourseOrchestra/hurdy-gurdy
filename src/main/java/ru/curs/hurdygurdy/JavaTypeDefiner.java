@@ -289,7 +289,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             TypeName valueTypeName;
             if (additionalProperties instanceof Schema<?>) {
                 valueTypeName = defineJavaType((Schema<?>) additionalProperties,
-                        openAPI, classBuilder, null);
+                        openAPI, classBuilder, null).box();
             } else {
                 valueTypeName = TypeName.get(String.class);
             }
