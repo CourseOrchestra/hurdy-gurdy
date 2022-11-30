@@ -41,3 +41,8 @@ components:
     ObjectWithAFreeDict:
       type: object
       additionalProperties: true
+
+    ObjectWithPrimitiveDictValues:
+      type: object
+      additionalProperties:
+        type: boolean

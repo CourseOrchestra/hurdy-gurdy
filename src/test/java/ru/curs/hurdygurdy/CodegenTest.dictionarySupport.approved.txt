@@ -91,3 +91,27 @@ public class ObjectWithAFreeDict {
   )
   private Map<String, String> additionalProperties = new HashMap<>();
 }
+---
+/com/example/dto/ObjectWithPrimitiveDictValues.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Boolean;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ObjectWithPrimitiveDictValues {
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, Boolean> additionalProperties = new HashMap<>();
+}
