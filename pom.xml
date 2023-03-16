@@ -44,7 +44,7 @@
         <maven.javadoc.plugin.version>3.5.0</maven.javadoc.plugin.version>
         <kotlin.version>1.8.0</kotlin.version>
         <checkstyle.maven.plugin.version>3.2.0</checkstyle.maven.plugin.version>
-        <checkstyle.version>10.8.1</checkstyle.version>
+        <checkstyle.version>10.9.0</checkstyle.version>
     </properties>
 
     <distributionManagement>
