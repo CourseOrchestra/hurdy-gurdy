@@ -14,7 +14,6 @@ import com.example.dto.PlayerActivitiesDTO
 import javax.servlet.http.HttpServletResponse
 import kotlin.Int
 import kotlin.String
-import kotlin.Unit
 import org.springframework.web.bind.`annotation`.GetMapping
 import org.springframework.web.bind.`annotation`.PathVariable
 import org.springframework.web.bind.`annotation`.PostMapping
@@ -25,7 +24,7 @@ import org.springframework.web.bind.`annotation`.RequestParam
 public interface Controller {
   @PostMapping(value = ["/api/v1/activity"])
   public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?,
-      response: HttpServletResponse): Unit
+      response: HttpServletResponse)
 
   @GetMapping(
     value = ["/api/v1/hello"],
@@ -51,13 +50,12 @@ package com.example.controller
 
 import com.example.dto.PlayersDTO
 import javax.servlet.http.HttpServletResponse
-import kotlin.Unit
 import org.springframework.web.bind.`annotation`.PostMapping
 import org.springframework.web.bind.`annotation`.RequestBody
 
 public interface PlayerController {
   @PostMapping(value = ["/api/v1/players"])
-  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse): Unit
+  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse)
 }
 ---
 /com/example/dto
@@ -279,7 +277,6 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.Unit
 
 public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
   private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
@@ -288,7 +285,7 @@ public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
     `value`: ZonedDateTime,
     gen: JsonGenerator,
     serializers: SerializerProvider,
-  ): Unit {
+  ) {
     gen.writeString(formatter.format(value))
   }
 }

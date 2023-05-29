@@ -16,7 +16,6 @@ import com.example.dto.NullableType
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
-import kotlin.Unit
 import org.springframework.web.bind.`annotation`.DeleteMapping
 import org.springframework.web.bind.`annotation`.GetMapping
 import org.springframework.web.bind.`annotation`.PathVariable
@@ -32,7 +31,7 @@ public interface Api {
   public fun getMenu(): MenuDTO?
 
   @DeleteMapping(value = ["/menu"])
-  public fun deleteMenu(): Unit
+  public fun deleteMenu()
 
   @GetMapping(
     value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
@@ -70,7 +69,6 @@ import com.example.dto.NullableType
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
-import kotlin.Unit
 import org.springframework.web.bind.`annotation`.DeleteMapping
 import org.springframework.web.bind.`annotation`.GetMapping
 import org.springframework.web.bind.`annotation`.PathVariable
@@ -86,7 +84,7 @@ public interface Controller {
   public fun getMenu(): MenuDTO?
 
   @DeleteMapping(value = ["/menu"])
-  public fun deleteMenu(): Unit
+  public fun deleteMenu()
 
   @GetMapping(
     value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
@@ -195,7 +193,6 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.Unit
 
 public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
   private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
@@ -204,7 +201,7 @@ public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
     `value`: ZonedDateTime,
     gen: JsonGenerator,
     serializers: SerializerProvider,
-  ): Unit {
+  ) {
     gen.writeString(formatter.format(value))
   }
 }
