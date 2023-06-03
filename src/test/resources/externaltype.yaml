@@ -1,0 +1,24 @@
+openapi: 3.0.1
+info:
+  title: "UI API"
+  description: |
+    Test
+  version: "0.1"
+
+x-package: com.example.ui.api
+
+paths:
+  /api/v1/admin/license:
+    get:
+      operationId: getLicenseInfo
+      tags:
+        - license
+      responses:
+        "200":
+          description: License information
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/LicenseResponse"
+        "404":
+          description: No license found

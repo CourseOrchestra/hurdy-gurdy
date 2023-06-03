@@ -1,0 +1,42 @@
+openapi: 3.0.1
+info:
+  title: "Collector API"
+  description: |
+    Test
+  version: "0.1"
+
+x-package: com.example.collector.api
+
+paths:
+  /collector/api/v1/license:
+    get:
+      operationId: getLicense
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseResponse"
+components:
+  schemas:
+    LicenseResponse:
+      description: Reply to license API call
+      type: object
+      nullable: false
+      properties:
+        expiration_date:
+          type: string
+          format: date-time
+          nullable: false
+        fingerprint:
+          type: string
+          nullable: false
+        email:
+          type: string
+        feature_ids:
+          type: array
+          nullable: false
+          items:
+            type: string
+            nullable: false
