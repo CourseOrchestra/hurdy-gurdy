@@ -1,0 +1,23 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/LicenseController.kt
+package com.example.controller
+
+import com.example.collector.api.dto.LicenseResponse
+import javax.servlet.http.HttpServletResponse
+import org.springframework.web.bind.`annotation`.GetMapping
+
+public interface LicenseController {
+  @GetMapping(
+    value = ["/api/v1/admin/license"],
+    produces = ["application/json"],
+  )
+  public fun getLicenseInfo(response: HttpServletResponse): LicenseResponse
+}
