@@ -78,7 +78,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>5.3.28</version>
+            <version>5.3.29</version>
             <scope>compile</scope>
         </dependency>
         <!-- test -->
