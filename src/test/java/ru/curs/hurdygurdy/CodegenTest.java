@@ -106,6 +106,12 @@ class CodegenTest {
         Approvals.verify(getContent(result));
     }
 
+    @Test
+    void deepInheritance() throws IOException {
+        codegen.generate(Path.of("src/test/resources/deep_inheritance.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
     String getContent(Path path) throws IOException {
         return Files.walk(path)
                 .sorted()

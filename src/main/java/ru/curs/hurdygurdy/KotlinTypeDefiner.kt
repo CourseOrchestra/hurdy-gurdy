@@ -34,7 +34,6 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.joinToCode
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.ComposedSchema
@@ -162,12 +161,17 @@ class KotlinTypeDefiner internal constructor(
     }
 
     private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
+        // Define if any schema references to us as "allOf"
+        val isParent = openAPI.components.schemas.any { (_, schema) ->
+            schema.allOf?.any { it.`$ref`?.endsWith(name) ?: false } ?: false
+        }
         val classBuilder =
             (if (schema.properties.isNullOrEmpty() &&
                 schema.additionalProperties == null &&
-                schema.oneOf.isNullOrEmpty()
+                schema.oneOf.isNullOrEmpty() &&
+                !isParent
             )
-                TypeSpec.objectBuilder(name).superclass(baseClass)
+                TypeSpec.objectBuilder(name).superclass(baseClass).addModifiers(KModifier.DATA)
             else if (!schema.oneOf.isNullOrEmpty())
                 TypeSpec.interfaceBuilder(name)
             else
@@ -199,6 +203,11 @@ class KotlinTypeDefiner internal constructor(
         } else if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)) {
             classBuilder.addModifiers(KModifier.DATA)
         }
+        //Intermediate class, can't be data, should be open
+        if (isParent && !classBuilder.modifiers.contains(KModifier.SEALED)) {
+            classBuilder.addModifiers(KModifier.OPEN)
+            classBuilder.modifiers.remove(KModifier.DATA)
+        }
 
         val subclassMapping = getSubclassMapping(schema)
         if (subclassMapping.isNotEmpty()) {
@@ -206,7 +215,7 @@ class KotlinTypeDefiner internal constructor(
                 subclassMapping
                     .map { (key, value) ->
                         AnnotationSpec.builder(JsonSubTypes.Type::class)
-                            .addMember("value = %T::class", referencedTypeName(value, openAPI))
+                            .addMember("value = %T::class", referencedTypeName(value, openAPI).copy(nullable = false))
                             .addMember("name = %S", key).build()
                     }
                     .map { CodeBlock.of("%L", it) }
@@ -284,6 +293,8 @@ class KotlinTypeDefiner internal constructor(
 
                 val propertySpec = PropertySpec
                     .builder(propertyName, typeName)
+                    // If we're parent children can override even types!
+                    .addModifiers(listOfNotNull(KModifier.OPEN.takeIf { isParent }))
                     .initializer(propertyName).build()
                 classBuilder.addProperty(propertySpec)
             }
