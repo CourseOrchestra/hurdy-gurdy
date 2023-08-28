@@ -1,0 +1,46 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/A.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "type",
+)
+@JsonSubTypes(
+  JsonSubTypes.Type(value = B::class, name = "b"),
+  JsonSubTypes.Type(value = C::class, name = "c"),
+)
+public sealed class A()
+---
+/com/example/dto/B.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public open class B : A()
+---
+/com/example/dto/C.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data object C : B()
