@@ -22,12 +22,10 @@ components:
           'c': '#/components/schemas/C'
     B:
       description: B
-      nullable: false
       allOf:
         - $ref: "#/components/schemas/A"
 
     C:
       description: C
-      nullable: false
       allOf:
         - $ref: "#/components/schemas/B"
