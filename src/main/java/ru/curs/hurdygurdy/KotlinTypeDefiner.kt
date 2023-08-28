@@ -171,7 +171,7 @@ class KotlinTypeDefiner internal constructor(
                 schema.oneOf.isNullOrEmpty() &&
                 !isParent
             )
-                TypeSpec.objectBuilder(name).superclass(baseClass).addModifiers(KModifier.DATA)
+                TypeSpec.objectBuilder(name).superclass(baseClass)
             else if (!schema.oneOf.isNullOrEmpty())
                 TypeSpec.interfaceBuilder(name)
             else
