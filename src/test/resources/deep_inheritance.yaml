@@ -1,0 +1,33 @@
+openapi: 3.0.1
+info:
+  title: "Deep inheritance API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+
+
+components:
+  schemas:
+    A:
+      description: A
+      properties:
+        type:
+          type: string
+      discriminator:
+        propertyName: type
+        mapping:
+          'b': '#/components/schemas/B'
+          'c': '#/components/schemas/C'
+    B:
+      description: B
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/A"
+
+    C:
+      description: C
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/B"
