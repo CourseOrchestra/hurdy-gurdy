@@ -115,7 +115,7 @@ public class Car extends Vehicle {
 }
 ```
 
-This will procude the following in Kotlin:
+This will produce the following in Kotlin:
 
 ```kotlin
 //Vehicle.kt

@@ -11,7 +11,7 @@
 package com.example.controller
 
 import com.example.collector.api.dto.LicenseResponse
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.`annotation`.GetMapping
 
 public interface LicenseController {

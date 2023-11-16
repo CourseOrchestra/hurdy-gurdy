@@ -15,7 +15,7 @@ import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.parameters.RequestBody
 import org.springframework.web.bind.annotation.*
 import java.util.*
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
 import kotlin.streams.asSequence
 
