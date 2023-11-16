@@ -11,7 +11,7 @@
 package com.example.controller
 
 import com.example.dto.PlayerActivitiesDTO
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import kotlin.Int
 import kotlin.String
 import org.springframework.web.bind.`annotation`.GetMapping
@@ -49,7 +49,7 @@ public interface Controller {
 package com.example.controller
 
 import com.example.dto.PlayersDTO
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.`annotation`.PostMapping
 import org.springframework.web.bind.`annotation`.RequestBody
 

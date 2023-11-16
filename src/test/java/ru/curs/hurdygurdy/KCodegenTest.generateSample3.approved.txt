@@ -12,7 +12,7 @@ package com.example.controller
 
 import com.example.dto.CreateUpdateUserRequest
 import com.example.dto.UserResponse
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import kotlin.Long
 import kotlin.collections.List
 import org.springframework.web.bind.`annotation`.DeleteMapping

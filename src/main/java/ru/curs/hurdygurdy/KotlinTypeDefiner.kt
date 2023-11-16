@@ -317,7 +317,7 @@ class KotlinTypeDefiner internal constructor(
 
                 val param = ParameterSpec.builder("additionalProperties", mapType)
                     .defaultValue("HashMap()")
-                    .addAnnotation(JsonAnySetter::class.java)
+                    .addAnnotation(JsonAnySetter::class)
                     .addAnnotation(
                         AnnotationSpec.builder(JsonAnyGetter::class)
                             .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
@@ -339,7 +339,7 @@ class KotlinTypeDefiner internal constructor(
     private fun oneOfToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
         if (schema.oneOf != null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
-            val subtypes = schema.oneOf.asSequence()
+            schema.oneOf.asSequence()
                 .map { it.`$ref` }
                 .filterNotNull()
                 .map { referencedTypeName(it, openAPI) }

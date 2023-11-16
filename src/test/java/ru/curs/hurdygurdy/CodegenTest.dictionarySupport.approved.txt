@@ -10,8 +10,8 @@
 /com/example/controller/Controller.java
 package com.example.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.lang.String;
-import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 
 interface Controller {
