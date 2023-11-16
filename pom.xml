@@ -44,7 +44,7 @@
         <maven.javadoc.plugin.version>3.6.2</maven.javadoc.plugin.version>
         <kotlin.version>1.9.20</kotlin.version>
         <checkstyle.maven.plugin.version>3.3.1</checkstyle.maven.plugin.version>
-        <checkstyle.version>10.12.4</checkstyle.version>
+        <checkstyle.version>10.12.5</checkstyle.version>
     </properties>
 
     <distributionManagement>
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>5.3.30</version>
+            <version>5.3.31</version>
             <scope>compile</scope>
         </dependency>
         <!-- test -->
