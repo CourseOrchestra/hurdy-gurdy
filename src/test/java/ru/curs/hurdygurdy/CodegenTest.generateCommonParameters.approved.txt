@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-interface Controller {
+public interface Controller {
   @GetMapping(
       value = "/api/v1/tove/{id}",
       produces = "application/json"

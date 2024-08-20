@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-interface Controller {
+public interface Controller {
   @PostMapping("/api/v1/activity")
   void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
 
@@ -49,7 +49,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-interface PlayerController {
+public interface PlayerController {
   @PostMapping("/api/v1/players")
   void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
 }

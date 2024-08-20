@@ -13,7 +13,7 @@ package com.example.controller;
 import java.lang.String;
 import org.springframework.web.bind.annotation.GetMapping;
 
-interface Controller {
+public interface Controller {
   @GetMapping(
       value = "/api/v1/hello",
       produces = "*/*"
