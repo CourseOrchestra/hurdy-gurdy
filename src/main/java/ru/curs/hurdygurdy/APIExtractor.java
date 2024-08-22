@@ -1,6 +1,5 @@
 package ru.curs.hurdygurdy;
 
-import com.squareup.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -9,7 +8,6 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.parameters.Parameter;
 
-import javax.lang.model.element.Modifier;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -70,11 +68,7 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
                     operationId = CaseUtils.pathToCamel(stringPathItemEntry.getKey())
                             + CaseUtils.snakeToCamel(operationEntry.getKey().name().toLowerCase(), true);
                 }
-                B b = builder(typeName);
-                if ("Controller".equals(name) && b instanceof TypeSpec.Builder) {
-                    ((TypeSpec.Builder) b).addModifiers(Modifier.PUBLIC);
-                }
-                buildMethod(openAPI, b, stringPathItemEntry,
+                buildMethod(openAPI, builder(typeName), stringPathItemEntry,
                         operationEntry, operationId, responseParameter);
             }
         }
