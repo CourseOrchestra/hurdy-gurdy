@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-interface Api {
+public interface Api {
   @GetMapping(
       value = "/menu",
       produces = "application/json"
@@ -76,7 +76,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-interface Controller {
+public interface Controller {
   @GetMapping(
       value = "/menu",
       produces = "application/json"

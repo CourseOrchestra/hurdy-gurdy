@@ -14,7 +14,7 @@ import com.example.collector.api.dto.LicenseResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 
-interface LicenseController {
+public interface LicenseController {
   @GetMapping(
       value = "/api/v1/admin/license",
       produces = "application/json"

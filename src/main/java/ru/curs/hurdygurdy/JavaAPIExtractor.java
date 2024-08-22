@@ -23,7 +23,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 
 import javax.lang.model.element.Modifier;
+
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -34,7 +36,10 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                             GeneratorParams params) {
         super(typeDefiner, params,
                 TypeSpec::interfaceBuilder,
-                TypeSpec.Builder::build);
+                b -> {
+                    b.addModifiers(Modifier.PUBLIC);
+                    return b.build();
+                });
     }
 
 
@@ -56,16 +61,17 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .flatMap(c -> getContentTypes(c, openAPI, classBuilder))
                 .forEach(paramSpec ->
                         methodBuilder.addParameter(ParameterSpec.builder(
-                                paramSpec.typeName,
-                                paramSpec.name)
+                                        paramSpec.typeName,
+                                        paramSpec.name)
                                 .addAnnotation(paramSpec.annotation).build())
                 );
 
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
-                        CaseUtils.snakeToCamel(parameter.getName()))
+                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
+                                        openAPI, classBuilder, null)),
+                                CaseUtils.snakeToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(PathVariable.class)
                                         .addMember("name", "$S", parameter.getName()).build()
@@ -75,8 +81,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> {
                             AnnotationSpec.Builder builder = AnnotationSpec.builder(
-                                    RequestParam.class
-                            ).addMember("required", "$L", parameter.getRequired())
+                                            RequestParam.class
+                                    ).addMember("required", "$L", parameter.getRequired())
                                     .addMember("name", "$S", parameter.getName());
 
                             Optional.ofNullable(parameter.getSchema())
@@ -86,21 +92,21 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
                             AnnotationSpec annotationSpec = builder.build();
                             methodBuilder.addParameter(ParameterSpec.builder(
-                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder, null)),
-                                    CaseUtils.snakeToCamel(parameter.getName()))
+                                            safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                                    classBuilder, null)),
+                                            CaseUtils.snakeToCamel(parameter.getName()))
                                     .addAnnotation(annotationSpec).build());
                         }
                 );
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                        safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
-                        CaseUtils.kebabToCamel(parameter.getName()))
+                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
+                                CaseUtils.kebabToCamel(parameter.getName()))
                         .addAnnotation(
                                 AnnotationSpec.builder(
-                                        RequestHeader.class
-                                ).addMember("required", "$L", parameter.getRequired())
+                                                RequestHeader.class
+                                        ).addMember("required", "$L", parameter.getRequired())
                                         .addMember("name", "$S", parameter.getName()).build()
                         ).build()));
         if (generateResponseParameter) {
