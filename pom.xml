@@ -42,7 +42,7 @@
         <junit.version>5.12.0</junit.version>
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.11.2</maven.javadoc.plugin.version>
-        <kotlin.version>2.1.10</kotlin.version>
+        <kotlin.version>2.1.20</kotlin.version>
         <checkstyle.maven.plugin.version>3.6.0</checkstyle.maven.plugin.version>
         <checkstyle.version>10.21.4</checkstyle.version>
     </properties>
