@@ -37,15 +37,13 @@ public interface Api {
     value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
     produces = ["text/csv"],
   )
-  public fun affiliatePlayerActivitiesCSV(@PathVariable(name = "id") id: Int?,
-      @RequestParam(required = false, name = "status") status: Boolean?): String?
+  public fun affiliatePlayerActivitiesCSV(@PathVariable(name = "id") id: Int?, @RequestParam(required = false, name = "status") status: Boolean?): String?
 
   @GetMapping(
     value = ["/api/v1/bills"],
     produces = ["application/json"],
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
-      affiliateId: Int?): Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42") affiliateId: Int?): Int?
 
   @PutMapping(
     value = ["/api/v1/external"],
@@ -90,15 +88,13 @@ public interface Controller {
     value = ["/api/v1/affiliate/{id}/playeractivities/csv"],
     produces = ["text/csv"],
   )
-  public fun affiliatePlayerActivitiesCSV(@PathVariable(name = "id") id: Int?,
-      @RequestParam(required = false, name = "status") status: Boolean?): String?
+  public fun affiliatePlayerActivitiesCSV(@PathVariable(name = "id") id: Int?, @RequestParam(required = false, name = "status") status: Boolean?): String?
 
   @GetMapping(
     value = ["/api/v1/bills"],
     produces = ["application/json"],
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
-      affiliateId: Int?): Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42") affiliateId: Int?): Int?
 
   @PutMapping(
     value = ["/api/v1/external"],
@@ -173,8 +169,7 @@ import java.time.format.DateTimeFormatter
 public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
   private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
-  public override fun deserialize(jsonParser: JsonParser,
-      deserializationContext: DeserializationContext): ZonedDateTime {
+  public override fun deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext): ZonedDateTime {
     val date = jsonParser.text
     try  {
       return ZonedDateTime.parse(date, formatter)

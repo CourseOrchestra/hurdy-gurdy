@@ -33,8 +33,7 @@ public interface AdminController {
     value = ["/api/v1/admin/user"],
     produces = ["application/json"],
   )
-  public fun create(@RequestBody request: CreateUpdateUserRequest, response: HttpServletResponse):
-      UserResponse
+  public fun create(@RequestBody request: CreateUpdateUserRequest, response: HttpServletResponse): UserResponse
 
   @GetMapping(
     value = ["/api/v1/admin/user/{id}"],
@@ -56,8 +55,7 @@ public interface AdminController {
     value = ["/api/v1/admin/user/{id}"],
     produces = ["application/json"],
   )
-  public fun delete(@PathVariable(name = "id") id: Long, response: HttpServletResponse):
-      UserResponse
+  public fun delete(@PathVariable(name = "id") id: Long, response: HttpServletResponse): UserResponse
 }
 ---
 /com/example/dto
