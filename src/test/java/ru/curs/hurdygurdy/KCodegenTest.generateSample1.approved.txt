@@ -48,15 +48,13 @@ public interface Controller {
     value = ["/api/v1/bills"],
     produces = ["application/json"],
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42")
-      affiliateId: Int?, response: HttpServletResponse): Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42") affiliateId: Int?, response: HttpServletResponse): Int?
 
   @PutMapping(
     value = ["/api/v1/external"],
     produces = ["text/csv"],
   )
-  public fun `external`(@RequestBody request: DatabaseConnectionRequest,
-      response: HttpServletResponse): Int?
+  public fun `external`(@RequestBody request: DatabaseConnectionRequest, response: HttpServletResponse): Int?
 
   @PutMapping(
     value = ["/api/v1/external2"],
@@ -125,8 +123,7 @@ import java.time.format.DateTimeFormatter
 public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
   private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
-  public override fun deserialize(jsonParser: JsonParser,
-      deserializationContext: DeserializationContext): ZonedDateTime {
+  public override fun deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext): ZonedDateTime {
     val date = jsonParser.text
     try  {
       return ZonedDateTime.parse(date, formatter)
