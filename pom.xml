@@ -39,7 +39,7 @@
     <properties>
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
-        <junit.version>5.12.2</junit.version>
+        <junit.version>5.13.0</junit.version>
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.11.2</maven.javadoc.plugin.version>
         <kotlin.version>2.1.21</kotlin.version>
