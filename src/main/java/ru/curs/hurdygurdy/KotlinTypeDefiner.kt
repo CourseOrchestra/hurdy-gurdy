@@ -55,7 +55,7 @@ class KotlinTypeDefiner internal constructor(
 
     public override fun defineKotlinType(
         schema: Schema<*>, openAPI: OpenAPI,
-        parent: TypeSpec.Builder, typeNameFallback: String?
+        parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
     ): TypeName {
         val `$ref` = schema.`$ref`
         val result = if (`$ref` == null) {
@@ -89,7 +89,7 @@ class KotlinTypeDefiner internal constructor(
                 "array" -> {
                     val itemsSchema: Schema<*> = (schema as ArraySchema).items
                     List::class.asTypeName().parameterizedBy(
-                        defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"))
+                        defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"), null)
                             .copy(nullable = (itemsSchema.nullable ?: false))
                     )
                 }
@@ -124,7 +124,7 @@ class KotlinTypeDefiner internal constructor(
         } else {
             return referencedTypeName(`$ref`, openAPI)
         }
-        return result.copy(nullable = schema.nullable ?: true)
+        return result.copy(nullable = nullableOverride ?: schema.nullable ?: true)
     }
 
     private fun referencedTypeName(
@@ -235,15 +235,18 @@ class KotlinTypeDefiner internal constructor(
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
+            val requiredProperties = schema.required?.toSet() ?: emptySet()
             if (schemaMap != null) for ((key, value) in schemaMap) {
                 checkPropertyName(name, key)
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
                     continue
                 }
+                val required = requiredProperties.contains(key)
                 val typeName = defineKotlinType(
                     value, openAPI, classBuilder,
-                    CaseUtils.snakeToCamel(key, true)
+                    CaseUtils.snakeToCamel(key, true),
+                    !required || value.nullable == true
                 )
 
                 val propertyName =
@@ -282,10 +285,8 @@ class KotlinTypeDefiner internal constructor(
                             default.toString()
                         )
                     }
-                } else {
-                    if (typeName.isNullable) {
-                        paramSpec.defaultValue("null")
-                    }
+                } else if (!required) {
+                    paramSpec.defaultValue("null")
                 }
 
                 val param = paramSpec.build()
@@ -304,7 +305,7 @@ class KotlinTypeDefiner internal constructor(
                 val additionalProperties = schema.additionalProperties
                 val valueTypeName = if (additionalProperties is Schema<*>) {
                     defineKotlinType(
-                        additionalProperties, openAPI, classBuilder, null
+                        additionalProperties, openAPI, classBuilder, null, null
                     )
                 } else {
                     String::class.asTypeName()

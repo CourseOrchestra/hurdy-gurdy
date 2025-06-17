@@ -19,11 +19,12 @@ paths:
           content:
             application/json:
               schema:
+                required:
+                  - menu_items
                 type: object
                 title: MenuDTO
                 properties:
                   menu_items:
-                    nullable: false
                     description: "Menu items"
                     type: array
                     items:
@@ -115,10 +116,14 @@ components:
   schemas:
     MenuItemDTO:
       type: object
-      nullable: false
       x-extends:
         - java.lang.Serializable
       title: MenuItemDTO
+      required:
+        - id
+        - name
+        - menu_items
+        - menu_tips
       properties:
         id:
           description: "Menu item id"

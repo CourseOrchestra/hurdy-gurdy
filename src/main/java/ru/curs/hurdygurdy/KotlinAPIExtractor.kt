@@ -68,7 +68,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(PathVariable::class)
@@ -93,7 +93,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.snakeToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
                             annotationSpec
@@ -111,7 +111,7 @@ class KotlinAPIExtractor(
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.kebabToCamel(parameter.name),
-                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
                             AnnotationSpec.builder(
@@ -193,7 +193,7 @@ class KotlinAPIExtractor(
                     .map { (name, schema) ->
                         RequestPartParams(
                             name = name,
-                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent, null),
+                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent, null, null),
                             annotation = AnnotationSpec.builder(RequestPart::class)
                                 .addMember("name = %S", name).build()
                         )
@@ -202,7 +202,7 @@ class KotlinAPIExtractor(
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.value.schema).stream().asSequence()
-                    .map { typeDefiner.defineKotlinType(it, openAPI, parent, null) }
+                    .map { typeDefiner.defineKotlinType(it, openAPI, parent, null, null) }
                     .map {
                         RequestPartParams(
                             name = "request",

@@ -1,0 +1,42 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.Double
+import org.springframework.web.bind.`annotation`.GetMapping
+
+public interface Controller {
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(response: HttpServletResponse): Double?
+}
+---
+/com/example/dto
+---
+/com/example/dto/Foo.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Foo(
+  public val requiredNullable: String?,
+  public val requiredNotNullable: String,
+  public val requiredNotNullableDefault: String,
+  public val optionalNullable: String? = null,
+  public val optionalNotNullable: String? = null,
+  public val optionalNotNullableDefault: String? = null,
+)

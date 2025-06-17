@@ -27,6 +27,8 @@ components:
     Variant1:
       type: object
       nullable: false
+      required:
+        - id1
       properties:
         id1:
           type: integer
@@ -36,6 +38,8 @@ components:
     Variant2:
       type: object
       nullable: false
+      required:
+        - id2
       properties:
         id2:
           type: integer
