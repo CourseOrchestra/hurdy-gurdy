@@ -102,6 +102,12 @@ class KCodegenTest {
     }
 
     @Test
+    void requiredNullable() throws IOException {
+        codegen.generate(Path.of("src/test/resources/required_nullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
         Approvals.verify(getContent(result));

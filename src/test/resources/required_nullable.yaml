@@ -1,0 +1,48 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: number
+                format: int64
+
+
+components:
+  schemas:
+    Foo:
+      type: object
+      title: Test required/optional + nullable/not-nullable
+      nullable: true
+      required:
+        - required_nullable
+        - required_not_nullable
+        - required_not_nullable_default
+      properties:
+        required_nullable:
+          type: string
+          nullable: true
+        required_not_nullable:
+          type: string
+          nullable: false
+        required_not_nullable_default:
+          type: string
+        optional_nullable:
+          type: string
+          nullable: true
+        optional_not_nullable:
+          type: string
+          nullable: false
+        optional_not_nullable_default:
+          type: string

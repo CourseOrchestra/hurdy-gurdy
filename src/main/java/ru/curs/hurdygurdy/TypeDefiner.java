@@ -97,7 +97,8 @@ public abstract class TypeDefiner<T> {
     com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema,
                                                       OpenAPI openAPI,
                                                       com.squareup.kotlinpoet.TypeSpec.Builder parent,
-                                                      String typeNameFallback) {
+                                                      String typeNameFallback,
+                                                      Boolean nullableOverride) {
         throw new IllegalStateException();
     }
 

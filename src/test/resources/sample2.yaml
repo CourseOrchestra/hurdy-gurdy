@@ -118,6 +118,8 @@ components:
             $ref: '#/components/schemas/PlayerDTO'
     DepositDTO:
       type: object
+      required:
+        - player
       properties:
         player:
           $ref: '#/components/schemas/PlayerDTO'
@@ -197,6 +199,8 @@ components:
         - ugly
     'Parent':
       type: object
+      required:
+        - vehicle
       properties:
         'vehicle':
           $ref: '#/components/schemas/Vehicle'

@@ -100,6 +100,13 @@ components:
     UserResponse:
       type: object
       nullable: false
+      required:
+        - id
+        - email
+        - fullname
+        - organization
+        - role
+        - enabled
       properties:
         id:
           type: integer
@@ -126,6 +133,12 @@ components:
     CreateUpdateUserRequest:
       type: object
       nullable: false
+      required:
+        - email
+        - role
+        - fullname
+        - organization
+        - enabled
       properties:
         email:
           type: string
@@ -181,6 +194,12 @@ components:
     DatabaseConnectionRequest:
       type: object
       nullable: false
+      required:
+        - type
+        - name
+        - jdbc_url
+        - auth_type
+        - access_level
       properties:
         type:
           $ref: '#/components/schemas/DatabaseType'
