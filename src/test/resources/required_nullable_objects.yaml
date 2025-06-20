@@ -1,0 +1,64 @@
+openapi: 3.0.1
+info:
+  title: "Testing suite common API"
+  description: |
+    Test
+  version: "0.1"
+
+paths:
+  /api/v1/hello:
+    get:
+      operationId: hello
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: number
+                format: int64
+
+
+components:
+  schemas:
+    BarDefault:
+      type: object
+      properties:
+        prop:
+          type: string
+
+    BarNotNullable:
+      type: object
+      nullable: false
+      properties:
+        prop:
+          type: string
+
+    BarNullable:
+      type: object
+      nullable: true
+      properties:
+        prop:
+          type: string
+
+    Foo:
+      type: object
+      title: Test required/optional + nullable/not-nullable
+      nullable: false
+      required:
+        - required_nullable_object
+        - required_not_nullable_object
+        - required_not_nullable_default_object
+      properties:
+        required_nullable_object:
+          $ref: "#/components/schemas/BarNullable"
+        required_not_nullable_object:
+          $ref: "#/components/schemas/BarNotNullable"
+        required_not_nullable_default_object:
+          $ref: "#/components/schemas/BarDefault"
+        optional_nullable_object:
+          $ref: "#/components/schemas/BarNullable"
+        optional_not_nullable_object:
+          $ref: "#/components/schemas/BarNotNullable"
+        optional_not_nullable_default_object:
+          $ref: "#/components/schemas/BarDefault"

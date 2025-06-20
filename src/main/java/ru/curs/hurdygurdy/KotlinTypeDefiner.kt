@@ -122,18 +122,19 @@ class KotlinTypeDefiner internal constructor(
                 }
             }
         } else {
-            return referencedTypeName(`$ref`, openAPI)
+            return referencedTypeName(`$ref`, openAPI, nullableOverride)
         }
         return result.copy(nullable = nullableOverride ?: schema.nullable ?: true)
     }
 
     private fun referencedTypeName(
         `$ref`: String,
-        openAPI: OpenAPI
+        openAPI: OpenAPI,
+        nullableOverride: Boolean? = null,
     ): TypeName {
         val meta = getReferencedTypeInfo(openAPI, `$ref`)
         return ClassName(java.lang.String.join(".", meta.packageName, "dto"), meta.className)
-            .copy(nullable = meta.isNullable)
+            .copy(nullable = nullableOverride ?: meta.isNullable)
     }
 
 
@@ -243,10 +244,15 @@ class KotlinTypeDefiner internal constructor(
                     continue
                 }
                 val required = requiredProperties.contains(key)
+                val nullable = if (value.`$ref` == null) {
+                    value.nullable == true
+                } else {
+                    getNullable(openAPI, extractGroup(value.`$ref`, TypeDefiner.CLASS_NAME_PATTERN), false)
+                }
                 val typeName = defineKotlinType(
                     value, openAPI, classBuilder,
                     CaseUtils.snakeToCamel(key, true),
-                    !required || value.nullable == true
+                    !required || nullable
                 )
 
                 val propertyName =
