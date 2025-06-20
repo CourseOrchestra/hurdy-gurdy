@@ -22,8 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class TypeDefiner<T> {
-    private static final Pattern CLASS_NAME_PATTERN = Pattern.compile("/([^/$]+)$");
-    private static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
+    protected static final Pattern CLASS_NAME_PATTERN = Pattern.compile("/([^/$]+)$");
+    protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
 
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final GeneratorParams params;
@@ -115,7 +115,7 @@ public abstract class TypeDefiner<T> {
             return new DTOMeta(className,
                     params.getRootPackage(),
                     fileName,
-                    getNullable(currentOpenAPI, className));
+                    getNullable(currentOpenAPI, className, true));
         } else {
             return externalClasses.computeIfAbsent(ref, f -> {
                 ParseOptions parseOptions = new ParseOptions();
@@ -130,7 +130,7 @@ public abstract class TypeDefiner<T> {
                             .orElseThrow(() -> new IllegalStateException(
                                     String.format(
                                             "x-package not defined for externally linked file %s ", externalFile)));
-                    return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className));
+                    return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
@@ -138,15 +138,15 @@ public abstract class TypeDefiner<T> {
         }
     }
 
-    private boolean getNullable(OpenAPI currentOpenAPI, String className) {
+    protected boolean getNullable(OpenAPI currentOpenAPI, String className, Boolean defaultValue) {
         return Optional.ofNullable(currentOpenAPI.getComponents())
                 .map(Components::getSchemas)
                 .map(map -> map.get(className))
                 .map(Schema::getNullable)
-                .orElse(true);
+                .orElse(defaultValue);
     }
 
-    private String extractGroup(String ref, Pattern pattern) {
+    protected String extractGroup(String ref, Pattern pattern) {
         Matcher matcher = pattern.matcher(ref);
         if (matcher.find()) {
             return matcher.group(1);
