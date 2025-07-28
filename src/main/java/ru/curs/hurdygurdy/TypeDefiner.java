@@ -146,6 +146,25 @@ public abstract class TypeDefiner<T> {
                 .orElse(defaultValue);
     }
 
+    protected String getDefault(OpenAPI currentOpenAPI, String className) {
+        return Optional.ofNullable(currentOpenAPI.getComponents())
+                .map(Components::getSchemas)
+                .map(map -> map.get(className))
+                .map(Schema::getDefault)
+                .map(Object::toString)
+                .orElse(null);
+    }
+
+    protected boolean isEnum(OpenAPI currentOpenAPI, String className) {
+        return Optional.ofNullable(currentOpenAPI.getComponents())
+                .map(Components::getSchemas)
+                .map(map -> map.get(className))
+                .map(Schema::getEnum)
+                .map(l -> !l.isEmpty())
+                .orElse(false);
+
+    }
+
     protected String extractGroup(String ref, Pattern pattern) {
         Matcher matcher = pattern.matcher(ref);
         if (matcher.find()) {

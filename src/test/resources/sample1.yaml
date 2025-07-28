@@ -124,6 +124,7 @@ components:
         - name
         - menu_items
         - menu_tips
+        - sub_object
       properties:
         id:
           description: "Menu item id"
@@ -170,3 +171,17 @@ components:
           type: string
           nullable: true
           default: 'self'
+        sub_object:
+          $ref: "#/components/schemas/SubObject"
+
+    SubObject:
+      type: object
+      nullable: false
+      default: {}
+      properties:
+        foo:
+          type: string
+          nullable: true
+        bar:
+          type: string
+          nullable: true

@@ -81,7 +81,7 @@ import kotlin.String
 public data class CreateUpdateUserRequest(
   public val email: String,
   public val password: String? = null,
-  public val role: UserRole,
+  public val role: UserRole = UserRole.NONE,
   public val fullname: String = "",
   public val organization: String = "",
   public val enabled: Boolean = true,
@@ -114,15 +114,15 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class DatabaseConnectionRequest(
-  public val type: DatabaseType,
+  public val type: DatabaseType = DatabaseType.NONE,
   public val host: String? = null,
   public val port: Int? = null,
   public val userName: String? = null,
   public val password: String? = null,
   public val name: String,
   public val jdbcUrl: String,
-  public val authType: DatabaseConnectionAuthType,
-  public val accessLevel: DatabaseConnectionAccessLevel,
+  public val authType: DatabaseConnectionAuthType = DatabaseConnectionAuthType.CREDENTIALS,
+  public val accessLevel: DatabaseConnectionAccessLevel = DatabaseConnectionAccessLevel.PRIVATE,
 )
 ---
 /com/example/dto/DatabaseType.kt
@@ -153,7 +153,7 @@ public data class UserResponse(
   public val email: String,
   public val fullname: String = "",
   public val organization: String = "",
-  public val role: UserRole,
+  public val role: UserRole = UserRole.NONE,
   public val enabled: Boolean = true,
 )
 ---

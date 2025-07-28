@@ -247,7 +247,7 @@ class KotlinTypeDefiner internal constructor(
                 val nullable = if (value.`$ref` == null) {
                     value.nullable == true
                 } else {
-                    getNullable(openAPI, extractGroup(value.`$ref`, TypeDefiner.CLASS_NAME_PATTERN), false)
+                    getNullable(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN), false)
                 }
                 val typeName = defineKotlinType(
                     value, openAPI, classBuilder,
@@ -281,15 +281,29 @@ class KotlinTypeDefiner internal constructor(
                     ensureJsonZonedDateTimeDeserializer()
                 }
 
-                val default = value.default
+                val default = if (value.`$ref` == null) {
+                    value.default
+                } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
                 if (default != null) {
                     if (value.type == "array") {
+                        //Empty list as default
                         paramSpec.defaultValue("listOf()")
-                    } else {
-                        paramSpec.defaultValue(
-                            if (typeName.copy(nullable = false) == String::class.asTypeName()) "%S" else "%L",
-                            default.toString()
+                    } else if (typeName.copy(nullable = false) == String::class.asTypeName()) {
+                        //Default string value
+                        paramSpec.defaultValue("%S", default.toString())
+                    } else if (value.`$ref` != null && isEnum(
+                            openAPI,
+                            extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
                         )
+                    ) {
+                        //Default enum value
+                        paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
+                    } else if (value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*"))) {
+                        //"Empty object" default value
+                        paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
+                    } else {
+                        //Everything else (e.g., numbers)
+                        paramSpec.defaultValue("%L", default.toString())
                     }
                 } else if (!required) {
                     paramSpec.defaultValue("null")
@@ -342,6 +356,7 @@ class KotlinTypeDefiner internal constructor(
         }
         return classBuilder.build()
     }
+
 
     private fun oneOfToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
         if (schema.oneOf != null) {

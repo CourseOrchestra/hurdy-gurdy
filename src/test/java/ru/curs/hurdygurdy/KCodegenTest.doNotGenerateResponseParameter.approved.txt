@@ -153,7 +153,21 @@ public data class MenuItemDTO(
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val dateVale: ZonedDateTime? = null,
   public val nullableWithDefault: String? = "self",
+  public val subObject: SubObject = SubObject(),
 ) : Serializable
+---
+/com/example/dto/SubObject.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SubObject(
+  public val foo: String? = null,
+  public val bar: String? = null,
+)
 ---
 /com/example/dto/ZonedDateTimeDeserializer.kt
 package com.example.dto
