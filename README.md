@@ -11,7 +11,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 <plugin>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>2.04</version>
+    <version>2.6</version>
     <configuration>
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>
@@ -35,6 +35,9 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 ## Usage example (in Kotlin code, e.g. Gradle's buildSrc)
 
 ```kotlin
+import ru.curs.hurdygurdy.KotlinCodegen
+import ru.curs.hurdygurdy.GeneratorParams
+
 val codegen = KotlinCodegen(GeneratorParams.rootPackage("com.example.project"))
 val yamlPath = project.layout.projectDirectory.asFile.toPath().resolve("src/main/openapi/api.yaml")
 val resultPath = project.layout.buildDirectory.get().asFile.toPath().resolve("generated-sources")
