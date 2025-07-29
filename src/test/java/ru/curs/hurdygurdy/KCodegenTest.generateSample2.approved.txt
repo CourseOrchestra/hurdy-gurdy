@@ -156,6 +156,7 @@ public data class PlayerActivityDTO(
 /com/example/dto/PlayerDTO.kt
 package com.example.dto
 
+import com.fasterxml.jackson.`annotation`.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
@@ -183,19 +184,27 @@ public data class PlayerDTO(
   public val duplicate: Boolean? = null,
 ) {
   public enum class Gender {
-    m,
-    f,
-    n,
+    @JsonProperty("m")
+    M,
+    @JsonProperty("f")
+    F,
+    @JsonProperty("n")
+    N,
   }
 }
 ---
 /com/example/dto/PlayerEnum.kt
 package com.example.dto
 
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
 public enum class PlayerEnum {
-  good,
-  bad,
-  ugly,
+  @JsonProperty("good")
+  GOOD,
+  @JsonProperty("bad")
+  BAD,
+  @JsonProperty("ugly")
+  UGLY,
 }
 ---
 /com/example/dto/PlayersDTO.kt

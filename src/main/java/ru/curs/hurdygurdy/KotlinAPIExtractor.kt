@@ -16,6 +16,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import jakarta.servlet.http.HttpServletResponse
+import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
 import kotlin.reflect.KClass
 import kotlin.streams.asSequence
 
@@ -26,7 +27,7 @@ class KotlinAPIExtractor(
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         typeDefiner,
         params,
-        TypeSpec::interfaceBuilder,
+        { TypeSpec.interfaceBuilder(normalizeToCamel(it)) },
         TypeSpec.Builder::build
     ) {
 

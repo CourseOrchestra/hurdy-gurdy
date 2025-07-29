@@ -249,12 +249,17 @@ public class PlayerDTO {
 /com/example/dto/PlayerEnum.java
 package com.example.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public enum PlayerEnum {
-  good,
+  @JsonProperty("good")
+  GOOD,
 
-  bad,
+  @JsonProperty("bad")
+  BAD,
 
-  ugly
+  @JsonProperty("ugly")
+  UGLY
 }
 ---
 /com/example/dto/PlayersDTO.java

@@ -1,0 +1,1353 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/APIV1Controller.java
+package com.example.controller;
+
+import com.example.dto.CheckUserBalanceResponse;
+import com.example.dto.CreateBrowserProfileRequest;
+import com.example.dto.CreateBrowserProfileResponse;
+import com.example.dto.DeleteBrowserProfileResponse;
+import com.example.dto.GetBrowserProfileResponse;
+import com.example.dto.ListBrowserProfilesResponse;
+import com.example.dto.ListScheduledTasksResponse;
+import com.example.dto.ListTasksResponse;
+import com.example.dto.RunTaskRequest;
+import com.example.dto.ScheduledTaskRequest;
+import com.example.dto.ScheduledTaskResponse;
+import com.example.dto.SearchUrlRequest;
+import com.example.dto.SimpleSearchRequest;
+import com.example.dto.SimpleSearchResponse;
+import com.example.dto.TaskCreatedResponse;
+import com.example.dto.TaskGifResponse;
+import com.example.dto.TaskMediaResponse;
+import com.example.dto.TaskOutputFileResponse;
+import com.example.dto.TaskResponse;
+import com.example.dto.TaskScreenshotsResponse;
+import com.example.dto.TaskStatusEnum;
+import com.example.dto.UpdateBrowserProfileRequest;
+import com.example.dto.UpdateBrowserProfileResponse;
+import com.example.dto.UpdateScheduledTaskRequest;
+import com.example.dto.UploadFileRequest;
+import com.example.dto.UploadFileResponse;
+import com.example.dto.UrlResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Integer;
+import java.lang.Object;
+import java.lang.String;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface APIV1Controller {
+  @PostMapping(
+      value = "/api/v1/run-task",
+      produces = "application/json"
+  )
+  TaskCreatedResponse runTaskApiV1RunTaskPost(@RequestBody RunTaskRequest request,
+      HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/stop-task",
+      produces = "application/json"
+  )
+  Object stopTaskApiV1StopTaskPut(@RequestParam(required = true, name = "task_id") String taskId,
+      HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/pause-task",
+      produces = "application/json"
+  )
+  Object pauseTaskApiV1PauseTaskPut(@RequestParam(required = true, name = "task_id") String taskId,
+      HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/resume-task",
+      produces = "application/json"
+  )
+  Object resumeTaskApiV1ResumeTaskPut(
+      @RequestParam(required = true, name = "task_id") String taskId, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}",
+      produces = "application/json"
+  )
+  TaskResponse getTaskApiV1TaskTaskIdGet(@PathVariable(name = "task_id") String taskId,
+      HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}/status",
+      produces = "application/json"
+  )
+  TaskStatusEnum getTaskStatusApiV1TaskTaskIdStatusGet(
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}/media",
+      produces = "application/json"
+  )
+  TaskMediaResponse getTaskMediaApiV1TaskTaskIdMediaGet(
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}/screenshots",
+      produces = "application/json"
+  )
+  TaskScreenshotsResponse getTaskScreenshotsApiV1TaskTaskIdScreenshotsGet(
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}/gif",
+      produces = "application/json"
+  )
+  TaskGifResponse getTaskGifApiV1TaskTaskIdGifGet(@PathVariable(name = "task_id") String taskId,
+      HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/task/{task_id}/output-file/{file_name}",
+      produces = "application/json"
+  )
+  TaskOutputFileResponse getTaskOutputFileApiV1TaskTaskIdOutputFileFileNameGet(
+      @PathVariable(name = "task_id") String taskId,
+      @PathVariable(name = "file_name") String fileName, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/tasks",
+      produces = "application/json"
+  )
+  ListTasksResponse listTasksApiV1TasksGet(
+      @RequestParam(required = false, name = "page", defaultValue = "1") Integer page,
+      @RequestParam(required = false, name = "limit", defaultValue = "10") Integer limit,
+      HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/uploads/presigned-url",
+      produces = "application/json"
+  )
+  UploadFileResponse uploadFilePresignedUrlApiV1UploadsPresignedUrlPost(
+      @RequestBody UploadFileRequest request, HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/scheduled-task",
+      produces = "application/json"
+  )
+  TaskCreatedResponse createScheduledTaskApiV1ScheduledTaskPost(
+      @RequestBody ScheduledTaskRequest request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/scheduled-tasks",
+      produces = "application/json"
+  )
+  ListScheduledTasksResponse listScheduledTasksApiV1ScheduledTasksGet(
+      @RequestParam(required = false, name = "page", defaultValue = "1") Integer page,
+      @RequestParam(required = false, name = "limit", defaultValue = "10") Integer limit,
+      HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/scheduled-task/{task_id}",
+      produces = "application/json"
+  )
+  ScheduledTaskResponse getScheduledTaskApiV1ScheduledTaskTaskIdGet(
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/scheduled-task/{task_id}",
+      produces = "application/json"
+  )
+  ScheduledTaskResponse updateScheduledTaskApiV1ScheduledTaskTaskIdPut(
+      @RequestBody UpdateScheduledTaskRequest request,
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @DeleteMapping(
+      value = "/api/v1/scheduled-task/{task_id}",
+      produces = "application/json"
+  )
+  Object deleteScheduledTaskApiV1ScheduledTaskTaskIdDelete(
+      @PathVariable(name = "task_id") String taskId, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/browser-profiles",
+      produces = "application/json"
+  )
+  ListBrowserProfilesResponse listBrowserProfilesApiV1BrowserProfilesGet(
+      @RequestParam(required = false, name = "page", defaultValue = "1") Integer page,
+      @RequestParam(required = false, name = "limit", defaultValue = "10") Integer limit,
+      HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/browser-profiles",
+      produces = "application/json"
+  )
+  CreateBrowserProfileResponse createBrowserProfileApiV1BrowserProfilesPost(
+      @RequestBody CreateBrowserProfileRequest request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/browser-profiles/{profile_id}",
+      produces = "application/json"
+  )
+  GetBrowserProfileResponse getBrowserProfileApiV1BrowserProfilesProfileIdGet(
+      @PathVariable(name = "profile_id") String profileId, HttpServletResponse response);
+
+  @PutMapping(
+      value = "/api/v1/browser-profiles/{profile_id}",
+      produces = "application/json"
+  )
+  UpdateBrowserProfileResponse updateBrowserProfileApiV1BrowserProfilesProfileIdPut(
+      @RequestBody UpdateBrowserProfileRequest request,
+      @PathVariable(name = "profile_id") String profileId, HttpServletResponse response);
+
+  @DeleteMapping(
+      value = "/api/v1/browser-profiles/{profile_id}",
+      produces = "application/json"
+  )
+  DeleteBrowserProfileResponse deleteBrowserProfileApiV1BrowserProfilesProfileIdDelete(
+      @PathVariable(name = "profile_id") String profileId, HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/simple-search",
+      produces = "application/json"
+  )
+  SimpleSearchResponse simpleSearchApiV1SimpleSearchPost(@RequestBody SimpleSearchRequest request,
+      HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/search-url",
+      produces = "application/json"
+  )
+  UrlResponse searchUrlApiV1SearchUrlPost(@RequestBody SearchUrlRequest request,
+      HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/balance",
+      produces = "application/json"
+  )
+  CheckUserBalanceResponse checkBalanceApiV1BalanceGet(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/me",
+      produces = "application/json"
+  )
+  boolean meApiV1MeGet(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/ping",
+      produces = "application/json"
+  )
+  Object pingApiV1PingGet(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/browser-use-version",
+      produces = "application/json"
+  )
+  String getBrowserUseVersionApiV1BrowserUseVersionGet(HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/CheckUserBalanceResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class CheckUserBalanceResponse {
+  private String balance;
+}
+---
+/com/example/dto/CookiesItem.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class CookiesItem {
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, Object> additionalProperties = new HashMap<>();
+}
+---
+/com/example/dto/CreateBrowserProfileRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class CreateBrowserProfileRequest {
+  private String profileName;
+
+  private String description;
+
+  private boolean persist;
+
+  private boolean adBlocker;
+
+  private boolean proxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+}
+---
+/com/example/dto/CreateBrowserProfileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class CreateBrowserProfileResponse {
+  private String profileId;
+
+  private String profileName;
+
+  private String description;
+
+  private boolean persist;
+
+  private boolean adBlocker;
+
+  private boolean proxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+}
+---
+/com/example/dto/DeleteBrowserProfileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class DeleteBrowserProfileResponse {
+}
+---
+/com/example/dto/GetBrowserProfileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class GetBrowserProfileResponse {
+  private String profileId;
+
+  private String profileName;
+
+  private String description;
+
+  private boolean persist;
+
+  private boolean adBlocker;
+
+  private boolean proxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+}
+---
+/com/example/dto/HTTPValidationError.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class HTTPValidationError {
+  private List<ValidationError> detail;
+}
+---
+/com/example/dto/LLMModel.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum LLMModel {
+  @JsonProperty("gpt-4o")
+  GPT_4O,
+
+  @JsonProperty("gpt-4o-mini")
+  GPT_4O_MINI,
+
+  @JsonProperty("gpt-4.1")
+  GPT_4_1,
+
+  @JsonProperty("gpt-4.1-mini")
+  GPT_4_1_MINI,
+
+  @JsonProperty("o4-mini")
+  O4_MINI,
+
+  @JsonProperty("o3")
+  O3,
+
+  @JsonProperty("gemini-2.0-flash")
+  GEMINI_2_0_FLASH,
+
+  @JsonProperty("gemini-2.0-flash-lite")
+  GEMINI_2_0_FLASH_LITE,
+
+  @JsonProperty("gemini-2.5-flash-preview-04-17")
+  GEMINI_2_5_FLASH_PREVIEW_04_17,
+
+  @JsonProperty("gemini-2.5-flash")
+  GEMINI_2_5_FLASH,
+
+  @JsonProperty("gemini-2.5-pro")
+  GEMINI_2_5_PRO,
+
+  @JsonProperty("claude-3-7-sonnet-20250219")
+  CLAUDE_3_7_SONNET_20250219,
+
+  @JsonProperty("claude-sonnet-4-20250514")
+  CLAUDE_SONNET_4_20250514,
+
+  @JsonProperty("llama-4-maverick-17b-128e-instruct")
+  LLAMA_4_MAVERICK_17B_128E_INSTRUCT
+}
+---
+/com/example/dto/ListBrowserProfilesResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ListBrowserProfilesResponse {
+  private List<GetBrowserProfileResponse> profiles;
+
+  private Integer totalPages;
+
+  private Integer page;
+
+  private Integer limit;
+
+  private Integer totalCount;
+}
+---
+/com/example/dto/ListScheduledTasksResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ListScheduledTasksResponse {
+  private List<ScheduledTaskResponse> tasks;
+
+  private Integer totalPages;
+
+  private Integer page;
+
+  private Integer limit;
+
+  private Integer totalCount;
+}
+---
+/com/example/dto/ListTasksResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ListTasksResponse {
+  private List<TaskSimpleResponse> tasks;
+
+  private Integer totalPages;
+
+  private Integer page;
+
+  private Integer limit;
+
+  private Integer totalCount;
+}
+---
+/com/example/dto/LocItem.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class LocItem {
+}
+---
+/com/example/dto/Metadata.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Metadata {
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, String> additionalProperties = new HashMap<>();
+}
+---
+/com/example/dto/ProxyCountryCode.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum ProxyCountryCode {
+  @JsonProperty("us")
+  US,
+
+  @JsonProperty("uk")
+  UK,
+
+  @JsonProperty("fr")
+  FR,
+
+  @JsonProperty("it")
+  IT,
+
+  @JsonProperty("jp")
+  JP,
+
+  @JsonProperty("au")
+  AU,
+
+  @JsonProperty("de")
+  DE,
+
+  @JsonProperty("fi")
+  FI,
+
+  @JsonProperty("ca")
+  CA,
+
+  @JsonProperty("in")
+  IN
+}
+---
+/com/example/dto/RunTaskRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class RunTaskRequest {
+  private String task;
+
+  private Secrets secrets;
+
+  private List<String> allowedDomains;
+
+  private boolean saveBrowserData;
+
+  private String structuredOutputJson;
+
+  private LLMModel llmModel;
+
+  private boolean highlightElements;
+
+  private List<String> includedFileNames;
+
+  private Integer maxAgentSteps;
+
+  private boolean enablePublicShare;
+
+  private String browserProfileId;
+
+  private boolean useAdblock;
+
+  private boolean useProxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+
+  private Metadata metadata;
+}
+---
+/com/example/dto/ScheduleType.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum ScheduleType {
+  @JsonProperty("interval")
+  INTERVAL,
+
+  @JsonProperty("cron")
+  CRON
+}
+---
+/com/example/dto/ScheduledTaskRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Integer;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ScheduledTaskRequest {
+  private String task;
+
+  private Secrets secrets;
+
+  private List<String> allowedDomains;
+
+  private boolean saveBrowserData;
+
+  private String structuredOutputJson;
+
+  private LLMModel llmModel;
+
+  private boolean highlightElements;
+
+  private List<String> includedFileNames;
+
+  private Integer maxAgentSteps;
+
+  private boolean enablePublicShare;
+
+  private String browserProfileId;
+
+  private boolean useAdblock;
+
+  private boolean useProxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+
+  private Metadata metadata;
+
+  private ScheduleType scheduleType;
+
+  private Integer intervalMinutes;
+
+  private String cronExpression;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime startAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime endAt;
+}
+---
+/com/example/dto/ScheduledTaskResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Integer;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ScheduledTaskResponse {
+  private String id;
+
+  private String task;
+
+  private boolean saveBrowserData;
+
+  private String structuredOutputJson;
+
+  private LLMModel llmModel;
+
+  private boolean useAdblock;
+
+  private boolean useProxy;
+
+  private boolean highlightElements;
+
+  private String browserProfileId;
+
+  private ScheduleType scheduleType;
+
+  private Integer intervalMinutes;
+
+  private String cronExpression;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime startAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime nextRunAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime endAt;
+
+  private boolean isActive;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime createdAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime updatedAt;
+}
+---
+/com/example/dto/SearchUrlRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SearchUrlRequest {
+  private String query;
+
+  private String url;
+
+  private Integer depth;
+}
+---
+/com/example/dto/Secrets.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Data;
+import lombok.Getter;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Secrets {
+  @JsonAnySetter
+  @Getter(
+      onMethod_ = @JsonAnyGetter
+  )
+  private Map<String, String> additionalProperties = new HashMap<>();
+}
+---
+/com/example/dto/SimpleSearchRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SimpleSearchRequest {
+  private String query;
+
+  private Integer maxWebsites;
+
+  private Integer depth;
+}
+---
+/com/example/dto/SimpleSearchResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SimpleSearchResponse {
+  private List<UrlResponse> results;
+}
+---
+/com/example/dto/TaskBrowserDataResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskBrowserDataResponse {
+  private List<CookiesItem> cookies;
+}
+---
+/com/example/dto/TaskCreatedResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskCreatedResponse {
+  private String id;
+}
+---
+/com/example/dto/TaskGifResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskGifResponse {
+  private String gif;
+}
+---
+/com/example/dto/TaskMediaResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskMediaResponse {
+  private List<String> recordings;
+}
+---
+/com/example/dto/TaskOutputFileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskOutputFileResponse {
+  private String downloadUrl;
+}
+---
+/com/example/dto/TaskResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskResponse {
+  private String id;
+
+  private String task;
+
+  private String liveUrl;
+
+  private String output;
+
+  private TaskStatusEnum status;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime createdAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime finishedAt;
+
+  private List<TaskStepResponse> steps;
+
+  private TaskBrowserDataResponse browserData;
+
+  private List<String> userUploadedFiles;
+
+  private List<String> outputFiles;
+
+  private String publicShareUrl;
+
+  private Metadata metadata;
+}
+---
+/com/example/dto/TaskScreenshotsResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskScreenshotsResponse {
+  private List<String> screenshots;
+}
+---
+/com/example/dto/TaskSimpleResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskSimpleResponse {
+  private String id;
+
+  private String task;
+
+  private String output;
+
+  private TaskStatusEnum status;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime createdAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime finishedAt;
+
+  private String liveUrl;
+
+  private Metadata metadata;
+}
+---
+/com/example/dto/TaskStatusEnum.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum TaskStatusEnum {
+  @JsonProperty("created")
+  CREATED,
+
+  @JsonProperty("running")
+  RUNNING,
+
+  @JsonProperty("finished")
+  FINISHED,
+
+  @JsonProperty("stopped")
+  STOPPED,
+
+  @JsonProperty("paused")
+  PAUSED,
+
+  @JsonProperty("failed")
+  FAILED
+}
+---
+/com/example/dto/TaskStepResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TaskStepResponse {
+  private String id;
+
+  private Integer step;
+
+  private String evaluationPreviousGoal;
+
+  private String nextGoal;
+
+  private String url;
+}
+---
+/com/example/dto/UpdateBrowserProfileRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UpdateBrowserProfileRequest {
+  private String profileName;
+
+  private String description;
+
+  private boolean persist;
+
+  private boolean adBlocker;
+
+  private boolean proxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+}
+---
+/com/example/dto/UpdateBrowserProfileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UpdateBrowserProfileResponse {
+  private String profileId;
+
+  private String profileName;
+
+  private String description;
+
+  private boolean persist;
+
+  private boolean adBlocker;
+
+  private boolean proxy;
+
+  private ProxyCountryCode proxyCountryCode;
+
+  private Integer browserViewportWidth;
+
+  private Integer browserViewportHeight;
+}
+---
+/com/example/dto/UpdateScheduledTaskRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Integer;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UpdateScheduledTaskRequest {
+  private String task;
+
+  private ScheduleType scheduleType;
+
+  private Integer intervalMinutes;
+
+  private String cronExpression;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime startAt;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime endAt;
+
+  private boolean isActive;
+
+  private boolean useAdblock;
+
+  private boolean useProxy;
+
+  private boolean highlightElements;
+
+  private LLMModel llmModel;
+
+  private boolean saveBrowserData;
+
+  private String structuredOutputJson;
+
+  private Metadata metadata;
+}
+---
+/com/example/dto/UploadFileRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UploadFileRequest {
+  private String fileName;
+
+  private String contentType;
+}
+---
+/com/example/dto/UploadFileResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UploadFileResponse {
+  private String uploadUrl;
+}
+---
+/com/example/dto/UrlResponse.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UrlResponse {
+  private String url;
+
+  private String content;
+}
+---
+/com/example/dto/ValidationError.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ValidationError {
+  private List<LocItem> loc;
+
+  private String msg;
+
+  private String type;
+}
+---
+/com/example/dto/ZonedDateTimeDeserializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.DateTimeException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public ZonedDateTime deserialize(JsonParser jsonParser,
+      DeserializationContext deserializationContext) throws IOException {
+    String date = jsonParser.getText();
+    try  {
+      return ZonedDateTime.parse(date, formatter);
+    }
+    catch (DateTimeException e) {
+      throw new JsonParseException(jsonParser, e.getMessage());
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeSerializer extends JsonSerializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider serializers)
+      throws IOException {
+    gen.writeString(formatter.format(value));
+  }
+}

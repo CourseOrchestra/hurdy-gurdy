@@ -30,12 +30,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
+
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
                             GeneratorParams params) {
         super(typeDefiner, params,
-                TypeSpec::interfaceBuilder,
+                name -> TypeSpec.interfaceBuilder(normalizeToCamel(name)),
                 b -> {
                     b.addModifiers(Modifier.PUBLIC);
                     return b.build();

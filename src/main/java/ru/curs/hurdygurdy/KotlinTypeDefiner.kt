@@ -2,6 +2,7 @@ package ru.curs.hurdygurdy
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonAnySetter
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As
@@ -35,10 +36,10 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
 import org.springframework.web.multipart.MultipartFile
+import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -53,13 +54,43 @@ class KotlinTypeDefiner internal constructor(
 
     private var hasJsonZonedDateTimeDeserializer = false
 
+    private fun TypeSpec.Builder.addEnumValue(e: Any?) {
+        val stringValue = e.toString()
+        val normalized = normalizeToScreamingSnake(stringValue)
+        if (stringValue != normalized) {
+            addEnumConstant(
+                normalized,
+                TypeSpec.anonymousClassBuilder().addAnnotation(
+                    AnnotationSpec.builder(JsonProperty::class)
+                        .addMember("%S", stringValue).build()
+                ).build()
+            )
+        } else {
+            addEnumConstant(stringValue)
+        }
+    }
+
+    private fun Schema<*>.getInternalType() = type ?: types?.singleOrNull()
+
     public override fun defineKotlinType(
-        schema: Schema<*>, openAPI: OpenAPI,
+        outerSchema: Schema<*>, openAPI: OpenAPI,
         parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
     ): TypeName {
+        //handle anyOf <something|null>
+        val anyOf = outerSchema.anyOf
+        var nullableByAnyOf: Boolean? = null
+        val schema = if (anyOf != null && anyOf.size == 2) {
+            if ("null" == anyOf[0].getInternalType()) {
+                nullableByAnyOf = true
+                anyOf[1]
+            } else if ("null" == anyOf[1].getInternalType()) {
+                nullableByAnyOf = true
+                anyOf[0]
+            } else outerSchema
+        } else outerSchema
         val `$ref` = schema.`$ref`
         val result = if (`$ref` == null) {
-            val internalType = schema.type
+            val internalType = schema.getInternalType()
             when (internalType) {
                 "string" -> when {
                     "date" == schema.format -> LocalDate::class.asTypeName()
@@ -71,7 +102,7 @@ class KotlinTypeDefiner internal constructor(
                         val simpleName = getEnumName(schema, typeNameFallback)
                         val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
                         for (e in schema.enum) {
-                            enumBuilder.addEnumConstant(e.toString())
+                            enumBuilder.addEnumValue(e)
                         }
                         val internalEnum: TypeSpec = enumBuilder.build()
                         parent.addType(internalEnum)
@@ -87,7 +118,7 @@ class KotlinTypeDefiner internal constructor(
                 "integer" -> if ("int64" == schema.format) LONG else INT
                 "boolean" -> BOOLEAN
                 "array" -> {
-                    val itemsSchema: Schema<*> = (schema as ArraySchema).items
+                    val itemsSchema: Schema<*> = schema.items
                     List::class.asTypeName().parameterizedBy(
                         defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"), null)
                             .copy(nullable = (itemsSchema.nullable ?: false))
@@ -95,7 +126,7 @@ class KotlinTypeDefiner internal constructor(
                 }
 
                 "object" -> {
-                    val simpleName = schema.title
+                    val simpleName = schema.title ?: typeNameFallback
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
@@ -124,7 +155,7 @@ class KotlinTypeDefiner internal constructor(
         } else {
             return referencedTypeName(`$ref`, openAPI, nullableOverride)
         }
-        return result.copy(nullable = nullableOverride ?: schema.nullable ?: true)
+        return result.copy(nullable = nullableOverride ?: nullableByAnyOf ?: schema.nullable ?: true)
     }
 
     private fun referencedTypeName(
@@ -140,7 +171,7 @@ class KotlinTypeDefiner internal constructor(
 
     override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
-        schema.enum.forEach { classBuilder.addEnumConstant(it.toString()) }
+        schema.enum.forEach { classBuilder.addEnumValue(it) }
         return classBuilder.build()
     }
 
