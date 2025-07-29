@@ -271,7 +271,7 @@ import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class CookiesItem(
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, Any?> = HashMap(),
 )
@@ -461,7 +461,7 @@ import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class Metadata(
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, String?> = HashMap(),
 )
@@ -651,7 +651,7 @@ import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class Secrets(
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, String?> = HashMap(),
 )
