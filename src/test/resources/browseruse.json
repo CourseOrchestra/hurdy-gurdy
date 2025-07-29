@@ -1,0 +1,3086 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Browser Use Cloud",
+    "summary": "Browser Use API for hosting agents",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.browser-use.com",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/api/v1/run-task": {
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Run Task",
+        "description": "Requires an active subscription. Returns the task ID that can be used to track progress.",
+        "operationId": "run_task_api_v1_run_task_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCreatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stop-task": {
+      "put": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Stop Task",
+        "description": "Stops a running browser automation task immediately. The task cannot be resumed after being stopped.\nUse `/pause-task` endpoint instead if you want to temporarily halt execution.",
+        "operationId": "stop_task_api_v1_stop_task_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pause-task": {
+      "put": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Pause Task",
+        "description": "Pauses execution of a running task. The task can be resumed later using the `/resume-task` endpoint. Useful for manual intervention or inspection.",
+        "operationId": "pause_task_api_v1_pause_task_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resume-task": {
+      "put": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Resume Task",
+        "description": "Resumes execution of a previously paused task. The task will continue from where it was paused. You can't resume a stopped task.",
+        "operationId": "resume_task_api_v1_resume_task_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task",
+        "description": "Returns comprehensive information about a task, including its current status, steps completed, output (if finished), and other metadata.",
+        "operationId": "get_task_api_v1_task__task_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}/status": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task Status",
+        "description": "Returns just the current status of a task (created, running, finished, stopped, or paused).\nMore lightweight than the full task details endpoint.",
+        "operationId": "get_task_status_api_v1_task__task_id__status_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatusEnum"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}/media": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task Media",
+        "description": "Returns links to any recordings or media generated during task execution,\nsuch as browser session recordings. Only available for completed tasks.",
+        "operationId": "get_task_media_api_v1_task__task_id__media_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskMediaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}/screenshots": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task Screenshots",
+        "description": "Returns any screenshot urls generated during task execution.",
+        "operationId": "get_task_screenshots_api_v1_task__task_id__screenshots_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskScreenshotsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}/gif": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task Gif",
+        "description": "Returns a gif url generated from the screenshots of the task execution.\nOnly available for completed tasks that have screenshots.",
+        "operationId": "get_task_gif_api_v1_task__task_id__gif_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGifResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/task/{task_id}/output-file/{file_name}": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Task Output File",
+        "description": "Returns a presigned url for downloading a file from the task output files.",
+        "operationId": "get_task_output_file_api_v1_task__task_id__output_file__file_name__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "file_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOutputFileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "List Tasks",
+        "description": "Returns a paginated list of all tasks belonging to the user, ordered by creation date.\nEach task includes basic information like status and creation time. For detailed task info, use the\nget task endpoint.",
+        "operationId": "list_tasks_api_v1_tasks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTasksResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/uploads/presigned-url": {
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Upload File Presigned Url",
+        "description": "Returns a presigned url for uploading a file to the user's files bucket.\nAfter uploading a file, the user can use the `included_file_names` field\nin the `RunTaskRequest` to include the files in the task.",
+        "operationId": "upload_file_presigned_url_api_v1_uploads_presigned_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadFileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/scheduled-task": {
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Create Scheduled Task",
+        "description": "Create a scheduled task to run at regular intervals or based on a cron expression.\nRequires an active subscription. Returns the scheduled task ID.",
+        "operationId": "create_scheduled_task_api_v1_scheduled_task_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCreatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/scheduled-tasks": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "List Scheduled Tasks",
+        "description": "Returns a paginated list of all scheduled tasks belonging to the user, ordered by creation date.\nEach task includes basic information like schedule type, next run time, and status.",
+        "operationId": "list_scheduled_tasks_api_v1_scheduled_tasks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListScheduledTasksResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scheduled-task/{task_id}": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Scheduled Task",
+        "description": "Returns detailed information about a specific scheduled task, including its schedule configuration\nand current status.",
+        "operationId": "get_scheduled_task_api_v1_scheduled_task__task_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Update Scheduled Task",
+        "description": "Update a scheduled task with partial updates.",
+        "operationId": "update_scheduled_task_api_v1_scheduled_task__task_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduledTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Delete Scheduled Task",
+        "description": "Deletes a scheduled task. This will prevent any future runs of this task.\nAny currently running instances of this task will be allowed to complete.",
+        "operationId": "delete_scheduled_task_api_v1_scheduled_task__task_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/browser-profiles": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "List Browser Profiles",
+        "description": "Returns a paginated list of all browser profiles belonging to the user, ordered by creation date.\nEach profile includes configuration like ad blocker settings, proxy settings, and viewport dimensions.",
+        "operationId": "list_browser_profiles_api_v1_browser_profiles_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBrowserProfilesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Create Browser Profile",
+        "description": "Create a new browser profile with custom settings for ad blocking, proxy usage, and viewport dimensions.\nPay as you go users can only have one profile. Subscription users can create multiple profiles.",
+        "operationId": "create_browser_profile_api_v1_browser_profiles_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBrowserProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBrowserProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/browser-profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Browser Profile",
+        "description": "Returns information about a specific browser profile and its configuration settings.",
+        "operationId": "get_browser_profile_api_v1_browser_profiles__profile_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBrowserProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Update Browser Profile",
+        "description": "Update a browser profile with partial updates. Only the fields you want to change need to be included.",
+        "operationId": "update_browser_profile_api_v1_browser_profiles__profile_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBrowserProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBrowserProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Delete Browser Profile",
+        "description": "Deletes a browser profile. This will remove the profile and all associated browser data.",
+        "operationId": "delete_browser_profile_api_v1_browser_profiles__profile_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBrowserProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simple-search": {
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Simple Search",
+        "description": "Search the internet using browser use.",
+        "operationId": "simple_search_api_v1_simple_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimpleSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/search-url": {
+      "post": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Search Url",
+        "description": "Search a single URL using browser use.",
+        "operationId": "search_url_api_v1_search_url_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchUrlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/balance": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Check Balance",
+        "description": "Returns the user's current API credit balance, which includes both monthly subscription\ncredits and any additional purchased credits. Required for monitoring usage and ensuring sufficient\ncredits for task execution.",
+        "operationId": "check_balance_api_v1_balance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckUserBalanceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Me",
+        "description": "Returns a boolean value indicating if the API key is valid and the user is authenticated.",
+        "operationId": "me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean",
+                  "title": "Response Me Api V1 Me Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ping": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Ping",
+        "description": "Use this endpoint to check if the server is running and responding.",
+        "operationId": "ping_api_v1_ping_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/browser-use-version": {
+      "get": {
+        "tags": [
+          "API v1"
+        ],
+        "summary": "Get Browser Use Version",
+        "description": "Returns the browser-use Python library version used by the backend.",
+        "operationId": "get_browser_use_version_api_v1_browser_use_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "title": "Response Get Browser Use Version Api V1 Browser Use Version Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CheckUserBalanceResponse": {
+        "properties": {
+          "balance": {
+            "type": "string",
+            "title": "Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "balance"
+        ],
+        "title": "CheckUserBalanceResponse",
+        "description": "balance: Current number of API credits available, value in cents (0.01 USD = 1 credit)"
+      },
+      "CreateBrowserProfileRequest": {
+        "properties": {
+          "profile_name": {
+            "type": "string",
+            "title": "Profile Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "persist": {
+            "type": "boolean",
+            "title": "Persist",
+            "default": true
+          },
+          "ad_blocker": {
+            "type": "boolean",
+            "title": "Ad Blocker",
+            "default": true
+          },
+          "proxy": {
+            "type": "boolean",
+            "title": "Proxy",
+            "default": true
+          },
+          "proxy_country_code": {
+            "$ref": "#/components/schemas/ProxyCountryCode",
+            "default": "us"
+          },
+          "browser_viewport_width": {
+            "type": "integer",
+            "title": "Browser Viewport Width",
+            "default": 1280
+          },
+          "browser_viewport_height": {
+            "type": "integer",
+            "title": "Browser Viewport Height",
+            "default": 960
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_name"
+        ],
+        "title": "CreateBrowserProfileRequest",
+        "description": "Request model for creating a new browser profile."
+      },
+      "CreateBrowserProfileResponse": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "profile_name": {
+            "type": "string",
+            "title": "Profile Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "persist": {
+            "type": "boolean",
+            "title": "Persist"
+          },
+          "ad_blocker": {
+            "type": "boolean",
+            "title": "Ad Blocker"
+          },
+          "proxy": {
+            "type": "boolean",
+            "title": "Proxy"
+          },
+          "proxy_country_code": {
+            "$ref": "#/components/schemas/ProxyCountryCode"
+          },
+          "browser_viewport_width": {
+            "type": "integer",
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "type": "integer",
+            "title": "Browser Viewport Height"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "profile_name",
+          "description",
+          "persist",
+          "ad_blocker",
+          "proxy",
+          "proxy_country_code",
+          "browser_viewport_width",
+          "browser_viewport_height"
+        ],
+        "title": "CreateBrowserProfileResponse",
+        "description": "Response model for creating a browser profile."
+      },
+      "DeleteBrowserProfileResponse": {
+        "properties": {},
+        "type": "object",
+        "title": "DeleteBrowserProfileResponse",
+        "description": "Response model for deleting a browser profile."
+      },
+      "GetBrowserProfileResponse": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "profile_name": {
+            "type": "string",
+            "title": "Profile Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "persist": {
+            "type": "boolean",
+            "title": "Persist"
+          },
+          "ad_blocker": {
+            "type": "boolean",
+            "title": "Ad Blocker"
+          },
+          "proxy": {
+            "type": "boolean",
+            "title": "Proxy"
+          },
+          "proxy_country_code": {
+            "$ref": "#/components/schemas/ProxyCountryCode"
+          },
+          "browser_viewport_width": {
+            "type": "integer",
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "type": "integer",
+            "title": "Browser Viewport Height"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "profile_name",
+          "description",
+          "persist",
+          "ad_blocker",
+          "proxy",
+          "proxy_country_code",
+          "browser_viewport_width",
+          "browser_viewport_height"
+        ],
+        "title": "GetBrowserProfileResponse",
+        "description": "Response model for a single browser profile."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LLMModel": {
+        "type": "string",
+        "enum": [
+          "gpt-4o",
+          "gpt-4o-mini",
+          "gpt-4.1",
+          "gpt-4.1-mini",
+          "o4-mini",
+          "o3",
+          "gemini-2.0-flash",
+          "gemini-2.0-flash-lite",
+          "gemini-2.5-flash-preview-04-17",
+          "gemini-2.5-flash",
+          "gemini-2.5-pro",
+          "claude-3-7-sonnet-20250219",
+          "claude-sonnet-4-20250514",
+          "llama-4-maverick-17b-128e-instruct"
+        ],
+        "title": "LLMModel"
+      },
+      "ListBrowserProfilesResponse": {
+        "properties": {
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/GetBrowserProfileResponse"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profiles",
+          "total_pages",
+          "page",
+          "limit",
+          "total_count"
+        ],
+        "title": "ListBrowserProfilesResponse",
+        "description": "Response model for listing browser profiles."
+      },
+      "ListScheduledTasksResponse": {
+        "properties": {
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTaskResponse"
+            },
+            "type": "array",
+            "title": "Tasks"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tasks",
+          "total_pages",
+          "page",
+          "limit",
+          "total_count"
+        ],
+        "title": "ListScheduledTasksResponse",
+        "description": "Response model for listing scheduled tasks."
+      },
+      "ListTasksResponse": {
+        "properties": {
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskSimpleResponse"
+            },
+            "type": "array",
+            "title": "Tasks"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tasks",
+          "total_pages",
+          "page",
+          "limit",
+          "total_count"
+        ],
+        "title": "ListTasksResponse",
+        "description": "total_pages: Total number of pages available\npage: Current page number\nlimit: Number of items per page\ntotal_count: Total number of tasks across all pages"
+      },
+      "ProxyCountryCode": {
+        "type": "string",
+        "enum": [
+          "us",
+          "uk",
+          "fr",
+          "it",
+          "jp",
+          "au",
+          "de",
+          "fi",
+          "ca",
+          "in"
+        ],
+        "title": "ProxyCountryCode"
+      },
+      "RunTaskRequest": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "secrets": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secrets"
+          },
+          "allowed_domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Domains"
+          },
+          "save_browser_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Save Browser Data",
+            "default": false
+          },
+          "structured_output_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Output Json"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LLMModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "highlight_elements": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlight Elements",
+            "default": true
+          },
+          "included_file_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Included File Names"
+          },
+          "max_agent_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Agent Steps",
+            "default": 75
+          },
+          "enable_public_share": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enable Public Share",
+            "default": false
+          },
+          "browser_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Profile Id"
+          },
+          "use_adblock": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Adblock"
+          },
+          "use_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Proxy"
+          },
+          "proxy_country_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProxyCountryCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "browser_viewport_width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Height"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task"
+        ],
+        "title": "RunTaskRequest",
+        "description": "task: What should the agent do. You can try it out at https://cloud.browser-use.com/\n\nsecrets: Dictionary of secrets to be used by the agent. Secrets are safely encrypted before storing in the database.\n\nallowed_domains: List of domains that the agent is allowed to visit. If not set, the agent will be allowed to visit all domains (not recommended if you are using secrets).\n\nsave_browser_data: If set to True, the browser cookies and other data will be saved. Cookies are safely encrypted before storing in the database.\n\nstructured_output_json: If set, the agent will use this JSON schema as the output model (see example here: https://docs.browser-use.com/cloud/implementation#structured-output-example).\n\nuse_adblock: If set to True, the agent will use an adblocker. This overrides the browser profile's adblocker setting.\n\nuse_proxy: If set to True, the agent will use a (mobile) proxy. Note that proxy is required for captcha solving, so if you disable proxy, you will not be able to solve captchas. This overrides the browser profile's proxy setting.\n\nproxy_country_code: Country code for residential proxy. Must be one of: 'us', 'fr', 'it', 'jp', 'au', 'de', 'fi', 'ca'. Default is 'us'. This overrides the browser profile's proxy country code.\n\nhighlight_elements: If set to True, the agent will highlight the elements on the page.\n\nincluded_file_names: File names to include in the task (note: use `uploads/presigned-url` endpoint to upload the files first!). E.g. ['file1.txt', 'file2.csv'].\n\nbrowser_viewport_width: Width of the browser viewport in pixels. Default is 1280. This overrides the browser profile's viewport width.\n\nbrowser_viewport_height: Height of the browser viewport in pixels. Default is 960. This overrides the browser profile's viewport height.\n\nmax_agent_steps: Maximum number of agent steps to take. Default is 75. Maximum is 200.\n\nbrowser_profile_id: ID of the browser profile to use. If not set, the default profile will be used.\n\nmetadata: Optional dictionary of string key-value pairs for custom tagging. Max 10 pairs. Keys: strings (max 100 chars, non-empty). Values: strings (max 1000 chars)."
+      },
+      "ScheduleType": {
+        "type": "string",
+        "enum": [
+          "interval",
+          "cron"
+        ],
+        "title": "ScheduleType"
+      },
+      "ScheduledTaskRequest": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "secrets": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secrets"
+          },
+          "allowed_domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Domains"
+          },
+          "save_browser_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Save Browser Data",
+            "default": false
+          },
+          "structured_output_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Output Json"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LLMModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "highlight_elements": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlight Elements",
+            "default": true
+          },
+          "included_file_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Included File Names"
+          },
+          "max_agent_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Agent Steps",
+            "default": 75
+          },
+          "enable_public_share": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enable Public Share",
+            "default": false
+          },
+          "browser_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Profile Id"
+          },
+          "use_adblock": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Adblock"
+          },
+          "use_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Proxy"
+          },
+          "proxy_country_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProxyCountryCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "browser_viewport_width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Height"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "schedule_type": {
+            "$ref": "#/components/schemas/ScheduleType"
+          },
+          "interval_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Minutes"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          },
+          "end_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task",
+          "schedule_type"
+        ],
+        "title": "ScheduledTaskRequest",
+        "description": "schedule_type: Type of schedule to use (interval or cron)\ninterval_minutes: Minutes between runs (required for interval schedule)\ncron_expression: Cron expression for scheduling (required for cron schedule)\nstart_at: When to start the schedule (optional, defaults to now)\nend_at: When to end the schedule (optional, defaults to 1 year from now)\n\nNote: Secrets are not yet supported for scheduled tasks."
+      },
+      "ScheduledTaskResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "save_browser_data": {
+            "type": "boolean",
+            "title": "Save Browser Data"
+          },
+          "structured_output_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Output Json"
+          },
+          "llm_model": {
+            "$ref": "#/components/schemas/LLMModel"
+          },
+          "use_adblock": {
+            "type": "boolean",
+            "title": "Use Adblock"
+          },
+          "use_proxy": {
+            "type": "boolean",
+            "title": "Use Proxy"
+          },
+          "highlight_elements": {
+            "type": "boolean",
+            "title": "Highlight Elements"
+          },
+          "browser_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Profile Id"
+          },
+          "schedule_type": {
+            "$ref": "#/components/schemas/ScheduleType"
+          },
+          "interval_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Minutes"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start At"
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Next Run At"
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End At"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task",
+          "save_browser_data",
+          "llm_model",
+          "use_adblock",
+          "use_proxy",
+          "highlight_elements",
+          "schedule_type",
+          "start_at",
+          "next_run_at",
+          "end_at",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ScheduledTaskResponse",
+        "description": "Response model for a single scheduled task."
+      },
+      "SearchUrlRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "depth": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 2.0,
+            "title": "Depth",
+            "description": "Search depth controlling agent steps (min 2, max 5, default 2)",
+            "default": 2
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "url"
+        ],
+        "title": "SearchUrlRequest",
+        "description": "url: URL to search\nquery: Search query\ndepth: search depth controlling agent steps (min 2, max 5, default 2)"
+      },
+      "SimpleSearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "max_websites": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Websites",
+            "description": "Number of websites to search (min 1, max 10, default 5)",
+            "default": 5
+          },
+          "depth": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 2.0,
+            "title": "Depth",
+            "description": "Search depth controlling agent steps (min 2, max 5, default 2)",
+            "default": 2
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SimpleSearchRequest",
+        "description": "query: Search query\nmax_websites: number of websites to search (min 1, max 10, default 5)\ndepth: search depth controlling agent steps (min 2, max 5, default 2)"
+      },
+      "SimpleSearchResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/UrlResponse"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "title": "SimpleSearchResponse",
+        "description": "results: List of URLs and their content"
+      },
+      "TaskBrowserDataResponse": {
+        "properties": {
+          "cookies": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Cookies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cookies"
+        ],
+        "title": "TaskBrowserDataResponse",
+        "description": "cookies: List of cookies from the browser session\n\nThis field is only available if save_browser_data is set to True in the request."
+      },
+      "TaskCreatedResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "TaskCreatedResponse"
+      },
+      "TaskGifResponse": {
+        "properties": {
+          "gif": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gif"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gif"
+        ],
+        "title": "TaskGifResponse"
+      },
+      "TaskMediaResponse": {
+        "properties": {
+          "recordings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recordings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recordings"
+        ],
+        "title": "TaskMediaResponse"
+      },
+      "TaskOutputFileResponse": {
+        "properties": {
+          "download_url": {
+            "type": "string",
+            "title": "Download Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "download_url"
+        ],
+        "title": "TaskOutputFileResponse",
+        "description": "download_url: Presigned URL for downloading the output file."
+      },
+      "TaskResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "live_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Live Url"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatusEnum"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStepResponse"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "browser_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskBrowserDataResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user_uploaded_files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Uploaded Files"
+          },
+          "output_files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Files"
+          },
+          "public_share_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Share Url"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task",
+          "output",
+          "status",
+          "created_at",
+          "steps"
+        ],
+        "title": "TaskResponse",
+        "description": "output: Final output or result of the task (if completed)\nlive_url: URL to view live task execution. To preview the url you can directly integrate it in <iframe> tag. For example:\n        ```\n        <iframe src={live_url} width=\"600\" height=\"450\"></iframe>\n        ```\nWhich will display the task execution and allows you to control the agent live. It is pure VNC implementation.\n\nbrowser_data: Browser session data from the task (cookies). To enable this feature, you need to set `save_browser_data = True` in the request."
+      },
+      "TaskScreenshotsResponse": {
+        "properties": {
+          "screenshots": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screenshots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "screenshots"
+        ],
+        "title": "TaskScreenshotsResponse"
+      },
+      "TaskSimpleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatusEnum"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "live_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Live Url"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "task",
+          "output",
+          "status",
+          "created_at"
+        ],
+        "title": "TaskSimpleResponse"
+      },
+      "TaskStatusEnum": {
+        "type": "string",
+        "enum": [
+          "created",
+          "running",
+          "finished",
+          "stopped",
+          "paused",
+          "failed"
+        ],
+        "title": "TaskStatusEnum",
+        "description": "Enumeration of possible task states.\n\n- created: Task is initialized but not yet started\n- running: Task is currently executing\n- finished: Task has completed successfully\n- stopped: Task was manually stopped\n- paused: Task execution is temporarily paused\n- failed: Task encountered an error and could not complete"
+      },
+      "TaskStepResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "step": {
+            "type": "integer",
+            "title": "Step"
+          },
+          "evaluation_previous_goal": {
+            "type": "string",
+            "title": "Evaluation Previous Goal"
+          },
+          "next_goal": {
+            "type": "string",
+            "title": "Next Goal"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "step",
+          "evaluation_previous_goal",
+          "next_goal",
+          "url"
+        ],
+        "title": "TaskStepResponse",
+        "description": "step: Step number\nevaluation_previous_goal: Assessment of the previous goal's completion\nnext_goal: Description of what the next step aims to achieve\nurl: URL of the page where the step was executed"
+      },
+      "UpdateBrowserProfileRequest": {
+        "properties": {
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "persist": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persist"
+          },
+          "ad_blocker": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ad Blocker"
+          },
+          "proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy"
+          },
+          "proxy_country_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProxyCountryCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "browser_viewport_width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Viewport Height"
+          }
+        },
+        "type": "object",
+        "title": "UpdateBrowserProfileRequest",
+        "description": "Request model for updating a browser profile."
+      },
+      "UpdateBrowserProfileResponse": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "profile_name": {
+            "type": "string",
+            "title": "Profile Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "persist": {
+            "type": "boolean",
+            "title": "Persist"
+          },
+          "ad_blocker": {
+            "type": "boolean",
+            "title": "Ad Blocker"
+          },
+          "proxy": {
+            "type": "boolean",
+            "title": "Proxy"
+          },
+          "proxy_country_code": {
+            "$ref": "#/components/schemas/ProxyCountryCode"
+          },
+          "browser_viewport_width": {
+            "type": "integer",
+            "title": "Browser Viewport Width"
+          },
+          "browser_viewport_height": {
+            "type": "integer",
+            "title": "Browser Viewport Height"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "profile_name",
+          "description",
+          "persist",
+          "ad_blocker",
+          "proxy",
+          "proxy_country_code",
+          "browser_viewport_width",
+          "browser_viewport_height"
+        ],
+        "title": "UpdateBrowserProfileResponse",
+        "description": "Response model for updating a browser profile."
+      },
+      "UpdateScheduledTaskRequest": {
+        "properties": {
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "schedule_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interval_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Minutes"
+          },
+          "cron_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cron Expression"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          },
+          "end_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "use_adblock": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Adblock"
+          },
+          "use_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Proxy"
+          },
+          "highlight_elements": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlight Elements"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LLMModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "save_browser_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Save Browser Data"
+          },
+          "structured_output_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Output Json"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "title": "UpdateScheduledTaskRequest",
+        "description": "Request model for updating individual fields of a scheduled task."
+      },
+      "UploadFileRequest": {
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_name",
+          "content_type"
+        ],
+        "title": "UploadFileRequest",
+        "description": "file_name: Name of the file to upload (e.g. 'file1.txt', 'file2.csv').\ncontent_type: Content type of the file to upload (e.g. 'image/png', 'application/pdf', 'text/plain'). Only images and documents are supported."
+      },
+      "UploadFileResponse": {
+        "properties": {
+          "upload_url": {
+            "type": "string",
+            "title": "Upload Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_url"
+        ],
+        "title": "UploadFileResponse",
+        "description": "upload_url: Presigned URL for uploading a file to the user's files bucket.\n\nNote: Make a PUT presigned URL request to upload the file."
+      },
+      "UrlResponse": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "content"
+        ],
+        "title": "UrlResponse",
+        "description": "URL and its content"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

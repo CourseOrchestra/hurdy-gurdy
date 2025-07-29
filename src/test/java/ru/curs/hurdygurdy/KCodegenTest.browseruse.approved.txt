@@ -1,0 +1,1030 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/APIV1Controller.kt
+package com.example.controller
+
+import com.example.dto.CheckUserBalanceResponse
+import com.example.dto.CreateBrowserProfileRequest
+import com.example.dto.CreateBrowserProfileResponse
+import com.example.dto.DeleteBrowserProfileResponse
+import com.example.dto.GetBrowserProfileResponse
+import com.example.dto.ListBrowserProfilesResponse
+import com.example.dto.ListScheduledTasksResponse
+import com.example.dto.ListTasksResponse
+import com.example.dto.RunTaskRequest
+import com.example.dto.ScheduledTaskRequest
+import com.example.dto.ScheduledTaskResponse
+import com.example.dto.SearchUrlRequest
+import com.example.dto.SimpleSearchRequest
+import com.example.dto.SimpleSearchResponse
+import com.example.dto.TaskCreatedResponse
+import com.example.dto.TaskGifResponse
+import com.example.dto.TaskMediaResponse
+import com.example.dto.TaskOutputFileResponse
+import com.example.dto.TaskResponse
+import com.example.dto.TaskScreenshotsResponse
+import com.example.dto.TaskStatusEnum
+import com.example.dto.UpdateBrowserProfileRequest
+import com.example.dto.UpdateBrowserProfileResponse
+import com.example.dto.UpdateScheduledTaskRequest
+import com.example.dto.UploadFileRequest
+import com.example.dto.UploadFileResponse
+import com.example.dto.UrlResponse
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import org.springframework.web.bind.`annotation`.DeleteMapping
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.PutMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface APIV1Controller {
+  @PostMapping(
+    value = ["/api/v1/run-task"],
+    produces = ["application/json"],
+  )
+  public fun runTaskApiV1RunTaskPost(@RequestBody request: RunTaskRequest?, response: HttpServletResponse): TaskCreatedResponse?
+
+  @PutMapping(
+    value = ["/api/v1/stop-task"],
+    produces = ["application/json"],
+  )
+  public fun stopTaskApiV1StopTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+
+  @PutMapping(
+    value = ["/api/v1/pause-task"],
+    produces = ["application/json"],
+  )
+  public fun pauseTaskApiV1PauseTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+
+  @PutMapping(
+    value = ["/api/v1/resume-task"],
+    produces = ["application/json"],
+  )
+  public fun resumeTaskApiV1ResumeTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}"],
+    produces = ["application/json"],
+  )
+  public fun getTaskApiV1TaskTaskIdGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskResponse?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}/status"],
+    produces = ["application/json"],
+  )
+  public fun getTaskStatusApiV1TaskTaskIdStatusGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskStatusEnum?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}/media"],
+    produces = ["application/json"],
+  )
+  public fun getTaskMediaApiV1TaskTaskIdMediaGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskMediaResponse?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}/screenshots"],
+    produces = ["application/json"],
+  )
+  public fun getTaskScreenshotsApiV1TaskTaskIdScreenshotsGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskScreenshotsResponse?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}/gif"],
+    produces = ["application/json"],
+  )
+  public fun getTaskGifApiV1TaskTaskIdGifGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskGifResponse?
+
+  @GetMapping(
+    value = ["/api/v1/task/{task_id}/output-file/{file_name}"],
+    produces = ["application/json"],
+  )
+  public fun getTaskOutputFileApiV1TaskTaskIdOutputFileFileNameGet(
+    @PathVariable(name = "task_id") taskId: String?,
+    @PathVariable(name = "file_name") fileName: String?,
+    response: HttpServletResponse,
+  ): TaskOutputFileResponse?
+
+  @GetMapping(
+    value = ["/api/v1/tasks"],
+    produces = ["application/json"],
+  )
+  public fun listTasksApiV1TasksGet(
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    response: HttpServletResponse,
+  ): ListTasksResponse?
+
+  @PostMapping(
+    value = ["/api/v1/uploads/presigned-url"],
+    produces = ["application/json"],
+  )
+  public fun uploadFilePresignedUrlApiV1UploadsPresignedUrlPost(@RequestBody request: UploadFileRequest?, response: HttpServletResponse): UploadFileResponse?
+
+  @PostMapping(
+    value = ["/api/v1/scheduled-task"],
+    produces = ["application/json"],
+  )
+  public fun createScheduledTaskApiV1ScheduledTaskPost(@RequestBody request: ScheduledTaskRequest?, response: HttpServletResponse): TaskCreatedResponse?
+
+  @GetMapping(
+    value = ["/api/v1/scheduled-tasks"],
+    produces = ["application/json"],
+  )
+  public fun listScheduledTasksApiV1ScheduledTasksGet(
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    response: HttpServletResponse,
+  ): ListScheduledTasksResponse?
+
+  @GetMapping(
+    value = ["/api/v1/scheduled-task/{task_id}"],
+    produces = ["application/json"],
+  )
+  public fun getScheduledTaskApiV1ScheduledTaskTaskIdGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): ScheduledTaskResponse?
+
+  @PutMapping(
+    value = ["/api/v1/scheduled-task/{task_id}"],
+    produces = ["application/json"],
+  )
+  public fun updateScheduledTaskApiV1ScheduledTaskTaskIdPut(
+    @RequestBody request: UpdateScheduledTaskRequest?,
+    @PathVariable(name = "task_id") taskId: String?,
+    response: HttpServletResponse,
+  ): ScheduledTaskResponse?
+
+  @DeleteMapping(
+    value = ["/api/v1/scheduled-task/{task_id}"],
+    produces = ["application/json"],
+  )
+  public fun deleteScheduledTaskApiV1ScheduledTaskTaskIdDelete(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+
+  @GetMapping(
+    value = ["/api/v1/browser-profiles"],
+    produces = ["application/json"],
+  )
+  public fun listBrowserProfilesApiV1BrowserProfilesGet(
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    response: HttpServletResponse,
+  ): ListBrowserProfilesResponse?
+
+  @PostMapping(
+    value = ["/api/v1/browser-profiles"],
+    produces = ["application/json"],
+  )
+  public fun createBrowserProfileApiV1BrowserProfilesPost(@RequestBody request: CreateBrowserProfileRequest?, response: HttpServletResponse): CreateBrowserProfileResponse?
+
+  @GetMapping(
+    value = ["/api/v1/browser-profiles/{profile_id}"],
+    produces = ["application/json"],
+  )
+  public fun getBrowserProfileApiV1BrowserProfilesProfileIdGet(@PathVariable(name = "profile_id") profileId: String?, response: HttpServletResponse): GetBrowserProfileResponse?
+
+  @PutMapping(
+    value = ["/api/v1/browser-profiles/{profile_id}"],
+    produces = ["application/json"],
+  )
+  public fun updateBrowserProfileApiV1BrowserProfilesProfileIdPut(
+    @RequestBody request: UpdateBrowserProfileRequest?,
+    @PathVariable(name = "profile_id") profileId: String?,
+    response: HttpServletResponse,
+  ): UpdateBrowserProfileResponse?
+
+  @DeleteMapping(
+    value = ["/api/v1/browser-profiles/{profile_id}"],
+    produces = ["application/json"],
+  )
+  public fun deleteBrowserProfileApiV1BrowserProfilesProfileIdDelete(@PathVariable(name = "profile_id") profileId: String?, response: HttpServletResponse): DeleteBrowserProfileResponse?
+
+  @PostMapping(
+    value = ["/api/v1/simple-search"],
+    produces = ["application/json"],
+  )
+  public fun simpleSearchApiV1SimpleSearchPost(@RequestBody request: SimpleSearchRequest?, response: HttpServletResponse): SimpleSearchResponse?
+
+  @PostMapping(
+    value = ["/api/v1/search-url"],
+    produces = ["application/json"],
+  )
+  public fun searchUrlApiV1SearchUrlPost(@RequestBody request: SearchUrlRequest?, response: HttpServletResponse): UrlResponse?
+
+  @GetMapping(
+    value = ["/api/v1/balance"],
+    produces = ["application/json"],
+  )
+  public fun checkBalanceApiV1BalanceGet(response: HttpServletResponse): CheckUserBalanceResponse?
+
+  @GetMapping(
+    value = ["/api/v1/me"],
+    produces = ["application/json"],
+  )
+  public fun meApiV1MeGet(response: HttpServletResponse): Boolean?
+
+  @GetMapping(
+    value = ["/api/v1/ping"],
+    produces = ["application/json"],
+  )
+  public fun pingApiV1PingGet(response: HttpServletResponse): Any?
+
+  @GetMapping(
+    value = ["/api/v1/browser-use-version"],
+    produces = ["application/json"],
+  )
+  public fun getBrowserUseVersionApiV1BrowserUseVersionGet(response: HttpServletResponse): String?
+}
+---
+/com/example/dto
+---
+/com/example/dto/CheckUserBalanceResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class CheckUserBalanceResponse(
+  public val balance: String,
+)
+---
+/com/example/dto/CookiesItem.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Any
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class CookiesItem(
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, Any?> = HashMap(),
+)
+---
+/com/example/dto/CreateBrowserProfileRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class CreateBrowserProfileRequest(
+  public val profileName: String,
+  public val description: String? = "",
+  public val persist: Boolean? = true,
+  public val adBlocker: Boolean? = true,
+  public val proxy: Boolean? = true,
+  public val proxyCountryCode: ProxyCountryCode? = null,
+  public val browserViewportWidth: Int? = 1280,
+  public val browserViewportHeight: Int? = 960,
+)
+---
+/com/example/dto/CreateBrowserProfileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class CreateBrowserProfileResponse(
+  public val profileId: String,
+  public val profileName: String,
+  public val description: String,
+  public val persist: Boolean,
+  public val adBlocker: Boolean,
+  public val proxy: Boolean,
+  public val proxyCountryCode: ProxyCountryCode,
+  public val browserViewportWidth: Int,
+  public val browserViewportHeight: Int,
+)
+---
+/com/example/dto/DeleteBrowserProfileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public object DeleteBrowserProfileResponse
+---
+/com/example/dto/GetBrowserProfileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class GetBrowserProfileResponse(
+  public val profileId: String,
+  public val profileName: String,
+  public val description: String,
+  public val persist: Boolean,
+  public val adBlocker: Boolean,
+  public val proxy: Boolean,
+  public val proxyCountryCode: ProxyCountryCode,
+  public val browserViewportWidth: Int,
+  public val browserViewportHeight: Int,
+)
+---
+/com/example/dto/HTTPValidationError.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class HTTPValidationError(
+  public val detail: List<ValidationError>? = null,
+)
+---
+/com/example/dto/ListBrowserProfilesResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ListBrowserProfilesResponse(
+  public val profiles: List<GetBrowserProfileResponse>,
+  public val totalPages: Int,
+  public val page: Int,
+  public val limit: Int,
+  public val totalCount: Int,
+)
+---
+/com/example/dto/ListScheduledTasksResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ListScheduledTasksResponse(
+  public val tasks: List<ScheduledTaskResponse>,
+  public val totalPages: Int,
+  public val page: Int,
+  public val limit: Int,
+  public val totalCount: Int,
+)
+---
+/com/example/dto/ListTasksResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ListTasksResponse(
+  public val tasks: List<TaskSimpleResponse>,
+  public val totalPages: Int,
+  public val page: Int,
+  public val limit: Int,
+  public val totalCount: Int,
+)
+---
+/com/example/dto/LLMModel.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class LLMModel {
+  @JsonProperty("gpt-4o")
+  GPT_4O,
+  @JsonProperty("gpt-4o-mini")
+  GPT_4O_MINI,
+  @JsonProperty("gpt-4.1")
+  GPT_4_1,
+  @JsonProperty("gpt-4.1-mini")
+  GPT_4_1_MINI,
+  @JsonProperty("o4-mini")
+  O4_MINI,
+  @JsonProperty("o3")
+  O3,
+  @JsonProperty("gemini-2.0-flash")
+  GEMINI_2_0_FLASH,
+  @JsonProperty("gemini-2.0-flash-lite")
+  GEMINI_2_0_FLASH_LITE,
+  @JsonProperty("gemini-2.5-flash-preview-04-17")
+  GEMINI_2_5_FLASH_PREVIEW_04_17,
+  @JsonProperty("gemini-2.5-flash")
+  GEMINI_2_5_FLASH,
+  @JsonProperty("gemini-2.5-pro")
+  GEMINI_2_5_PRO,
+  @JsonProperty("claude-3-7-sonnet-20250219")
+  CLAUDE_3_7_SONNET_20250219,
+  @JsonProperty("claude-sonnet-4-20250514")
+  CLAUDE_SONNET_4_20250514,
+  @JsonProperty("llama-4-maverick-17b-128e-instruct")
+  LLAMA_4_MAVERICK_17B_128E_INSTRUCT,
+}
+---
+/com/example/dto/Metadata.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Metadata(
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, String?> = HashMap(),
+)
+---
+/com/example/dto/ProxyCountryCode.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class ProxyCountryCode {
+  @JsonProperty("us")
+  US,
+  @JsonProperty("uk")
+  UK,
+  @JsonProperty("fr")
+  FR,
+  @JsonProperty("it")
+  IT,
+  @JsonProperty("jp")
+  JP,
+  @JsonProperty("au")
+  AU,
+  @JsonProperty("de")
+  DE,
+  @JsonProperty("fi")
+  FI,
+  @JsonProperty("ca")
+  CA,
+  @JsonProperty("in")
+  IN,
+}
+---
+/com/example/dto/RunTaskRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class RunTaskRequest(
+  public val task: String,
+  public val secrets: Secrets? = null,
+  public val allowedDomains: List<String>? = null,
+  public val saveBrowserData: Boolean? = false,
+  public val structuredOutputJson: String? = null,
+  public val llmModel: LLMModel? = null,
+  public val highlightElements: Boolean? = true,
+  public val includedFileNames: List<String>? = null,
+  public val maxAgentSteps: Int? = 75,
+  public val enablePublicShare: Boolean? = false,
+  public val browserProfileId: String? = null,
+  public val useAdblock: Boolean? = null,
+  public val useProxy: Boolean? = null,
+  public val proxyCountryCode: ProxyCountryCode? = null,
+  public val browserViewportWidth: Int? = null,
+  public val browserViewportHeight: Int? = null,
+  public val metadata: Metadata? = null,
+)
+---
+/com/example/dto/ScheduledTaskRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ScheduledTaskRequest(
+  public val task: String,
+  public val secrets: Secrets? = null,
+  public val allowedDomains: List<String>? = null,
+  public val saveBrowserData: Boolean? = false,
+  public val structuredOutputJson: String? = null,
+  public val llmModel: LLMModel? = null,
+  public val highlightElements: Boolean? = true,
+  public val includedFileNames: List<String>? = null,
+  public val maxAgentSteps: Int? = 75,
+  public val enablePublicShare: Boolean? = false,
+  public val browserProfileId: String? = null,
+  public val useAdblock: Boolean? = null,
+  public val useProxy: Boolean? = null,
+  public val proxyCountryCode: ProxyCountryCode? = null,
+  public val browserViewportWidth: Int? = null,
+  public val browserViewportHeight: Int? = null,
+  public val metadata: Metadata? = null,
+  public val scheduleType: ScheduleType,
+  public val intervalMinutes: Int? = null,
+  public val cronExpression: String? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val startAt: ZonedDateTime? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val endAt: ZonedDateTime? = null,
+)
+---
+/com/example/dto/ScheduledTaskResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ScheduledTaskResponse(
+  public val id: String,
+  public val task: String,
+  public val saveBrowserData: Boolean,
+  public val structuredOutputJson: String? = null,
+  public val llmModel: LLMModel,
+  public val useAdblock: Boolean,
+  public val useProxy: Boolean,
+  public val highlightElements: Boolean,
+  public val browserProfileId: String? = null,
+  public val scheduleType: ScheduleType,
+  public val intervalMinutes: Int? = null,
+  public val cronExpression: String? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val startAt: ZonedDateTime,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val nextRunAt: ZonedDateTime,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val endAt: ZonedDateTime,
+  public val isActive: Boolean,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val createdAt: ZonedDateTime,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val updatedAt: ZonedDateTime,
+)
+---
+/com/example/dto/ScheduleType.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class ScheduleType {
+  @JsonProperty("interval")
+  INTERVAL,
+  @JsonProperty("cron")
+  CRON,
+}
+---
+/com/example/dto/SearchUrlRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SearchUrlRequest(
+  public val query: String,
+  public val url: String,
+  public val depth: Int? = 2,
+)
+---
+/com/example/dto/Secrets.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonAnyGetter
+import com.fasterxml.jackson.`annotation`.JsonAnySetter
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.Map
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Secrets(
+  @JsonAnySetter
+  @get:JsonAnyGetter
+  public val additionalProperties: Map<String, String?> = HashMap(),
+)
+---
+/com/example/dto/SimpleSearchRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SimpleSearchRequest(
+  public val query: String,
+  public val maxWebsites: Int? = 5,
+  public val depth: Int? = 2,
+)
+---
+/com/example/dto/SimpleSearchResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SimpleSearchResponse(
+  public val results: List<UrlResponse>,
+)
+---
+/com/example/dto/TaskBrowserDataResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskBrowserDataResponse(
+  public val cookies: List<CookiesItem>,
+)
+---
+/com/example/dto/TaskCreatedResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskCreatedResponse(
+  public val id: String,
+)
+---
+/com/example/dto/TaskGifResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskGifResponse(
+  public val gif: String,
+)
+---
+/com/example/dto/TaskMediaResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskMediaResponse(
+  public val recordings: List<String>,
+)
+---
+/com/example/dto/TaskOutputFileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskOutputFileResponse(
+  public val downloadUrl: String,
+)
+---
+/com/example/dto/TaskResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskResponse(
+  public val id: String,
+  public val task: String,
+  public val liveUrl: String? = null,
+  public val output: String,
+  public val status: TaskStatusEnum,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val createdAt: ZonedDateTime,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val finishedAt: ZonedDateTime? = null,
+  public val steps: List<TaskStepResponse>,
+  public val browserData: TaskBrowserDataResponse? = null,
+  public val userUploadedFiles: List<String>? = null,
+  public val outputFiles: List<String>? = null,
+  public val publicShareUrl: String? = null,
+  public val metadata: Metadata? = null,
+)
+---
+/com/example/dto/TaskScreenshotsResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskScreenshotsResponse(
+  public val screenshots: List<String>,
+)
+---
+/com/example/dto/TaskSimpleResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskSimpleResponse(
+  public val id: String,
+  public val task: String,
+  public val output: String,
+  public val status: TaskStatusEnum,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val createdAt: ZonedDateTime,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val finishedAt: ZonedDateTime? = null,
+  public val liveUrl: String? = null,
+  public val metadata: Metadata? = null,
+)
+---
+/com/example/dto/TaskStatusEnum.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class TaskStatusEnum {
+  @JsonProperty("created")
+  CREATED,
+  @JsonProperty("running")
+  RUNNING,
+  @JsonProperty("finished")
+  FINISHED,
+  @JsonProperty("stopped")
+  STOPPED,
+  @JsonProperty("paused")
+  PAUSED,
+  @JsonProperty("failed")
+  FAILED,
+}
+---
+/com/example/dto/TaskStepResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TaskStepResponse(
+  public val id: String,
+  public val step: Int,
+  public val evaluationPreviousGoal: String,
+  public val nextGoal: String,
+  public val url: String,
+)
+---
+/com/example/dto/UpdateBrowserProfileRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UpdateBrowserProfileRequest(
+  public val profileName: String? = null,
+  public val description: String? = null,
+  public val persist: Boolean? = null,
+  public val adBlocker: Boolean? = null,
+  public val proxy: Boolean? = null,
+  public val proxyCountryCode: ProxyCountryCode? = null,
+  public val browserViewportWidth: Int? = null,
+  public val browserViewportHeight: Int? = null,
+)
+---
+/com/example/dto/UpdateBrowserProfileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UpdateBrowserProfileResponse(
+  public val profileId: String,
+  public val profileName: String,
+  public val description: String,
+  public val persist: Boolean,
+  public val adBlocker: Boolean,
+  public val proxy: Boolean,
+  public val proxyCountryCode: ProxyCountryCode,
+  public val browserViewportWidth: Int,
+  public val browserViewportHeight: Int,
+)
+---
+/com/example/dto/UpdateScheduledTaskRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UpdateScheduledTaskRequest(
+  public val task: String? = null,
+  public val scheduleType: ScheduleType? = null,
+  public val intervalMinutes: Int? = null,
+  public val cronExpression: String? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val startAt: ZonedDateTime? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val endAt: ZonedDateTime? = null,
+  public val isActive: Boolean? = null,
+  public val useAdblock: Boolean? = null,
+  public val useProxy: Boolean? = null,
+  public val highlightElements: Boolean? = null,
+  public val llmModel: LLMModel? = null,
+  public val saveBrowserData: Boolean? = null,
+  public val structuredOutputJson: String? = null,
+  public val metadata: Metadata? = null,
+)
+---
+/com/example/dto/UploadFileRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UploadFileRequest(
+  public val fileName: String,
+  public val contentType: String,
+)
+---
+/com/example/dto/UploadFileResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UploadFileResponse(
+  public val uploadUrl: String,
+)
+---
+/com/example/dto/UrlResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UrlResponse(
+  public val url: String,
+  public val content: String,
+)
+---
+/com/example/dto/ValidationError.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Any
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ValidationError(
+  public val loc: List<Any>,
+  public val msg: String,
+  public val type: String,
+)
+---
+/com/example/dto/ZonedDateTimeDeserializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import java.time.DateTimeException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext): ZonedDateTime {
+    val date = jsonParser.text
+    try  {
+      return ZonedDateTime.parse(date, formatter)
+    }
+    catch (e: DateTimeException) {
+      throw JsonParseException(jsonParser, e.message)
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun serialize(
+    `value`: ZonedDateTime,
+    gen: JsonGenerator,
+    serializers: SerializerProvider,
+  ) {
+    gen.writeString(formatter.format(value))
+  }
+}
