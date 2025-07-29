@@ -36,11 +36,9 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
 import org.springframework.web.multipart.MultipartFile
-import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import java.time.DateTimeException
 import java.time.LocalDate
@@ -205,11 +203,11 @@ class KotlinTypeDefiner internal constructor(
                 schema.oneOf.isNullOrEmpty() &&
                 !isParent
             )
-                TypeSpec.objectBuilder(normalizeToCamel(name)).superclass(baseClass)
+                TypeSpec.objectBuilder(name).superclass(baseClass)
             else if (!schema.oneOf.isNullOrEmpty())
-                TypeSpec.interfaceBuilder(normalizeToCamel(name))
+                TypeSpec.interfaceBuilder(name)
             else
-                TypeSpec.classBuilder(normalizeToCamel(name)).superclass(baseClass))
+                TypeSpec.classBuilder(name).superclass(baseClass))
 
         addInterfaces(openAPI, name, classBuilder)
         oneOfToInterface(schema, openAPI, classBuilder)

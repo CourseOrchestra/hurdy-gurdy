@@ -45,7 +45,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
-import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
 import static ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake;
 
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
@@ -231,9 +230,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass) {
         TypeSpec.Builder classBuilder;
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
-            classBuilder = TypeSpec.interfaceBuilder(normalizeToCamel(name));
+            classBuilder = TypeSpec.interfaceBuilder(name);
         } else {
-            classBuilder = TypeSpec.classBuilder(normalizeToCamel(name))
+            classBuilder = TypeSpec.classBuilder(name)
                     .superclass(baseClass)
                     .addAnnotation(Data.class);
         }
