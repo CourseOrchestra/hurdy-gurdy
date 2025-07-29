@@ -53,7 +53,7 @@ import kotlin.collections.Map
 public data class Messages(
   public val intVal: Int? = null,
   public val strVal: String? = null,
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, Message> = HashMap(),
 )
@@ -70,7 +70,7 @@ import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class ObjectWithAFreeDict(
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, String> = HashMap(),
 )
@@ -88,7 +88,7 @@ import kotlin.collections.Map
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class ObjectWithPrimitiveDictValues(
-  @JsonAnySetter
+  @param:JsonAnySetter
   @get:JsonAnyGetter
   public val additionalProperties: Map<String, Boolean?> = HashMap(),
 )

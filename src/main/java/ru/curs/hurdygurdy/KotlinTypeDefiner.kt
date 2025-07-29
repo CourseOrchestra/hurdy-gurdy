@@ -369,7 +369,10 @@ class KotlinTypeDefiner internal constructor(
 
                 val param = ParameterSpec.builder("additionalProperties", mapType)
                     .defaultValue("HashMap()")
-                    .addAnnotation(JsonAnySetter::class)
+                    .addAnnotation(
+                        AnnotationSpec.builder(JsonAnySetter::class)
+                            .useSiteTarget(AnnotationSpec.UseSiteTarget.PARAM)
+                            .build())
                     .addAnnotation(
                         AnnotationSpec.builder(JsonAnyGetter::class)
                             .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
