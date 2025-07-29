@@ -409,6 +409,55 @@ public class HTTPValidationError {
   private List<ValidationError> detail;
 }
 ---
+/com/example/dto/LLMModel.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum LLMModel {
+  @JsonProperty("gpt-4o")
+  GPT_4O,
+
+  @JsonProperty("gpt-4o-mini")
+  GPT_4O_MINI,
+
+  @JsonProperty("gpt-4.1")
+  GPT_4_1,
+
+  @JsonProperty("gpt-4.1-mini")
+  GPT_4_1_MINI,
+
+  @JsonProperty("o4-mini")
+  O4_MINI,
+
+  @JsonProperty("o3")
+  O3,
+
+  @JsonProperty("gemini-2.0-flash")
+  GEMINI_2_0_FLASH,
+
+  @JsonProperty("gemini-2.0-flash-lite")
+  GEMINI_2_0_FLASH_LITE,
+
+  @JsonProperty("gemini-2.5-flash-preview-04-17")
+  GEMINI_2_5_FLASH_PREVIEW_04_17,
+
+  @JsonProperty("gemini-2.5-flash")
+  GEMINI_2_5_FLASH,
+
+  @JsonProperty("gemini-2.5-pro")
+  GEMINI_2_5_PRO,
+
+  @JsonProperty("claude-3-7-sonnet-20250219")
+  CLAUDE_3_7_SONNET_20250219,
+
+  @JsonProperty("claude-sonnet-4-20250514")
+  CLAUDE_SONNET_4_20250514,
+
+  @JsonProperty("llama-4-maverick-17b-128e-instruct")
+  LLAMA_4_MAVERICK_17B_128E_INSTRUCT
+}
+---
 /com/example/dto/ListBrowserProfilesResponse.java
 package com.example.dto;
 
@@ -476,55 +525,6 @@ public class ListTasksResponse {
   private Integer limit;
 
   private Integer totalCount;
-}
----
-/com/example/dto/LLMModel.java
-package com.example.dto;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public enum LLMModel {
-  @JsonProperty("gpt-4o")
-  GPT_4O,
-
-  @JsonProperty("gpt-4o-mini")
-  GPT_4O_MINI,
-
-  @JsonProperty("gpt-4.1")
-  GPT_4_1,
-
-  @JsonProperty("gpt-4.1-mini")
-  GPT_4_1_MINI,
-
-  @JsonProperty("o4-mini")
-  O4_MINI,
-
-  @JsonProperty("o3")
-  O3,
-
-  @JsonProperty("gemini-2.0-flash")
-  GEMINI_2_0_FLASH,
-
-  @JsonProperty("gemini-2.0-flash-lite")
-  GEMINI_2_0_FLASH_LITE,
-
-  @JsonProperty("gemini-2.5-flash-preview-04-17")
-  GEMINI_2_5_FLASH_PREVIEW_04_17,
-
-  @JsonProperty("gemini-2.5-flash")
-  GEMINI_2_5_FLASH,
-
-  @JsonProperty("gemini-2.5-pro")
-  GEMINI_2_5_PRO,
-
-  @JsonProperty("claude-3-7-sonnet-20250219")
-  CLAUDE_3_7_SONNET_20250219,
-
-  @JsonProperty("claude-sonnet-4-20250514")
-  CLAUDE_SONNET_4_20250514,
-
-  @JsonProperty("llama-4-maverick-17b-128e-instruct")
-  LLAMA_4_MAVERICK_17B_128E_INSTRUCT
 }
 ---
 /com/example/dto/LocItem.java
@@ -645,6 +645,19 @@ public class RunTaskRequest {
   private Integer browserViewportHeight;
 
   private Metadata metadata;
+}
+---
+/com/example/dto/ScheduleType.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum ScheduleType {
+  @JsonProperty("interval")
+  INTERVAL,
+
+  @JsonProperty("cron")
+  CRON
 }
 ---
 /com/example/dto/ScheduledTaskRequest.java
@@ -800,19 +813,6 @@ public class ScheduledTaskResponse {
       using = ZonedDateTimeSerializer.class
   )
   private ZonedDateTime updatedAt;
-}
----
-/com/example/dto/ScheduleType.java
-package com.example.dto;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public enum ScheduleType {
-  @JsonProperty("interval")
-  INTERVAL,
-
-  @JsonProperty("cron")
-  CRON
 }
 ---
 /com/example/dto/SearchUrlRequest.java

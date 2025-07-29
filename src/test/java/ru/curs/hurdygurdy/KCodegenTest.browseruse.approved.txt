@@ -362,6 +362,42 @@ public data class HTTPValidationError(
   public val detail: List<ValidationError>? = null,
 )
 ---
+/com/example/dto/LLMModel.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class LLMModel {
+  @JsonProperty("gpt-4o")
+  GPT_4O,
+  @JsonProperty("gpt-4o-mini")
+  GPT_4O_MINI,
+  @JsonProperty("gpt-4.1")
+  GPT_4_1,
+  @JsonProperty("gpt-4.1-mini")
+  GPT_4_1_MINI,
+  @JsonProperty("o4-mini")
+  O4_MINI,
+  @JsonProperty("o3")
+  O3,
+  @JsonProperty("gemini-2.0-flash")
+  GEMINI_2_0_FLASH,
+  @JsonProperty("gemini-2.0-flash-lite")
+  GEMINI_2_0_FLASH_LITE,
+  @JsonProperty("gemini-2.5-flash-preview-04-17")
+  GEMINI_2_5_FLASH_PREVIEW_04_17,
+  @JsonProperty("gemini-2.5-flash")
+  GEMINI_2_5_FLASH,
+  @JsonProperty("gemini-2.5-pro")
+  GEMINI_2_5_PRO,
+  @JsonProperty("claude-3-7-sonnet-20250219")
+  CLAUDE_3_7_SONNET_20250219,
+  @JsonProperty("claude-sonnet-4-20250514")
+  CLAUDE_SONNET_4_20250514,
+  @JsonProperty("llama-4-maverick-17b-128e-instruct")
+  LLAMA_4_MAVERICK_17B_128E_INSTRUCT,
+}
+---
 /com/example/dto/ListBrowserProfilesResponse.kt
 package com.example.dto
 
@@ -412,42 +448,6 @@ public data class ListTasksResponse(
   public val limit: Int,
   public val totalCount: Int,
 )
----
-/com/example/dto/LLMModel.kt
-package com.example.dto
-
-import com.fasterxml.jackson.`annotation`.JsonProperty
-
-public enum class LLMModel {
-  @JsonProperty("gpt-4o")
-  GPT_4O,
-  @JsonProperty("gpt-4o-mini")
-  GPT_4O_MINI,
-  @JsonProperty("gpt-4.1")
-  GPT_4_1,
-  @JsonProperty("gpt-4.1-mini")
-  GPT_4_1_MINI,
-  @JsonProperty("o4-mini")
-  O4_MINI,
-  @JsonProperty("o3")
-  O3,
-  @JsonProperty("gemini-2.0-flash")
-  GEMINI_2_0_FLASH,
-  @JsonProperty("gemini-2.0-flash-lite")
-  GEMINI_2_0_FLASH_LITE,
-  @JsonProperty("gemini-2.5-flash-preview-04-17")
-  GEMINI_2_5_FLASH_PREVIEW_04_17,
-  @JsonProperty("gemini-2.5-flash")
-  GEMINI_2_5_FLASH,
-  @JsonProperty("gemini-2.5-pro")
-  GEMINI_2_5_PRO,
-  @JsonProperty("claude-3-7-sonnet-20250219")
-  CLAUDE_3_7_SONNET_20250219,
-  @JsonProperty("claude-sonnet-4-20250514")
-  CLAUDE_SONNET_4_20250514,
-  @JsonProperty("llama-4-maverick-17b-128e-instruct")
-  LLAMA_4_MAVERICK_17B_128E_INSTRUCT,
-}
 ---
 /com/example/dto/Metadata.kt
 package com.example.dto
@@ -524,6 +524,18 @@ public data class RunTaskRequest(
   public val browserViewportHeight: Int? = null,
   public val metadata: Metadata? = null,
 )
+---
+/com/example/dto/ScheduleType.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class ScheduleType {
+  @JsonProperty("interval")
+  INTERVAL,
+  @JsonProperty("cron")
+  CRON,
+}
 ---
 /com/example/dto/ScheduledTaskRequest.kt
 package com.example.dto
@@ -611,18 +623,6 @@ public data class ScheduledTaskResponse(
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
   public val updatedAt: ZonedDateTime,
 )
----
-/com/example/dto/ScheduleType.kt
-package com.example.dto
-
-import com.fasterxml.jackson.`annotation`.JsonProperty
-
-public enum class ScheduleType {
-  @JsonProperty("interval")
-  INTERVAL,
-  @JsonProperty("cron")
-  CRON,
-}
 ---
 /com/example/dto/SearchUrlRequest.kt
 package com.example.dto

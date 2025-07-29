@@ -120,7 +120,7 @@ class CodegenTest {
 
     String getContent(Path path) throws IOException {
         return Files.walk(path)
-                .sorted()
+                .sorted(Comparator.comparing(Path::toString))
                 .flatMap(p -> Stream.concat(
                         Stream.of(
                                 String.format("---%n"),
