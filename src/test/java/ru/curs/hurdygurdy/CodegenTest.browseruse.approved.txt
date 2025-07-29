@@ -1326,6 +1326,12 @@ public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
       return ZonedDateTime.parse(date, formatter);
     }
     catch (DateTimeException e) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter);
+      }
+      catch (DateTimeException e) {
+        // do nothing, exception thrown below
+      }
       throw new JsonParseException(jsonParser, e.getMessage());
     }
   }

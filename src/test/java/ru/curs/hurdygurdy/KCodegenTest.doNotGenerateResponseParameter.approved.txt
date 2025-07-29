@@ -189,6 +189,12 @@ public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
       return ZonedDateTime.parse(date, formatter)
     }
     catch (e: DateTimeException) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter)
+      }
+      catch (_: DateTimeException) {
+        // do nothing, exception thrown below
+      }
       throw JsonParseException(jsonParser, e.message)
     }
   }
