@@ -2,6 +2,7 @@ package ru.curs.hurdygurdy;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -44,6 +45,9 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
+import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
+import static ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake;
+
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
 
@@ -51,13 +55,33 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         super(params, typeSpecBiConsumer);
     }
 
+    private String getInternalType(Schema<?> schema) {
+        String internalType = schema.getType();
+        if (internalType == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
+            internalType = schema.getTypes().iterator().next();
+        }
+        if (internalType == null) {
+            internalType = "unknown";
+        }
+        return internalType;
+    }
+
     @Override
     public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
                                    String typeNameFallback) {
+        //handle anyOf <something|null>
+        List<Schema> anyOf = schema.getAnyOf();
+        if (anyOf != null && anyOf.size() == 2) {
+            if ("null".equals(getInternalType(anyOf.get(0)))) {
+                schema = anyOf.get(1);
+            } else if ("null".equals(getInternalType(anyOf.get(1)))) {
+                schema = anyOf.get(0);
+            }
+        }
         @SuppressWarnings("LocalVariableName")
         String $ref = schema.get$ref();
         if ($ref == null) {
-            String internalType = schema.getType();
+            String internalType = getInternalType(schema);
             switch (internalType) {
                 case "string":
                     if ("date".equals(schema.getFormat())) {
@@ -200,17 +224,16 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 }
             }
             return getDTOClass(name, currentSchema, openAPI, baseClass);
-        } else {
-            return getDTOClass(name, schema, openAPI, ClassName.get(Object.class));
         }
+        return getDTOClass(name, schema, openAPI, ClassName.get(Object.class));
     }
 
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass) {
         TypeSpec.Builder classBuilder;
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
-            classBuilder = TypeSpec.interfaceBuilder(name);
+            classBuilder = TypeSpec.interfaceBuilder(normalizeToCamel(name));
         } else {
-            classBuilder = TypeSpec.classBuilder(name)
+            classBuilder = TypeSpec.classBuilder(normalizeToCamel(name))
                     .superclass(baseClass)
                     .addAnnotation(Data.class);
         }
@@ -333,11 +356,27 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
     }
 
+    private static void addEnumValue(TypeSpec.Builder classBuilder, Object value) {
+        String stringValue = value.toString();
+        String normalized = normalizeToScreamingSnake(stringValue);
+        if (!Objects.equals(stringValue, normalized)) {
+            classBuilder.addEnumConstant(
+                    normalized,
+                    TypeSpec.anonymousClassBuilder(CodeBlock.builder().build()).addAnnotation(
+                            AnnotationSpec.builder(JsonProperty.class)
+                                    .addMember("value", "$S", stringValue).build()
+                    ).build()
+            );
+        } else {
+            classBuilder.addEnumConstant(stringValue);
+        }
+    }
+
     @Override
     TypeSpec getEnum(String name, Schema<?> schema, OpenAPI openAPI) {
         TypeSpec.Builder classBuilder = TypeSpec.enumBuilder(name).addModifiers(Modifier.PUBLIC);
         for (Object val : schema.getEnum()) {
-            classBuilder.addEnumConstant(val.toString());
+            addEnumValue(classBuilder, val);
         }
         return classBuilder.build();
     }

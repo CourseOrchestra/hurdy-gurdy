@@ -112,6 +112,12 @@ class CodegenTest {
         Approvals.verify(getContent(result));
     }
 
+    @Test
+    void browseruse() throws IOException {
+        codegen.generate(Path.of("src/test/resources/browseruse.json"), result);
+        Approvals.verify(getContent(result));
+    }
+
     String getContent(Path path) throws IOException {
         return Files.walk(path)
                 .sorted()

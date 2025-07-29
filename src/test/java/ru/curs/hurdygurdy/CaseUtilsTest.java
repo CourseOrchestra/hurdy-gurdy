@@ -1,72 +1,77 @@
 package ru.curs.hurdygurdy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
+import static ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake;
 
 class CaseUtilsTest {
     @Test
-    void snakeToCamel(){
+    void snakeToCamel() {
         assertThat(CaseUtils.snakeToCamel("this_is_snake")).isEqualTo("thisIsSnake");
     }
 
     @Test
-    void snakeToCamelNull(){
+    void snakeToCamelNull() {
         assertThat(CaseUtils.snakeToCamel(null)).isNull();
     }
 
     @Test
-    void snakeToCamelBlank(){
+    void snakeToCamelBlank() {
         assertThat(CaseUtils.snakeToCamel("")).isEmpty();
     }
 
     @Test
-    void snakeToCamelUnderscore(){
+    void snakeToCamelUnderscore() {
         assertThat(CaseUtils.snakeToCamel("_")).isEqualTo("_");
     }
 
     @Test
-    void snakeToCamelMultiUnderscore(){
+    void snakeToCamelMultiUnderscore() {
         assertThat(CaseUtils.snakeToCamel("__")).isEqualTo("__");
     }
 
     @Test
-    void snakeToCamelMultiUnderscoreInText(){
+    void snakeToCamelMultiUnderscoreInText() {
         assertThat(CaseUtils.snakeToCamel("__this__is__snake_")).isEqualTo("__thisIsSnake");
     }
 
     @Test
-    void snakeToCamelAlreadyCamel(){
+    void snakeToCamelAlreadyCamel() {
         assertThat(CaseUtils.snakeToCamel("thisIsCamel")).isEqualTo("thisIsCamel");
     }
 
     @Test
-    void kebabToCamel(){
+    void kebabToCamel() {
         assertThat(CaseUtils.kebabToCamel("this-is-kebab")).isEqualTo("thisIsKebab");
     }
 
     @Test
-    void kebabPascalToCamel(){
+    void kebabPascalToCamel() {
         assertThat(CaseUtils.kebabToCamel("This-Is-Pascal-Kebab")).isEqualTo("thisIsPascalKebab");
     }
 
     @Test
-    void kebabToCamelNull(){
+    void kebabToCamelNull() {
         assertThat(CaseUtils.kebabToCamel(null)).isNull();
     }
 
     @Test
-    void kebabToCamelBlank(){
+    void kebabToCamelBlank() {
         assertThat(CaseUtils.kebabToCamel("")).isEmpty();
     }
 
     @Test
-    void kebabToCamelMultiHyphenInText(){
+    void kebabToCamelMultiHyphenInText() {
         assertThat(CaseUtils.kebabToCamel("This--Is---Pascal--Kebab")).isEqualTo("thisIsPascalKebab");
     }
-    
+
     @Test
-    void kebabToCamelAlreadyCamel(){
+    void kebabToCamelAlreadyCamel() {
         assertThat(CaseUtils.kebabToCamel("thisIsCamel")).isEqualTo("thisIsCamel");
     }
 
@@ -89,7 +94,7 @@ class CaseUtilsTest {
 
 
     @Test
-    void pathToCamelSinglePart(){
+    void pathToCamelSinglePart() {
         assertThat(CaseUtils.pathToCamel("path")).isEqualTo("path");
         assertThat(CaseUtils.pathToCamel("/path")).isEqualTo("path");
         assertThat(CaseUtils.pathToCamel("{path}")).isEqualTo("path");
@@ -103,4 +108,47 @@ class CaseUtilsTest {
                 "/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"))
                 .isEqualTo("adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementId");
     }
+
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource(
+            nullValues = "NULL",
+            value = {
+                    // input, expected
+                    "NULL,                        NULL",
+                    "'',                          __",
+                    "'----   ..',                 __",
+                    "'hello world',               HelloWorld",
+                    "'my-variable.name',          MyVariableName",
+                    "'123abc',                    _123abc",
+                    "'99bottles-of-beer',         _99bottlesOfBeer",
+                    "'an---example__name',        AnExample__name",
+                    "'const',                     Const",
+                    "'foo',                       Foo",
+                    "'Foo',                       Foo"
+            })
+    void normalizeToCamelTest(String input, String expected) {
+        assertThat(normalizeToCamel(input)).isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource(
+            nullValues = "NULL",
+            value = {
+                    // input, expected
+                    "NULL,                        NULL",
+                    "'',                          __",
+                    "'----   ..',                 __",
+                    "'hello world',               HELLO_WORLD",
+                    "'my-variable.name',          MY_VARIABLE_NAME",
+                    "'123abc',                    _123ABC",
+                    "'99bottles-of-beer',         _99BOTTLES_OF_BEER",
+                    "'an---example__name',        AN_EXAMPLE__NAME",
+                    "'const',                     CONST",
+                    "'foo',                       FOO",
+                    "'FOO',                       FOO"
+            })
+    void normalizeToScreamingSnakeTest(String input, String expected) {
+        assertThat(normalizeToScreamingSnake(input)).isEqualTo(expected);
+    }
+
 }
