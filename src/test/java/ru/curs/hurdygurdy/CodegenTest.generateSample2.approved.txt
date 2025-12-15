@@ -11,6 +11,7 @@
 package com.example.controller;
 
 import com.example.dto.PlayerActivitiesDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.Integer;
 import java.lang.String;
@@ -29,7 +30,7 @@ public interface Controller {
       value = "/api/v1/hello",
       produces = "*/*"
   )
-  String hello(HttpServletResponse response);
+  String hello(HttpServletRequest request, HttpServletResponse response);
 
   @GetMapping(
       value = "/api/v1/hello/{id}",

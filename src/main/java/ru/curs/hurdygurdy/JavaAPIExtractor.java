@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import javax.lang.model.element.Modifier;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 import java.util.Optional;
@@ -112,6 +113,18 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                         .addMember("name", "$S", parameter.getName()).build()
                         ).build()));
         if (generateResponseParameter) {
+            boolean includeRequest = Optional.ofNullable(operationEntry.getValue().getExtensions())
+                    .map(m -> m.get("x-include-request"))
+                    .map(v -> {
+                        if (v instanceof Boolean) return (Boolean) v;
+                        if (v instanceof String) return Boolean.parseBoolean((String) v);
+                        return false;
+                    }).orElse(false);
+            if (includeRequest) {
+                methodBuilder.addParameter(ParameterSpec.builder(
+                        HttpServletRequest.class,
+                        "request").build());
+            }
             methodBuilder.addParameter(ParameterSpec.builder(
                     HttpServletResponse.class,
                     "response").build());
