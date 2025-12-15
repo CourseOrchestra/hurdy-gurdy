@@ -221,7 +221,7 @@ public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
       try  {
         return ZonedDateTime.parse(date + "Z", formatter);
       }
-      catch (DateTimeException e) {
+      catch (DateTimeException ignored) {
         // do nothing, exception thrown below
       }
       throw new JsonParseException(jsonParser, e.getMessage());
