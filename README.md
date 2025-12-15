@@ -12,7 +12,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 <plugin>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>2.7</version>
+    <version>2.8</version>
     <configuration>
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>

@@ -177,7 +177,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                     .beginControlFlow("try ")
                                     .addStatement("return $T.parse(date + \"Z\", formatter)", ZonedDateTime.class)
                                     .endControlFlow()
-                                    .beginControlFlow("catch ($T e)", DateTimeException.class)
+                                    .beginControlFlow("catch ($T ignored)", DateTimeException.class)
                                     .addComment("do nothing, exception thrown below")
                                     .endControlFlow()
                                     .addStatement("throw new $T(jsonParser, e.getMessage())", JsonParseException.class)
