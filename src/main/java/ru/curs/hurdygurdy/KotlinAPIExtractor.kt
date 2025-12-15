@@ -16,6 +16,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
 import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
 import kotlin.reflect.KClass
 import kotlin.streams.asSequence
@@ -123,6 +124,23 @@ class KotlinAPIExtractor(
                 )
             }
         if (generateResponseParameter) {
+            val includeRequest = Optional.ofNullable(operationEntry.value.extensions)
+                .map { it["x-include-request"] }
+                .map {
+                    when (it) {
+                        is Boolean -> it
+                        is String -> it.toBoolean()
+                        else -> false
+                    }
+                }.orElse(false)
+            if (includeRequest) {
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        "request",
+                        HttpServletRequest::class,
+                    ).build()
+                )
+            }
             methodBuilder.addParameter(
                 ParameterSpec.builder(
                     "response",

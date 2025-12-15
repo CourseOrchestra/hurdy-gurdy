@@ -51,7 +51,7 @@ codegen.generate(yamlPath, resultPath)
 | Parameter name | Type | Default value | Description |
 |--------------------------|------|---------------|-------------|
 |`rootPackage`|String | | Sets the root package for all the generated classes. `Controller` and `Api` interfaces will be generated in `controller` subpackage, and all the DTOs will be generated in `dto` subpackage.
-|`generateResponseParameter`|boolean|false|Set to true if you need to have `HttpServletResponse` parameter in each generated `Controller` method. You might need this in order to return specific HTTP status codes.
+|`generateResponseParameter`|boolean|false|Set to true if you need to have `HttpServletResponse` parameter in each generated `Controller` method. You might need this in order to return specific HTTP status codes. When used together with the operation-level extension `x-include-request: true`, the generated method will also include `jakarta.servlet.http.HttpServletRequest request` parameter.
 |`generateApiInterface`|boolean|false|Set to true if you need to generate an interface called `Api` besides `Controller`. `Api` methods do not have `HttpServletResponse` parameter.
 |`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
 

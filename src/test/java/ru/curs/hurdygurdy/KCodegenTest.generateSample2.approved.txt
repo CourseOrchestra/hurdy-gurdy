@@ -11,6 +11,7 @@
 package com.example.controller
 
 import com.example.dto.PlayerActivitiesDTO
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import kotlin.Int
 import kotlin.String
@@ -29,7 +30,7 @@ public interface Controller {
     value = ["/api/v1/hello"],
     produces = ["*/*"],
   )
-  public fun hello(response: HttpServletResponse): String?
+  public fun hello(request: HttpServletRequest, response: HttpServletResponse): String?
 
   @GetMapping(
     value = ["/api/v1/hello/{id}"],
