@@ -37,7 +37,7 @@
     </developers>
 
     <properties>
-        <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
         <junit.version>6.0.1</junit.version>
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
