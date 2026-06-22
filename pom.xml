@@ -44,7 +44,8 @@
         <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
         <kotlin.version>2.4.0</kotlin.version>
         <checkstyle.maven.plugin.version>3.6.0</checkstyle.maven.plugin.version>
-        <checkstyle.version>12.3.0</checkstyle.version>
+        <checkstyle.version>13.6.0</checkstyle.version>
+        <maven.enforcer.plugin.version>3.6.3</maven.enforcer.plugin.version>
     </properties>
 
     <dependencies>
@@ -137,6 +138,35 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven.enforcer.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.9.0,)</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                </requireJavaVersion>
+                                <!-- Released library must not depend on SNAPSHOT artifacts -->
+                                <requireReleaseDeps/>
+                                <!-- No duplicate <dependency> entries in this POM -->
+                                <banDuplicatePomDependencyVersions/>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
@@ -266,7 +296,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>17</jvmTarget>
                 </configuration>
             </plugin>
             <plugin>
@@ -299,6 +329,7 @@
                 </executions>
                 <configuration>
                     <release>17</release>
+                    <testRelease>21</testRelease>
                     <encoding>utf-8</encoding>
                 </configuration>
             </plugin>
