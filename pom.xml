@@ -134,6 +134,14 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- In-process Kotlin compiler, used by the test harness to verify that
+             generated Kotlin code actually compiles. -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-compiler-embeddable</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

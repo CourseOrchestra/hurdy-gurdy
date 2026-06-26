@@ -1,0 +1,30 @@
+openapi: 3.0.1
+info:
+  title: "Date ser/de harness"
+  description: |
+    Minimal, self-contained spec used to verify that the generated
+    ZonedDateTime serializer/deserializer actually round-trips values.
+  version: "0.1"
+paths:
+  /api/v1/event:
+    post:
+      operationId: createEvent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventDTO"
+        required: true
+      responses:
+        "201":
+          description: record created
+components:
+  schemas:
+    EventDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        happened_at:
+          type: string
+          format: date-time
