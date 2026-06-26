@@ -26,3 +26,8 @@ updates:
         versions:
           #this version breaks openapi-codegen
           - "2.0.32"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
