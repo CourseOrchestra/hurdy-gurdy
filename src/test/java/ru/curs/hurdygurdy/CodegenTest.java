@@ -111,6 +111,12 @@ class CodegenTest {
         verify(result);
     }
 
+    @Test
+    void inheritedDiscriminatorProperty() throws IOException {
+        codegen.generate(Path.of("src/test/resources/matchconfig.yaml"), result);
+        verify(result);
+    }
+
     /**
      * Verifies the generated output against its snapshot and additionally
      * verifies that the generated Java code compiles.

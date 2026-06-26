@@ -1,0 +1,122 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/AllMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class AllMatchConfig(
+  override val transformation: String,
+  public val comment: String? = null,
+) : MatchConfig(transformation)
+---
+/com/example/dto/ColumnNameMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ColumnNameMatchConfig(
+  override val transformation: String,
+  public val columns: List<String>,
+  public val comment: String? = null,
+) : MatchConfig(transformation)
+---
+/com/example/dto/ComplexFilterMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ComplexFilterMatchConfig(
+  override val transformation: String,
+  public val filter: String,
+  public val comment: String? = null,
+) : MatchConfig(transformation)
+---
+/com/example/dto/FullyQualifiedColumnNameMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class FullyQualifiedColumnNameMatchConfig(
+  override val transformation: String,
+  public val names: List<String>,
+  public val comment: String? = null,
+) : MatchConfig(transformation)
+---
+/com/example/dto/MatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "match_by",
+)
+@JsonSubTypes(
+  JsonSubTypes.Type(value = AllMatchConfig::class, name = "all"),
+  JsonSubTypes.Type(value = SqlTypeMatchConfig::class, name = "sql_type"),
+  JsonSubTypes.Type(value = ColumnNameMatchConfig::class, name = "column_name"),
+  JsonSubTypes.Type(value = TableNameMatchConfig::class, name = "table_name"),
+  JsonSubTypes.Type(value = FullyQualifiedColumnNameMatchConfig::class, name = "fully_qualified_column_name"),
+  JsonSubTypes.Type(value = ComplexFilterMatchConfig::class, name = "complex_filter"),
+)
+public sealed class MatchConfig(
+  public open val transformation: String,
+)
+---
+/com/example/dto/SqlTypeMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SqlTypeMatchConfig(
+  override val transformation: String,
+  public val types: List<String>,
+  public val comment: String? = null,
+) : MatchConfig(transformation)
+---
+/com/example/dto/TableNameMatchConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class TableNameMatchConfig(
+  override val transformation: String,
+  public val tables: List<String>,
+  public val comment: String? = null,
+) : MatchConfig(transformation)

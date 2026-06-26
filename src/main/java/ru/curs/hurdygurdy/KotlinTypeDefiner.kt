@@ -175,24 +175,78 @@ class KotlinTypeDefiner internal constructor(
         return classBuilder.build()
     }
 
+    /** A constructor property carried over from a base class (an allOf parent). */
+    private data class InheritedProperty(val key: String, val schema: Schema<*>, val required: Boolean)
+
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         return if (schema is ComposedSchema && schema.oneOf == null) {
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
+            var inheritedProperties: List<InheritedProperty> = emptyList()
             for (s in schema.allOf) {
                 if (s.`$ref` != null) {
                     baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
+                    inheritedProperties = constructorPropertiesOf(s.`$ref`, openAPI)
                 } else {
                     currentSchema = s
                 }
             }
-            getDTOClass(name, currentSchema, openAPI, baseClass)
+            getDTOClass(name, currentSchema, openAPI, baseClass, inheritedProperties)
         } else {
-            getDTOClass(name, schema, openAPI, Any::class.asClassName())
+            getDTOClass(name, schema, openAPI, Any::class.asClassName(), emptyList())
         }
     }
 
-    private fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI, baseClass: TypeName): TypeSpec {
+    /**
+     * The constructor parameters that the class generated for [ref] will declare,
+     * in declaration order (its own allOf-inherited parameters first, then its
+     * own properties), excluding the discriminator property. Used so that a
+     * subclass can re-declare the inherited parameters as `override` and pass
+     * them to the base-class constructor. Only resolves same-file references.
+     */
+    private fun constructorPropertiesOf(ref: String, openAPI: OpenAPI): List<InheritedProperty> {
+        val schema = resolveLocalSchema(ref, openAPI) ?: return emptyList()
+        return constructorPropertiesOf(schema, openAPI)
+    }
+
+    private fun constructorPropertiesOf(schema: Schema<*>, openAPI: OpenAPI): List<InheritedProperty> {
+        val result = mutableListOf<InheritedProperty>()
+        var ownSchema: Schema<*> = schema
+        if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
+            for (s in schema.allOf) {
+                if (s.`$ref` != null) {
+                    result.addAll(constructorPropertiesOf(s.`$ref`, openAPI))
+                } else {
+                    ownSchema = s
+                }
+            }
+        }
+        val discriminatorProperty = schema.discriminator?.propertyName
+        val required = ownSchema.required?.toSet() ?: emptySet()
+        ownSchema.properties?.forEach { (key, value) ->
+            if (key != discriminatorProperty) {
+                result.add(InheritedProperty(key, value, required.contains(key)))
+            }
+        }
+        return result
+    }
+
+    private fun resolveLocalSchema(ref: String, openAPI: OpenAPI): Schema<*>? {
+        if (extractGroup(ref, FILE_NAME_PATTERN).isNotBlank()) {
+            // Reference into another file — we cannot see its schema here, so we
+            // leave inherited-property synthesis to that file's own generation.
+            return null
+        }
+        return openAPI.components?.schemas?.get(extractGroup(ref, CLASS_NAME_PATTERN))
+    }
+
+    private fun getDTOClass(
+        name: String,
+        schema: Schema<*>,
+        openAPI: OpenAPI,
+        baseClass: TypeName,
+        inheritedProperties: List<InheritedProperty>
+    ): TypeSpec {
         // Define if any schema references to us as "allOf"
         val isParent = openAPI.components.schemas.any { (_, schema) ->
             schema.allOf?.any { it.`$ref`?.endsWith(name) ?: false } ?: false
@@ -201,7 +255,8 @@ class KotlinTypeDefiner internal constructor(
             (if (schema.properties.isNullOrEmpty() &&
                 schema.additionalProperties == null &&
                 schema.oneOf.isNullOrEmpty() &&
-                !isParent
+                !isParent &&
+                inheritedProperties.isEmpty()
             )
                 TypeSpec.objectBuilder(name).superclass(baseClass)
             else if (!schema.oneOf.isNullOrEmpty())
@@ -232,7 +287,9 @@ class KotlinTypeDefiner internal constructor(
                     .addMember("property = %S", schema.discriminator.propertyName)
                     .build()
             )
-        } else if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)) {
+        } else if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
+            || inheritedProperties.isNotEmpty()
+        ) {
             classBuilder.addModifiers(KModifier.DATA)
         }
         //Intermediate class, can't be data, should be open
@@ -263,92 +320,36 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
-        if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null) && schema.oneOf == null) {
+        if ((!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
+                    || inheritedProperties.isNotEmpty())
+            && schema.oneOf == null
+        ) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
             val constructorBuilder = FunSpec.constructorBuilder()
             val requiredProperties = schema.required?.toSet() ?: emptySet()
+
+            //Re-declare properties inherited from the base class as `override` and
+            //forward them to the base-class constructor. Without this a Kotlin
+            //subclass of a base with required constructor properties would not
+            //compile ("No value passed for parameter ...").
+            for (inherited in inheritedProperties) {
+                val propertyName = addConstructorProperty(
+                    name, inherited.key, inherited.schema, inherited.required,
+                    openAPI, classBuilder, constructorBuilder, isParent = false, isOverride = true
+                )
+                classBuilder.addSuperclassConstructorParameter("%N", propertyName)
+            }
+
             if (schemaMap != null) for ((key, value) in schemaMap) {
-                checkPropertyName(name, key)
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
                     continue
                 }
-                val required = requiredProperties.contains(key)
-                val nullable = if (value.`$ref` == null) {
-                    value.nullable == true
-                } else {
-                    getNullable(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN), false)
-                }
-                val typeName = defineKotlinType(
-                    value, openAPI, classBuilder,
-                    CaseUtils.snakeToCamel(key, true),
-                    !required || nullable
+                addConstructorProperty(
+                    name, key, value, requiredProperties.contains(key),
+                    openAPI, classBuilder, constructorBuilder, isParent = isParent, isOverride = false
                 )
-
-                val propertyName =
-                    if (params.isForceSnakeCaseForProperties) {
-                        CaseUtils.snakeToCamel(key)
-                    } else {
-                        key
-                    }
-                val paramSpec =
-                    ParameterSpec.builder(propertyName, typeName)
-
-                if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)
-                ) {
-                    paramSpec.addAnnotation(
-                        AnnotationSpec.builder(JsonDeserialize::class)
-                            .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
-                            .addMember("using = ZonedDateTimeDeserializer::class")
-                            .build()
-                    )
-                        .addAnnotation(
-                            AnnotationSpec.builder(JsonSerialize::class)
-                                .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
-                                .addMember("using = ZonedDateTimeSerializer::class")
-                                .build()
-                        )
-                    ensureJsonZonedDateTimeDeserializer()
-                }
-
-                val default = if (value.`$ref` == null) {
-                    value.default
-                } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
-                if (default != null) {
-                    if (value.type == "array") {
-                        //Empty list as default
-                        paramSpec.defaultValue("listOf()")
-                    } else if (typeName.copy(nullable = false) == String::class.asTypeName()) {
-                        //Default string value
-                        paramSpec.defaultValue("%S", default.toString())
-                    } else if (value.`$ref` != null && isEnum(
-                            openAPI,
-                            extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
-                        )
-                    ) {
-                        //Default enum value
-                        paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
-                    } else if (value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*"))) {
-                        //"Empty object" default value
-                        paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
-                    } else {
-                        //Everything else (e.g., numbers)
-                        paramSpec.defaultValue("%L", default.toString())
-                    }
-                } else if (!required) {
-                    paramSpec.defaultValue("null")
-                }
-
-                val param = paramSpec.build()
-                constructorBuilder.addParameter(param)
-
-                val propertySpec = PropertySpec
-                    .builder(propertyName, typeName)
-                    // If we're parent children can override even types!
-                    .addModifiers(listOfNotNull(KModifier.OPEN.takeIf { isParent }))
-                    .initializer(propertyName).build()
-                classBuilder.addProperty(propertySpec)
             }
 
             //Dictionary support
@@ -389,6 +390,107 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.primaryConstructor(constructorBuilder.build())
         }
         return classBuilder.build()
+    }
+
+    /**
+     * Builds a single constructor parameter and its backing property, adding both
+     * to [constructorBuilder] and [classBuilder]. Returns the (possibly
+     * camel-cased) property name.
+     *
+     * @param isParent   the declaring class is an allOf base, so the property is `open`
+     * @param isOverride the property is inherited from a base class, so it is `override`
+     */
+    private fun addConstructorProperty(
+        name: String,
+        key: String,
+        value: Schema<*>,
+        required: Boolean,
+        openAPI: OpenAPI,
+        classBuilder: TypeSpec.Builder,
+        constructorBuilder: FunSpec.Builder,
+        isParent: Boolean,
+        isOverride: Boolean
+    ): String {
+        checkPropertyName(name, key)
+        val nullable = if (value.`$ref` == null) {
+            value.nullable == true
+        } else {
+            getNullable(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN), false)
+        }
+        val typeName = defineKotlinType(
+            value, openAPI, classBuilder,
+            CaseUtils.snakeToCamel(key, true),
+            !required || nullable
+        )
+
+        val propertyName =
+            if (params.isForceSnakeCaseForProperties) {
+                CaseUtils.snakeToCamel(key)
+            } else {
+                key
+            }
+        val paramSpec =
+            ParameterSpec.builder(propertyName, typeName)
+
+        if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)) {
+            paramSpec.addAnnotation(
+                AnnotationSpec.builder(JsonDeserialize::class)
+                    .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
+                    .addMember("using = ZonedDateTimeDeserializer::class")
+                    .build()
+            )
+                .addAnnotation(
+                    AnnotationSpec.builder(JsonSerialize::class)
+                        .useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+                        .addMember("using = ZonedDateTimeSerializer::class")
+                        .build()
+                )
+            ensureJsonZonedDateTimeDeserializer()
+        }
+
+        val default = if (value.`$ref` == null) {
+            value.default
+        } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
+        if (default != null) {
+            if (value.type == "array") {
+                //Empty list as default
+                paramSpec.defaultValue("listOf()")
+            } else if (typeName.copy(nullable = false) == String::class.asTypeName()) {
+                //Default string value
+                paramSpec.defaultValue("%S", default.toString())
+            } else if (value.`$ref` != null && isEnum(
+                    openAPI,
+                    extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
+                )
+            ) {
+                //Default enum value
+                paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
+            } else if (value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*"))) {
+                //"Empty object" default value
+                paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
+            } else {
+                //Everything else (e.g., numbers)
+                paramSpec.defaultValue("%L", default.toString())
+            }
+        } else if (!required) {
+            paramSpec.defaultValue("null")
+        }
+
+        constructorBuilder.addParameter(paramSpec.build())
+
+        val propertySpec = PropertySpec
+            .builder(propertyName, typeName)
+            .addModifiers(
+                listOfNotNull(
+                    // An inherited property must be `override`; a base-class
+                    // property must be `open` so children can override it.
+                    KModifier.OVERRIDE.takeIf { isOverride },
+                    KModifier.OPEN.takeIf { isParent && !isOverride }
+                )
+            )
+            .initializer(propertyName).build()
+        classBuilder.addProperty(propertySpec)
+        return propertyName
     }
 
 
