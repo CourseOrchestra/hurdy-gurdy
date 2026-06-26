@@ -117,7 +117,7 @@ components:
     MenuItemDTO:
       type: object
       x-extends:
-        - java.lang.Serializable
+        - java.io.Serializable
       title: MenuItemDTO
       required:
         - id

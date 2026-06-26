@@ -2,9 +2,8 @@ package ru.curs.hurdygurdy;
 
 import com.squareup.kotlinpoet.TypeSpec;
 import org.approvaltests.Approvals;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,37 +16,27 @@ import java.util.stream.Stream;
 class KCodegenTest {
     private KotlinCodegen codegen = new KotlinCodegen(
             GeneratorParams.rootPackage("com.example").generateResponseParameter(true));
+    @TempDir
     Path result;
-
-    @BeforeEach
-    void setUp() throws IOException {
-        result = Files.createTempDirectory("codegen");
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        Files.walk(result)
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-    }
 
     @Test
     void generateSample1() throws IOException {
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
+        // Snapshot only: sample1.yaml references types from externalfile.yaml that
+        // are not generated here, so the output cannot be compiled in isolation.
         Approvals.verify(getContent(result));
     }
 
     @Test
     void generateSample2() throws IOException {
         codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void generateSample3() throws IOException {
         codegen.generate(Path.of("src/test/resources/sample3.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -57,13 +46,14 @@ class KCodegenTest {
                 .generateResponseParameter(false)
                 .generateApiInterface(true));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
+        // Snapshot only: see generateSample1 — references external types.
         Approvals.verify(getContent(result));
     }
 
     @Test
     void generateCommonParameters() throws IOException {
         codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -72,19 +62,19 @@ class KCodegenTest {
         codegen.addTypeSpec(ClassCategory.DTO, TypeSpec.interfaceBuilder("Intf2").build());
         codegen.addTypeSpec(ClassCategory.CONTROLLER, TypeSpec.interfaceBuilder("Intf3").build());
         codegen.generate(result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void generateMultipart() throws IOException {
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void paramsOverriding() throws IOException {
         codegen.generate(Path.of("src/test/resources/twoparams.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -92,57 +82,68 @@ class KCodegenTest {
         codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
                 .forceSnakeCaseForProperties(false));
         codegen.generate(Path.of("src/test/resources/camelcase.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void nullableParent() throws IOException {
         codegen.generate(Path.of("src/test/resources/nullableparent.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void requiredNullable() throws IOException {
         codegen.generate(Path.of("src/test/resources/required_nullable.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void requiredNullableObjects() throws IOException {
         codegen.generate(Path.of("src/test/resources/required_nullable_objects.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void oneOfSupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void noOwnTypes() throws IOException {
         codegen.generate(Path.of("src/test/resources/externaltype.yaml"), result);
+        // Snapshot only: this spec deliberately references external, un-generated
+        // types, so the output cannot be compiled in isolation.
         Approvals.verify(getContent(result));
     }
 
     @Test
     void deepInheritance() throws IOException {
         codegen.generate(Path.of("src/test/resources/deep_inheritance.yaml"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
     void browseruse() throws IOException {
         codegen.generate(Path.of("src/test/resources/browseruse.json"), result);
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
+
+    /**
+     * Verifies the generated output against its snapshot and additionally
+     * verifies that the generated Kotlin code compiles.
+     */
+    void verify(Path path) throws IOException {
+        Approvals.verify(getContent(path));
+        GeneratedCodeCompiler.assertKotlinCompiles(path);
+    }
 
     String getContent(Path path) throws IOException {
         return Files.walk(path)
