@@ -1,0 +1,155 @@
+openapi: 3.0.1
+info:
+  title: "Match config API"
+  description: |
+    Exercises a discriminated base type whose subclasses must inherit a
+    required base property (transformation).
+  version: "0.1"
+paths:
+
+components:
+  schemas:
+    MatchConfig:
+      title: MatchConfig
+      description: >
+        Parameters of a matcher.
+      type: object
+      required:
+        - transformation
+      properties:
+        match_by:
+          type: string
+        transformation:
+          type: string
+
+      discriminator:
+        propertyName: match_by
+        mapping:
+          'all': "#/components/schemas/AllMatchConfig"
+          'sql_type': "#/components/schemas/SqlTypeMatchConfig"
+          'column_name': "#/components/schemas/ColumnNameMatchConfig"
+          'table_name': "#/components/schemas/TableNameMatchConfig"
+          'fully_qualified_column_name': "#/components/schemas/FullyQualifiedColumnNameMatchConfig"
+          'complex_filter': "#/components/schemas/ComplexFilterMatchConfig"
+
+    AllMatchConfig:
+      title: AllMatchConfig
+      type: object
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          description: >
+            Selects every column in the connected database, ignoring schema, table, name, and data-type constraints.
+          properties:
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).
+
+    SqlTypeMatchConfig:
+      title: SqlTypeMatchConfig
+      type: object
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          description: >
+            Targets columns by their SQL data type (e.g., INTEGER, VARCHAR, TIMESTAMP).
+          required:
+            - types
+          properties:
+            types:
+              type: array
+              description: List of types to match.
+              items:
+                type: string
+                nullable: false
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).
+
+    ColumnNameMatchConfig:
+      type: object
+      title: ColumnNameMatchConfig
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          required:
+            - columns
+          description: >
+            Filters columns by column identifier only, independent of the containing table or schema.
+          properties:
+            columns:
+              type: array
+              description: List of columns to match.
+              items:
+                type: string
+                nullable: false
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).
+
+    TableNameMatchConfig:
+      type: object
+      title: TableNameMatchConfig
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          description: >
+            Limits the match scope to columns that reside in specific tables.
+          required:
+            - tables
+          properties:
+            tables:
+              type: array
+              description: List of tables to match.
+              items:
+                type: string
+                nullable: false
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).
+
+    FullyQualifiedColumnNameMatchConfig:
+      type: object
+      title: FullyQualifiedColumnNameMatchConfig
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          description: >
+            Matches columns using the full schema.table.column path.
+          required:
+            - names
+          properties:
+            names:
+              type: array
+              description: List of names to match.
+              items:
+                type: string
+                nullable: false
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).
+
+    ComplexFilterMatchConfig:
+      type: object
+      title: ComplexFilterMatchConfig
+      nullable: false
+      allOf:
+        - $ref: "#/components/schemas/MatchConfig"
+        - type: object
+          required:
+            - filter
+          description: >
+            Provides an advanced filter that can combine schema, table, column, and SQL-type
+            predicates with AND logic.
+          properties:
+            filter:
+              type: string
+              description: An advanced filter expression.
+            comment:
+              type: string
+              description: A comment about the match configuration (optional).

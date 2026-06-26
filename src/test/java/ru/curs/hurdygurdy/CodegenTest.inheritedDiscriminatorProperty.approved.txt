@@ -1,0 +1,134 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/AllMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class AllMatchConfig extends MatchConfig {
+  private String comment;
+}
+---
+/com/example/dto/ColumnNameMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ColumnNameMatchConfig extends MatchConfig {
+  private List<String> columns;
+
+  private String comment;
+}
+---
+/com/example/dto/ComplexFilterMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ComplexFilterMatchConfig extends MatchConfig {
+  private String filter;
+
+  private String comment;
+}
+---
+/com/example/dto/FullyQualifiedColumnNameMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class FullyQualifiedColumnNameMatchConfig extends MatchConfig {
+  private List<String> names;
+
+  private String comment;
+}
+---
+/com/example/dto/MatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "match_by"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = AllMatchConfig.class, name = "all"),
+    @JsonSubTypes.Type(value = SqlTypeMatchConfig.class, name = "sql_type"),
+    @JsonSubTypes.Type(value = ColumnNameMatchConfig.class, name = "column_name"),
+    @JsonSubTypes.Type(value = TableNameMatchConfig.class, name = "table_name"),
+    @JsonSubTypes.Type(value = FullyQualifiedColumnNameMatchConfig.class, name = "fully_qualified_column_name"),
+    @JsonSubTypes.Type(value = ComplexFilterMatchConfig.class, name = "complex_filter")})
+public class MatchConfig {
+  private String transformation;
+}
+---
+/com/example/dto/SqlTypeMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SqlTypeMatchConfig extends MatchConfig {
+  private List<String> types;
+
+  private String comment;
+}
+---
+/com/example/dto/TableNameMatchConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TableNameMatchConfig extends MatchConfig {
+  private List<String> tables;
+
+  private String comment;
+}
