@@ -1,6 +1,7 @@
 package ru.curs.hurdygurdy
 
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -28,11 +29,60 @@ class KotlinAPIExtractor(
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         typeDefiner,
         params,
-        { TypeSpec.interfaceBuilder(normalizeToCamel(it)) },
+        {
+            val b = TypeSpec.interfaceBuilder(normalizeToCamel(it))
+            if (params.framework == Framework.QUARKUS) {
+                b.addAnnotation(
+                    AnnotationSpec.builder(ClassName("jakarta.ws.rs", "Path"))
+                        .addMember("%S", "").build()
+                )
+            }
+            b
+        },
         TypeSpec.Builder::build
     ) {
 
+    private companion object {
+        val JAXRS_PATH = ClassName("jakarta.ws.rs", "Path")
+        val JAXRS_GET = ClassName("jakarta.ws.rs", "GET")
+        val JAXRS_POST = ClassName("jakarta.ws.rs", "POST")
+        val JAXRS_PUT = ClassName("jakarta.ws.rs", "PUT")
+        val JAXRS_PATCH = ClassName("jakarta.ws.rs", "PATCH")
+        val JAXRS_DELETE = ClassName("jakarta.ws.rs", "DELETE")
+        val JAXRS_PRODUCES = ClassName("jakarta.ws.rs", "Produces")
+        val JAXRS_CONSUMES = ClassName("jakarta.ws.rs", "Consumes")
+        val JAXRS_PATH_PARAM = ClassName("jakarta.ws.rs", "PathParam")
+        val JAXRS_QUERY_PARAM = ClassName("jakarta.ws.rs", "QueryParam")
+        val JAXRS_DEFAULT_VALUE = ClassName("jakarta.ws.rs", "DefaultValue")
+        val JAXRS_HEADER_PARAM = ClassName("jakarta.ws.rs", "HeaderParam")
+        val JAXRS_CONTEXT = ClassName("jakarta.ws.rs.core", "Context")
+        val JAXRS_RESPONSE = ClassName("jakarta.ws.rs.core", "Response")
+        val JAXRS_REQUEST_CONTEXT = ClassName("jakarta.ws.rs.container", "ContainerRequestContext")
+        val QUARKUS_REST_FORM = ClassName("org.jboss.resteasy.reactive", "RestForm")
+    }
+
     public override fun buildMethod(
+        openAPI: OpenAPI,
+        classBuilder: TypeSpec.Builder,
+        stringPathItemEntry: Map.Entry<String, PathItem>,
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        operationId: String,
+        generateResponseParameter: Boolean
+    ) {
+        if (framework == Framework.QUARKUS) {
+            buildQuarkusMethod(
+                openAPI, classBuilder, stringPathItemEntry,
+                operationEntry, operationId, generateResponseParameter
+            )
+        } else {
+            buildSpringMethod(
+                openAPI, classBuilder, stringPathItemEntry,
+                operationEntry, operationId, generateResponseParameter
+            )
+        }
+    }
+
+    private fun buildSpringMethod(
         openAPI: OpenAPI,
         classBuilder: TypeSpec.Builder,
         stringPathItemEntry: Map.Entry<String, PathItem>,
@@ -49,13 +99,13 @@ class KotlinAPIExtractor(
         Optional.ofNullable(operationEntry.value.requestBody)
             .map { obj: RequestBody -> obj.content }
             .stream().asSequence()
-            .flatMap { getContentType(it, openAPI, classBuilder) }
+            .flatMap { getContentType(it, openAPI, classBuilder, false) }
             .forEach { paramSpec: RequestPartParams ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.toIdentifier(paramSpec.name),
                         paramSpec.typeName
-                    ).addAnnotation(paramSpec.annotation).build()
+                    ).addAnnotation(paramSpec.annotation!!).build()
                 )
             }
 
@@ -124,16 +174,7 @@ class KotlinAPIExtractor(
                 )
             }
         if (generateResponseParameter) {
-            val includeRequest = Optional.ofNullable(operationEntry.value.extensions)
-                .map { it["x-include-request"] }
-                .map {
-                    when (it) {
-                        is Boolean -> it
-                        is String -> it.toBoolean()
-                        else -> false
-                    }
-                }.orElse(false)
-            if (includeRequest) {
+            if (isIncludeRequest(operationEntry.value)) {
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         "request",
@@ -149,6 +190,143 @@ class KotlinAPIExtractor(
             )
         }
         classBuilder.addFunction(methodBuilder.build())
+    }
+
+    private fun buildQuarkusMethod(
+        openAPI: OpenAPI,
+        classBuilder: TypeSpec.Builder,
+        stringPathItemEntry: Map.Entry<String, PathItem>,
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        operationId: String,
+        generateResponseParameter: Boolean
+    ) {
+        val methodBuilder = FunSpec
+            .builder(operationId)
+            .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
+        getQuarkusMethodAnnotations(operationEntry, stringPathItemEntry.key)
+            .forEach(methodBuilder::addAnnotation)
+
+        val dtoReturn = determineReturnKotlinType(operationEntry.value, openAPI, classBuilder)
+        if (generateResponseParameter) {
+            methodBuilder.returns(JAXRS_RESPONSE)
+            methodBuilder.addKdoc(
+                "@return a Response whose entity is expected to be %L\n",
+                if (dtoReturn == UNIT) "empty (no body)" else dtoReturn.toString()
+            )
+        } else {
+            methodBuilder.returns(dtoReturn)
+        }
+
+        Optional.ofNullable(operationEntry.value.requestBody)
+            .map { obj: RequestBody -> obj.content }
+            .stream().asSequence()
+            .flatMap { getContentType(it, openAPI, classBuilder, true) }
+            .forEach { paramSpec: RequestPartParams ->
+                val pb = ParameterSpec.builder(paramSpec.name, paramSpec.typeName)
+                paramSpec.annotation?.let(pb::addAnnotation)
+                methodBuilder.addParameter(pb.build())
+            }
+
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { parameter: Parameter -> "path".equals(parameter.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        CaseUtils.snakeToCamel(parameter.name),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                    )
+                        .addAnnotation(
+                            AnnotationSpec.builder(JAXRS_PATH_PARAM)
+                                .addMember("%S", parameter.name).build()
+                        )
+                        .build()
+                )
+            }
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { parameter: Parameter -> "query".equals(parameter.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                val pb = ParameterSpec.builder(
+                    CaseUtils.snakeToCamel(parameter.name),
+                    typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                )
+                    .addAnnotation(
+                        AnnotationSpec.builder(JAXRS_QUERY_PARAM)
+                            .addMember("%S", parameter.name).build()
+                    )
+                parameter.schema?.default?.let {
+                    pb.addAnnotation(
+                        AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
+                            .addMember("%S", it.toString()).build()
+                    )
+                }
+                methodBuilder.addParameter(pb.build())
+            }
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { parameter: Parameter -> "header".equals(parameter.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        CaseUtils.kebabToCamel(parameter.name),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                    )
+                        .addAnnotation(
+                            AnnotationSpec.builder(JAXRS_HEADER_PARAM)
+                                .addMember("%S", parameter.name).build()
+                        ).build()
+                )
+            }
+        if (generateResponseParameter && isIncludeRequest(operationEntry.value)) {
+            methodBuilder.addParameter(
+                ParameterSpec.builder("requestContext", JAXRS_REQUEST_CONTEXT)
+                    .addAnnotation(JAXRS_CONTEXT)
+                    .build()
+            )
+        }
+        classBuilder.addFunction(methodBuilder.build())
+    }
+
+    private fun isIncludeRequest(operation: Operation): Boolean =
+        Optional.ofNullable(operation.extensions)
+            .map { it["x-include-request"] }
+            .map {
+                when (it) {
+                    is Boolean -> it
+                    is String -> it.toBoolean()
+                    else -> false
+                }
+            }.orElse(false)
+
+    private fun getQuarkusMethodAnnotations(
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        path: String
+    ): List<AnnotationSpec> {
+        val verb: ClassName = when (operationEntry.key) {
+            PathItem.HttpMethod.GET -> JAXRS_GET
+            PathItem.HttpMethod.POST -> JAXRS_POST
+            PathItem.HttpMethod.PUT -> JAXRS_PUT
+            PathItem.HttpMethod.PATCH -> JAXRS_PATCH
+            PathItem.HttpMethod.DELETE -> JAXRS_DELETE
+            else -> return emptyList()
+        }
+        val result = mutableListOf(
+            AnnotationSpec.builder(verb).build(),
+            AnnotationSpec.builder(JAXRS_PATH).addMember("%S", path).build()
+        )
+        getSuccessfulReply(operationEntry.value)
+            .flatMap(::getMediaType)
+            .map { it.key }
+            .ifPresent {
+                result.add(AnnotationSpec.builder(JAXRS_PRODUCES).addMember("%S", it).build())
+            }
+        Optional.ofNullable(operationEntry.value.requestBody)
+            .map { it.content }
+            .flatMap(::getMediaType)
+            .map { it.key }
+            .filter { it.isNotBlank() }
+            .ifPresent {
+                result.add(AnnotationSpec.builder(JAXRS_CONSUMES).addMember("%S", it).build())
+            }
+        return result
     }
 
     private fun getControllerMethodAnnotationSpec(
@@ -184,7 +362,7 @@ class KotlinAPIExtractor(
         getSuccessfulReply(operation)
             .stream().asSequence()
             .flatMap { c: Content ->
-                getContentType(c, openAPI, parent)
+                getContentType(c, openAPI, parent, false)
             }
             .map { it.typeName }
             .firstOrNull() ?: UNIT
@@ -192,13 +370,14 @@ class KotlinAPIExtractor(
     private data class RequestPartParams(
         val typeName: TypeName,
         val name: String,
-        val annotation: AnnotationSpec
+        val annotation: AnnotationSpec?
     )
 
     private fun getContentType(
         content: Content,
         openAPI: OpenAPI,
-        parent: TypeSpec.Builder
+        parent: TypeSpec.Builder,
+        quarkus: Boolean
     ): Sequence<RequestPartParams> {
         val mediaTypeEntry = Optional.ofNullable(content)
             .flatMap { getMediaType(it) }
@@ -213,8 +392,12 @@ class KotlinAPIExtractor(
                         RequestPartParams(
                             name = name,
                             typeName = typeDefiner.defineKotlinType(schema, openAPI, parent, null, null),
-                            annotation = AnnotationSpec.builder(RequestPart::class)
-                                .addMember("name = %S", name).build()
+                            annotation = if (quarkus)
+                                AnnotationSpec.builder(QUARKUS_REST_FORM)
+                                    .addMember("%S", name).build()
+                            else
+                                AnnotationSpec.builder(RequestPart::class)
+                                    .addMember("name = %S", name).build()
                         )
                     }
 
@@ -226,9 +409,12 @@ class KotlinAPIExtractor(
                         RequestPartParams(
                             name = "request",
                             typeName = it,
-                            annotation = AnnotationSpec
-                                .builder(org.springframework.web.bind.annotation.RequestBody::class)
-                                .build()
+                            annotation = if (quarkus)
+                                null
+                            else
+                                AnnotationSpec
+                                    .builder(org.springframework.web.bind.annotation.RequestBody::class)
+                                    .build()
                         )
                     }
             }

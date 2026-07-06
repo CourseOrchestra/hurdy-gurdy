@@ -136,6 +136,35 @@ class KCodegenTest {
     }
 
     @Test
+    void quarkusGenerateSample2() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusDoNotGenerateResponseParameter() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusMultipart() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        // Snapshot only: compiling the generated @RestForm parameter would require
+        // the resteasy-reactive artifact, which we deliberately do not depend on.
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void inheritedDiscriminatorProperty() throws IOException {
         codegen.generate(Path.of("src/test/resources/matchconfig.yaml"), result);
         verify(result);
