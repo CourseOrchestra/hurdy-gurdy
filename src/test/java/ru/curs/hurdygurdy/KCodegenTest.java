@@ -195,6 +195,34 @@ class KCodegenTest {
         GeneratedCodeCompiler.assertKotlinCompiles(result);
     }
 
+    @Test
+    void springClientSample2() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.SPRING).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientSample2() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientMultipart() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        // Snapshot only.
+        Approvals.verify(getContent(result));
+    }
+
 
     /**
      * Verifies the generated output against its snapshot and additionally

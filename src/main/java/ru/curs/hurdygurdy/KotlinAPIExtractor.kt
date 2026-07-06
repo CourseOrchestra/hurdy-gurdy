@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
@@ -36,6 +37,9 @@ class KotlinAPIExtractor(
                     AnnotationSpec.builder(ClassName("jakarta.ws.rs", "Path"))
                         .addMember("%S", "").build()
                 )
+                if (params.role == Role.CLIENT) {
+                    b.addAnnotation(AnnotationSpec.builder(MP_REGISTER_REST_CLIENT).build())
+                }
             }
             b
         },
@@ -59,6 +63,14 @@ class KotlinAPIExtractor(
         val JAXRS_RESPONSE = ClassName("jakarta.ws.rs.core", "Response")
         val JAXRS_REQUEST_CONTEXT = ClassName("jakarta.ws.rs.container", "ContainerRequestContext")
         val QUARKUS_REST_FORM = ClassName("org.jboss.resteasy.reactive", "RestForm")
+        val MP_REGISTER_REST_CLIENT =
+            ClassName("org.eclipse.microprofile.rest.client.inject", "RegisterRestClient")
+        val SPRING_GET_EXCHANGE = ClassName("org.springframework.web.service.annotation", "GetExchange")
+        val SPRING_POST_EXCHANGE = ClassName("org.springframework.web.service.annotation", "PostExchange")
+        val SPRING_PUT_EXCHANGE = ClassName("org.springframework.web.service.annotation", "PutExchange")
+        val SPRING_PATCH_EXCHANGE = ClassName("org.springframework.web.service.annotation", "PatchExchange")
+        val SPRING_DELETE_EXCHANGE = ClassName("org.springframework.web.service.annotation", "DeleteExchange")
+        val SPRING_RESPONSE_ENTITY = ClassName("org.springframework.http", "ResponseEntity")
     }
 
     public override fun buildMethod(
@@ -71,6 +83,11 @@ class KotlinAPIExtractor(
     ) {
         if (framework == Framework.QUARKUS) {
             buildQuarkusMethod(
+                openAPI, classBuilder, stringPathItemEntry,
+                operationEntry, operationId, generateResponseParameter
+            )
+        } else if (role == Role.CLIENT) {
+            buildSpringClientMethod(
                 openAPI, classBuilder, stringPathItemEntry,
                 operationEntry, operationId, generateResponseParameter
             )
@@ -275,7 +292,7 @@ class KotlinAPIExtractor(
                         ).build()
                 )
             }
-        if (generateResponseParameter && isIncludeRequest(operationEntry.value)) {
+        if (generateResponseParameter && isIncludeRequest(operationEntry.value) && role == Role.SERVER) {
             methodBuilder.addParameter(
                 ParameterSpec.builder("requestContext", JAXRS_REQUEST_CONTEXT)
                     .addAnnotation(JAXRS_CONTEXT)
@@ -283,6 +300,105 @@ class KotlinAPIExtractor(
             )
         }
         classBuilder.addFunction(methodBuilder.build())
+    }
+
+    private fun buildSpringClientMethod(
+        openAPI: OpenAPI,
+        classBuilder: TypeSpec.Builder,
+        stringPathItemEntry: Map.Entry<String, PathItem>,
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        operationId: String,
+        generateResponseParameter: Boolean
+    ) {
+        val methodBuilder = FunSpec
+            .builder(operationId)
+            .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
+        getSpringExchangeAnnotationSpec(operationEntry, stringPathItemEntry.key)
+            ?.let(methodBuilder::addAnnotation)
+        val dtoReturn = determineReturnKotlinType(operationEntry.value, openAPI, classBuilder)
+        if (generateResponseParameter) {
+            methodBuilder.returns(SPRING_RESPONSE_ENTITY.parameterizedBy(dtoReturn.copy(nullable = false)))
+        } else {
+            methodBuilder.returns(dtoReturn)
+        }
+        Optional.ofNullable(operationEntry.value.requestBody)
+            .map { obj: RequestBody -> obj.content }
+            .stream().asSequence()
+            .flatMap { getContentType(it, openAPI, classBuilder, false) }
+            .forEach { paramSpec: RequestPartParams ->
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(paramSpec.name, paramSpec.typeName)
+                        .addAnnotation(paramSpec.annotation!!).build()
+                )
+            }
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { "path".equals(it.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        CaseUtils.snakeToCamel(parameter.name),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                    ).addAnnotation(
+                        AnnotationSpec.builder(PathVariable::class)
+                            .addMember("name = %S", parameter.name).build()
+                    ).build()
+                )
+            }
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { "query".equals(it.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                val builder = AnnotationSpec.builder(RequestParam::class)
+                    .addMember("required = %L", parameter.required)
+                    .addMember("name = %S", parameter.name)
+                parameter.schema?.default?.let { builder.addMember("defaultValue = %S", it.toString()) }
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        CaseUtils.snakeToCamel(parameter.name),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                    ).addAnnotation(builder.build()).build()
+                )
+            }
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
+            .filter { "header".equals(it.getIn(), ignoreCase = true) }
+            .forEach { parameter: Parameter ->
+                methodBuilder.addParameter(
+                    ParameterSpec.builder(
+                        CaseUtils.kebabToCamel(parameter.name),
+                        typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
+                    ).addAnnotation(
+                        AnnotationSpec.builder(RequestHeader::class)
+                            .addMember("required = %L", parameter.required)
+                            .addMember("name = %S", parameter.name).build()
+                    ).build()
+                )
+            }
+        classBuilder.addFunction(methodBuilder.build())
+    }
+
+    private fun getSpringExchangeAnnotationSpec(
+        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
+        path: String
+    ): AnnotationSpec? {
+        val annotationClass: ClassName = when (operationEntry.key) {
+            PathItem.HttpMethod.GET -> SPRING_GET_EXCHANGE
+            PathItem.HttpMethod.POST -> SPRING_POST_EXCHANGE
+            PathItem.HttpMethod.PUT -> SPRING_PUT_EXCHANGE
+            PathItem.HttpMethod.PATCH -> SPRING_PATCH_EXCHANGE
+            PathItem.HttpMethod.DELETE -> SPRING_DELETE_EXCHANGE
+            else -> return null
+        }
+        val builder = AnnotationSpec.builder(annotationClass).addMember("value = %S", path)
+        getSuccessfulReply(operationEntry.value)
+            .flatMap(::getMediaType)
+            .map { it.key }
+            .ifPresent { builder.addMember("accept = [%S]", it) }
+        Optional.ofNullable(operationEntry.value.requestBody)
+            .map { it.content }
+            .flatMap(::getMediaType)
+            .map { it.key }
+            .filter { it.isNotBlank() && it != "application/json" }
+            .ifPresent { builder.addMember("contentType = %S", it) }
+        return builder.build()
     }
 
     private fun isIncludeRequest(operation: Operation): Boolean =
