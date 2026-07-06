@@ -56,6 +56,7 @@ codegen.generate(yamlPath, resultPath)
 |`generateApiInterface`|boolean|false|Set to true if you need to generate an interface called `Api` besides `Controller`. `Api` methods do not have `HttpServletResponse` parameter.
 |`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
 |`framework`|String (`spring`\|`quarkus`)|`spring`|Selects the web framework whose annotations are emitted on the generated `Controller`/`Api` interfaces. `spring` (default) emits Spring MVC annotations (`@GetMapping`, `@PathVariable`, …). `quarkus` emits Jakarta REST / Quarkus annotations (`@GET` + `@Path`, `@PathParam`, `@QueryParam`, `@HeaderParam`, `@RestForm` for multipart). Value is case-insensitive.|
+|`role`|String (`server`\|`client`)|`server`|Selects whether the generated interfaces are server resources (to implement) or client interfaces (whose implementation the framework provides). `client` emits, for Spring, Spring 6 HTTP Interface annotations (`@GetExchange`, …) used via `HttpServiceProxyFactory`; for Quarkus, a `@RegisterRestClient` interface injected with `@RestClient`. Case-insensitive.|
 
 ## Quarkus (Jakarta REST) output
 
@@ -92,6 +93,22 @@ The generated Quarkus code requires `jakarta.ws.rs-api` on the consuming project
 classpath. For multipart endpoints, it also requires `org.jboss.resteasy.reactive.RestForm`
 and `org.jboss.resteasy.reactive.multipart.FileUpload` — both provided by the
 Quarkus REST extension.
+
+## Client generation (`role=client`)
+
+With `role=client` the generated interfaces are meant to be *called*, not implemented — the
+framework supplies the implementation.
+
+- **Spring** (`framework=spring`): Spring 6 HTTP Interface. Methods carry `@GetExchange`/`@PostExchange`/
+  `@PutExchange`/`@PatchExchange`/`@DeleteExchange`; parameters keep the same `@PathVariable`/`@RequestParam`/
+  `@RequestHeader`/`@RequestBody`/`@RequestPart` annotations. Create a proxy with `HttpServiceProxyFactory`.
+- **Quarkus** (`framework=quarkus`): the interface is additionally annotated `@RegisterRestClient`; inject it
+  with `@RestClient`. No implementation is written.
+
+`generateResponseParameter=true` makes client methods return the HTTP envelope so callers can inspect
+status/headers: `ResponseEntity<T>` (Spring) / `jakarta.ws.rs.core.Response` (Quarkus). With
+`generateResponseParameter=false` they return the deserialized DTO. Server-only constructs
+(`HttpServletResponse`, `@Context ContainerRequestContext`, `x-include-request`) are omitted in client mode.
 
 ## Inheritance hierarchy compatible with openapi-codegen
 
