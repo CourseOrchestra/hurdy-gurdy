@@ -31,4 +31,24 @@ class GeneratorParamsTest {
         assertThat(Framework.of(null)).isEqualTo(Framework.SPRING);
         assertThat(Framework.of("  ")).isEqualTo(Framework.SPRING);
     }
+
+    @Test
+    void defaultRoleIsServer() {
+        assertThat(GeneratorParams.rootPackage("com.example").getRole())
+                .isEqualTo(Role.SERVER);
+    }
+
+    @Test
+    void roleIsSettable() {
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .role(Role.CLIENT).getRole()).isEqualTo(Role.CLIENT);
+    }
+
+    @Test
+    void roleOfParsesCaseInsensitivelyAndDefaults() {
+        assertThat(Role.of("client")).isEqualTo(Role.CLIENT);
+        assertThat(Role.of("SERVER")).isEqualTo(Role.SERVER);
+        assertThat(Role.of(null)).isEqualTo(Role.SERVER);
+        assertThat(Role.of("  ")).isEqualTo(Role.SERVER);
+    }
 }

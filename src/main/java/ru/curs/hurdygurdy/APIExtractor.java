@@ -46,6 +46,10 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         return params.getFramework();
     }
 
+    protected Role getRole() {
+        return params.getRole();
+    }
+
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
