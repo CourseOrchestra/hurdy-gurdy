@@ -65,7 +65,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .forEach(paramSpec ->
                         methodBuilder.addParameter(ParameterSpec.builder(
                                         paramSpec.typeName,
-                                        paramSpec.name)
+                                        CaseUtils.toIdentifier(paramSpec.name))
                                 .addAnnotation(paramSpec.annotation).build())
                 );
 
@@ -74,7 +74,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
                                 safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
                                         openAPI, classBuilder, null)),
-                                CaseUtils.snakeToCamel(parameter.getName()))
+                                CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
                         .addAnnotation(
                                 AnnotationSpec.builder(PathVariable.class)
                                         .addMember("name", "$S", parameter.getName()).build()
@@ -97,7 +97,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                             methodBuilder.addParameter(ParameterSpec.builder(
                                             safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
                                                     classBuilder, null)),
-                                            CaseUtils.snakeToCamel(parameter.getName()))
+                                            CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
                                     .addAnnotation(annotationSpec).build());
                         }
                 );
@@ -105,7 +105,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
                                 safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
-                                CaseUtils.kebabToCamel(parameter.getName()))
+                                CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
                         .addAnnotation(
                                 AnnotationSpec.builder(
                                                 RequestHeader.class

@@ -211,11 +211,23 @@ class KotlinTypeDefiner internal constructor(
 
     private fun constructorPropertiesOf(schema: Schema<*>, openAPI: OpenAPI): List<InheritedProperty> {
         val result = mutableListOf<InheritedProperty>()
+        // A property can be re-declared at several levels of an allOf chain (the
+        // YouTrack spec, for example, restates inherited fields on every subtype).
+        // Keep only the first (most-base) declaration by key so the generated
+        // constructor does not carry duplicate parameters. First-wins also keeps
+        // the parameter order aligned with the base-class constructor, which is
+        // what a subclass forwards its super-constructor arguments to.
+        val seen = mutableSetOf<String>()
+        fun add(property: InheritedProperty) {
+            if (seen.add(property.key)) {
+                result.add(property)
+            }
+        }
         var ownSchema: Schema<*> = schema
         if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
             for (s in schema.allOf) {
                 if (s.`$ref` != null) {
-                    result.addAll(constructorPropertiesOf(s.`$ref`, openAPI))
+                    constructorPropertiesOf(s.`$ref`, openAPI).forEach(::add)
                 } else {
                     ownSchema = s
                 }
@@ -225,7 +237,7 @@ class KotlinTypeDefiner internal constructor(
         val required = ownSchema.required?.toSet() ?: emptySet()
         ownSchema.properties?.forEach { (key, value) ->
             if (key != discriminatorProperty) {
-                result.add(InheritedProperty(key, value, required.contains(key)))
+                add(InheritedProperty(key, value, required.contains(key)))
             }
         }
         return result
@@ -341,9 +353,16 @@ class KotlinTypeDefiner internal constructor(
                 classBuilder.addSuperclassConstructorParameter("%N", propertyName)
             }
 
+            val inheritedKeys = inheritedProperties.mapTo(mutableSetOf()) { it.key }
             if (schemaMap != null) for ((key, value) in schemaMap) {
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
+                    continue
+                }
+                if (key in inheritedKeys) {
+                    //Already re-declared above as an `override` inherited from the
+                    //base class and forwarded to its constructor. Restating it here
+                    //as an own property would produce a duplicate declaration.
                     continue
                 }
                 addConstructorProperty(

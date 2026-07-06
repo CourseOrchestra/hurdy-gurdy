@@ -141,6 +141,31 @@ class KCodegenTest {
         verify(result);
     }
 
+    @Test
+    void inheritedRootProperty() throws IOException {
+        // The maintainer's example from PR #233: a root-class property (`description`)
+        // inherited by children, including an otherwise-empty leaf (`C`). Before the
+        // fix `C` was generated as an `object` and `description` was not overridden,
+        // producing non-compiling code.
+        codegen.generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void youtrackOpenapiCompiles() throws IOException {
+        // Real-world regression: the YouTrack OpenAPI spec has deep, property-
+        // redeclaring inheritance chains (e.g. ActivityItem -> MultiValueActivityItem
+        // -> WorkItemTypeActivityItem) that previously produced duplicate constructor
+        // properties and non-compiling code. Its properties are camelCase, so the
+        // snake-case check is disabled. Compile-only: no snapshot for 200+ files.
+        KotlinCodegen kc = new KotlinCodegen(GeneratorParams
+                .rootPackage("org.youtrack")
+                .generateResponseParameter(true)
+                .forceSnakeCaseForProperties(false));
+        kc.generate(Path.of("src/test/resources/youtrack_openapi.json"), result);
+        GeneratedCodeCompiler.assertKotlinCompiles(result);
+    }
+
 
     /**
      * Verifies the generated output against its snapshot and additionally

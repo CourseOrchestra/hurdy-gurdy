@@ -53,7 +53,7 @@ class KotlinAPIExtractor(
             .forEach { paramSpec: RequestPartParams ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        paramSpec.name,
+                        CaseUtils.toIdentifier(paramSpec.name),
                         paramSpec.typeName
                     ).addAnnotation(paramSpec.annotation).build()
                 )
@@ -69,7 +69,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.snakeToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
@@ -94,7 +94,7 @@ class KotlinAPIExtractor(
                 val annotationSpec = builder.build()
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.snakeToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
@@ -112,7 +112,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.kebabToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(

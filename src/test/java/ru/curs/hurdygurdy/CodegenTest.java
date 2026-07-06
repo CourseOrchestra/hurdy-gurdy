@@ -117,6 +117,30 @@ class CodegenTest {
         verify(result);
     }
 
+    @Test
+    void inheritedRootProperty() throws IOException {
+        // The maintainer's example from PR #233: a root-class property (`description`)
+        // inherited by children, including an otherwise-empty leaf (`C`).
+        codegen.generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void youtrackOpenapiCompiles() throws IOException {
+        // Real-world regression: the YouTrack OpenAPI spec redeclares inherited
+        // properties (often with a narrower type) across deep allOf chains, which
+        // previously made Lombok emit clashing/uncompilable getters and setters, and
+        // has a multipart parameter literally named "files[0]" that is not a legal
+        // identifier. Properties are camelCase, so the snake-case check is disabled.
+        // Compile-only: no snapshot for 200+ files.
+        JavaCodegen jc = new JavaCodegen(GeneratorParams
+                .rootPackage("org.youtrack")
+                .generateResponseParameter(true)
+                .forceSnakeCaseForProperties(false));
+        jc.generate(Path.of("src/test/resources/youtrack_openapi.json"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
     /**
      * Verifies the generated output against its snapshot and additionally
      * verifies that the generated Java code compiles.

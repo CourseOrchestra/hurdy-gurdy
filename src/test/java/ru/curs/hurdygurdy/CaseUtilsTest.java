@@ -15,6 +15,24 @@ class CaseUtilsTest {
     }
 
     @Test
+    void toIdentifierNull() {
+        assertThat(CaseUtils.toIdentifier(null)).isNull();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "files[0],files0",       // multipart field with array brackets
+            "plain,plain",           // already legal — no-op
+            "a.b/c,abc",             // dotted / slashed name
+            "'',_",                  // empty becomes _
+            "'[]',_",                // only illegal chars becomes _
+            "0abc,_0abc",            // leading digit gets prefixed
+    })
+    void toIdentifier(String input, String expected) {
+        assertThat(CaseUtils.toIdentifier(input)).isEqualTo(expected);
+    }
+
+    @Test
     void snakeToCamelNull() {
         assertThat(CaseUtils.snakeToCamel(null)).isNull();
     }
