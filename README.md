@@ -76,12 +76,17 @@ Annotation mapping:
 | Request body | `@RequestBody` | *(unannotated parameter)* |
 | Multipart part | `@RequestPart` | `@RestForm` |
 
+`@Produces` is emitted only when the operation defines a success (2xx) response
+media type, and `@Consumes` only when the request body defines a media type.
+
 `generateResponseParameter` has no servlet analog in Quarkus. When enabled, the
 generated method returns `jakarta.ws.rs.core.Response` (instead of the DTO), and
 a Javadoc/KDoc `@return` line documents the entity type the `Response` is
-expected to carry. The `x-include-request: true` operation extension adds a
-`@Context jakarta.ws.rs.container.ContainerRequestContext requestContext`
-parameter instead of `HttpServletRequest`.
+expected to carry. When `generateResponseParameter` is true and the
+`x-include-request: true` operation extension is present, the generated method
+also gains a `@Context jakarta.ws.rs.container.ContainerRequestContext
+requestContext` parameter (the Quarkus analog of the Spring `HttpServletRequest`
+behavior).
 
 The generated Quarkus code requires `jakarta.ws.rs-api` on the consuming project's
 classpath. For multipart endpoints, it also requires `org.jboss.resteasy.reactive.RestForm`
