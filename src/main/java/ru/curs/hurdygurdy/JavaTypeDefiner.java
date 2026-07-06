@@ -93,7 +93,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     } else if ("uuid".equals(schema.getFormat())) {
                         return ClassName.get(UUID.class);
                     } else if ("binary".equals(schema.getFormat())) {
-                        return ClassName.get(MultipartFile.class);
+                        return params.getFramework() == Framework.QUARKUS
+                                ? ClassName.get("org.jboss.resteasy.reactive.multipart", "FileUpload")
+                                : ClassName.get(MultipartFile.class);
                     } else if (schema.getEnum() != null) {
                         //internal enum
                         String simpleName = getEnumName(schema, typeNameFallback);

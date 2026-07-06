@@ -96,7 +96,9 @@ class KotlinTypeDefiner internal constructor(
                     "date" == schema.format -> LocalDate::class.asTypeName()
                     "date-time" == schema.format -> ZonedDateTime::class.asTypeName()
                     "uuid" == schema.format -> UUID::class.asTypeName()
-                    "binary" == schema.format -> MultipartFile::class.asTypeName()
+                    "binary" == schema.format -> if (params.framework == Framework.QUARKUS)
+                        ClassName("org.jboss.resteasy.reactive.multipart", "FileUpload")
+                    else MultipartFile::class.asTypeName()
                     schema.enum != null -> {
                         //internal enum
                         val simpleName = getEnumName(schema, typeNameFallback)

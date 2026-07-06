@@ -17,7 +17,7 @@ import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.Response
 import org.jboss.resteasy.reactive.RestForm
-import org.springframework.web.multipart.MultipartFile
+import org.jboss.resteasy.reactive.multipart.FileUpload
 
 @Path("")
 public interface Controller {
@@ -28,7 +28,7 @@ public interface Controller {
   @Path("/api/v1/workflow-run")
   @Produces("application/json")
   @Consumes("multipart/form-data")
-  public fun runWorkflow(@RestForm("runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest, @RestForm("config") config: MultipartFile?): Response
+  public fun runWorkflow(@RestForm("runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest, @RestForm("config") config: FileUpload?): Response
 }
 ---
 /com/example/dto
