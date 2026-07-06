@@ -55,6 +55,38 @@ codegen.generate(yamlPath, resultPath)
 |`generateResponseParameter`|boolean|false|Set to true if you need to have `HttpServletResponse` parameter in each generated `Controller` method. You might need this in order to return specific HTTP status codes. When used together with the operation-level extension `x-include-request: true`, the generated method will also include `jakarta.servlet.http.HttpServletRequest request` parameter.
 |`generateApiInterface`|boolean|false|Set to true if you need to generate an interface called `Api` besides `Controller`. `Api` methods do not have `HttpServletResponse` parameter.
 |`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
+|`framework`|String (`spring`\|`quarkus`)|`spring`|Selects the web framework whose annotations are emitted on the generated `Controller`/`Api` interfaces. `spring` (default) emits Spring MVC annotations (`@GetMapping`, `@PathVariable`, …). `quarkus` emits Jakarta REST / Quarkus annotations (`@GET` + `@Path`, `@PathParam`, `@QueryParam`, `@HeaderParam`, `@RestForm` for multipart). Value is case-insensitive.|
+
+## Quarkus (Jakarta REST) output
+
+Set `framework` to `quarkus` (Maven `<framework>quarkus</framework>`, or
+`GeneratorParams.rootPackage(...).framework(Framework.QUARKUS)` in code) to
+generate Jakarta REST interfaces instead of Spring MVC ones. DTO classes are
+identical in both modes.
+
+Annotation mapping:
+
+| Concern | Spring | Quarkus (JAX-RS) |
+|---------|--------|------------------|
+| Interface | *(none)* | `@Path("")` |
+| HTTP method | `@GetMapping(value, produces, consumes)` | `@GET` + `@Path(path)` + `@Produces` + `@Consumes` |
+| Path parameter | `@PathVariable` | `@PathParam` |
+| Query parameter | `@RequestParam` | `@QueryParam` (+ `@DefaultValue`) |
+| Header parameter | `@RequestHeader` | `@HeaderParam` |
+| Request body | `@RequestBody` | *(unannotated parameter)* |
+| Multipart part | `@RequestPart` | `@RestForm` |
+
+`generateResponseParameter` has no servlet analog in Quarkus. When enabled, the
+generated method returns `jakarta.ws.rs.core.Response` (instead of the DTO), and
+a Javadoc/KDoc `@return` line documents the entity type the `Response` is
+expected to carry. The `x-include-request: true` operation extension adds a
+`@Context jakarta.ws.rs.container.ContainerRequestContext requestContext`
+parameter instead of `HttpServletRequest`.
+
+The generated Quarkus code requires `jakarta.ws.rs-api` on the consuming project's
+classpath. For multipart endpoints, it also requires `org.jboss.resteasy.reactive.RestForm`
+and `org.jboss.resteasy.reactive.multipart.FileUpload` — both provided by the
+Quarkus REST extension.
 
 ## Inheritance hierarchy compatible with openapi-codegen
 
