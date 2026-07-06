@@ -1,0 +1,51 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.RunWorkflowRequest;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestForm;
+import org.springframework.web.multipart.MultipartFile;
+
+@Path("")
+public interface Controller {
+  /**
+   * @return a Response whose entity is expected to be com.example.dto.RunWorkflowRequest
+   */
+  @POST
+  @Path("/api/v1/workflow-run")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  Response runWorkflow(@RestForm("runWorkflowRequest") RunWorkflowRequest runWorkflowRequest,
+      @RestForm("config") MultipartFile config);
+}
+---
+/com/example/dto
+---
+/com/example/dto/RunWorkflowRequest.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class RunWorkflowRequest {
+  private String inputConnection;
+
+  private String outputConnection;
+}
