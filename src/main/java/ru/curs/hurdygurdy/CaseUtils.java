@@ -121,6 +121,34 @@ public final class CaseUtils {
     }
 
     /**
+     * Strips characters that are illegal in a Kotlin identifier even when it is
+     * back-ticked (for example the {@code []} in a multipart field named
+     * {@code files[0]}). The original spec name is still emitted verbatim in the
+     * {@code name = "..."} of the binding annotation, so only the generated
+     * parameter/property identifier is affected. A leading digit left after
+     * stripping is prefixed with {@code _}; an empty result becomes {@code _}.
+     *
+     * <p>For names that are already legal (the common case) this is a no-op.
+     *
+     * @param name the raw spec name to turn into a legal Kotlin identifier
+     */
+    public static String toIdentifier(String name) {
+        if (name == null) {
+            return null;
+        }
+        // Forbidden in a back-ticked Kotlin identifier: . ; [ ] / < > : \ ` and
+        // whitespace/control characters.
+        String cleaned = name.replaceAll("[\\[\\]./<>:;\\\\`\\s\\p{Cntrl}]", "");
+        if (cleaned.isEmpty()) {
+            return "_";
+        }
+        if (Character.isDigit(cleaned.charAt(0))) {
+            return "_" + cleaned;
+        }
+        return cleaned;
+    }
+
+    /**
      * Produces a valid Java class name from a string.
      * @param text any string to be converted to a clean CamelCase
      */

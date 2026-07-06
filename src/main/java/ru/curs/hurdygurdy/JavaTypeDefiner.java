@@ -39,9 +39,12 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -221,19 +224,60 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (schema instanceof ComposedSchema && schema.getOneOf() == null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
+            Set<String> inheritedKeys = new HashSet<>();
             for (Schema<?> s : schema.getAllOf()) {
                 if (s.get$ref() != null) {
                     baseClass = referencedClassName(openAPI, s.get$ref());
+                    inheritedKeys.addAll(inheritedPropertyKeys(s.get$ref(), openAPI));
                 } else {
                     currentSchema = s;
                 }
             }
-            return getDTOClass(name, currentSchema, openAPI, baseClass);
+            return getDTOClass(name, currentSchema, openAPI, baseClass, inheritedKeys);
         }
-        return getDTOClass(name, schema, openAPI, ClassName.get(Object.class));
+        return getDTOClass(name, schema, openAPI, ClassName.get(Object.class), Set.of());
     }
 
-    private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass) {
+    /**
+     * All property names a class inherits through its {@code allOf} ancestor
+     * chain (their own properties plus what they inherit in turn), resolved
+     * within the current file only. A subclass that re-declares one of these
+     * must not emit its own field: Lombok would generate a clashing
+     * getter/setter that either cannot override the inherited one (narrower
+     * type) or collides on erasure, neither of which compiles.
+     */
+    private Set<String> inheritedPropertyKeys(String ref, OpenAPI openAPI) {
+        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
+            // Reference into another file — its schema is not visible here.
+            return Set.of();
+        }
+        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
+                .map(c -> c.getSchemas())
+                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
+                .orElse(null);
+        return schema == null ? Set.of() : inheritedPropertyKeys(schema, openAPI);
+    }
+
+    private Set<String> inheritedPropertyKeys(Schema<?> schema, OpenAPI openAPI) {
+        Set<String> keys = new HashSet<>();
+        Schema<?> ownSchema = schema;
+        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
+            for (Schema<?> s : schema.getAllOf()) {
+                if (s.get$ref() != null) {
+                    keys.addAll(inheritedPropertyKeys(s.get$ref(), openAPI));
+                } else {
+                    ownSchema = s;
+                }
+            }
+        }
+        if (ownSchema.getProperties() != null) {
+            keys.addAll(ownSchema.getProperties().keySet());
+        }
+        return keys;
+    }
+
+    private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass,
+                                 Set<String> inheritedKeys) {
         TypeSpec.Builder classBuilder;
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
             classBuilder = TypeSpec.interfaceBuilder(name);
@@ -278,36 +322,19 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
             //Add properties
+            String discriminatorProperty = schema.getDiscriminator() == null
+                    ? null : schema.getDiscriminator().getPropertyName();
             for (Map.Entry<String, Schema> entry : schemaMap.entrySet()) {
                 checkPropertyName(name, entry.getKey());
-                if (schema.getDiscriminator() != null
-                        && entry.getKey().equals(schema.getDiscriminator().getPropertyName())) {
-                    //Skip the descriminator property
+                // Skip the discriminator property, and any property already declared
+                // by an allOf ancestor (re-declaring the latter would make Lombok emit
+                // a clashing getter/setter that does not compile; the inherited field
+                // and accessors are reused instead).
+                if (entry.getKey().equals(discriminatorProperty)
+                        || inheritedKeys.contains(entry.getKey())) {
                     continue;
                 }
-                TypeName typeName = defineJavaType(entry.getValue(), openAPI, classBuilder,
-                        CaseUtils.snakeToCamel(entry.getKey(), true));
-
-                String propertyName =
-                        params.isForceSnakeCaseForProperties()
-                                ? CaseUtils.snakeToCamel(entry.getKey())
-                                : entry.getKey();
-
-                FieldSpec.Builder fieldBuilder = FieldSpec.builder(
-                        typeName,
-                        propertyName, Modifier.PRIVATE);
-                if (typeName instanceof ClassName && "ZonedDateTime"
-                        .equals(((ClassName) typeName).simpleName())) {
-                    fieldBuilder.addAnnotation(AnnotationSpec.builder(
-                                            ClassName.get(JsonDeserialize.class))
-                                    .addMember("using", "ZonedDateTimeDeserializer.class").build())
-                            .addAnnotation(AnnotationSpec.builder(
-                                            ClassName.get(JsonSerialize.class))
-                                    .addMember("using", "ZonedDateTimeSerializer.class").build());
-                    ensureJsonZonedDateTimeDeserializer();
-                }
-                FieldSpec fieldSpec = fieldBuilder.build();
-                classBuilder.addField(fieldSpec);
+                addPropertyField(entry.getKey(), entry.getValue(), openAPI, classBuilder);
             }
         }
 
@@ -335,6 +362,32 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             classBuilder.addField(fieldSpec);
         }
         return classBuilder.build();
+    }
+
+    private void addPropertyField(String key, Schema<?> value, OpenAPI openAPI,
+                                  TypeSpec.Builder classBuilder) {
+        TypeName typeName = defineJavaType(value, openAPI, classBuilder,
+                CaseUtils.snakeToCamel(key, true));
+
+        String propertyName =
+                params.isForceSnakeCaseForProperties()
+                        ? CaseUtils.snakeToCamel(key)
+                        : key;
+
+        FieldSpec.Builder fieldBuilder = FieldSpec.builder(
+                typeName,
+                propertyName, Modifier.PRIVATE);
+        if (typeName instanceof ClassName && "ZonedDateTime"
+                .equals(((ClassName) typeName).simpleName())) {
+            fieldBuilder.addAnnotation(AnnotationSpec.builder(
+                                    ClassName.get(JsonDeserialize.class))
+                            .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                    .addAnnotation(AnnotationSpec.builder(
+                                    ClassName.get(JsonSerialize.class))
+                            .addMember("using", "ZonedDateTimeSerializer.class").build());
+            ensureJsonZonedDateTimeDeserializer();
+        }
+        classBuilder.addField(fieldBuilder.build());
     }
 
     private void oneOfToInterface(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
