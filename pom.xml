@@ -37,6 +37,7 @@
     </developers>
 
     <properties>
+        <maven.compiler.release>17</maven.compiler.release>
         <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>3.5.0</maven.jar.plugin.version>
         <junit.version>6.1.1</junit.version>
@@ -46,6 +47,7 @@
         <checkstyle.maven.plugin.version>3.6.0</checkstyle.maven.plugin.version>
         <checkstyle.version>13.7.0</checkstyle.version>
         <maven.enforcer.plugin.version>3.6.3</maven.enforcer.plugin.version>
+        <extra.enforcer.rules.version>1.12.0</extra.enforcer.rules.version>
     </properties>
 
     <dependencies>
@@ -150,6 +152,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>${maven.enforcer.plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>extra-enforcer-rules</artifactId>
+                        <version>${extra.enforcer.rules.version}</version>
+                    </dependency>
+                </dependencies>
                 <executions>
                     <execution>
                         <id>enforce</id>
@@ -169,6 +178,15 @@
                                 <requireReleaseDeps/>
                                 <!-- No duplicate <dependency> entries in this POM -->
                                 <banDuplicatePomDependencyVersions/>
+                                <!-- Non-test dependencies (including transitive ones)
+                                    must not require a JVM newer than the target bytecode version -->
+                                <enforceBytecodeVersion>
+                                    <maxJdkVersion>${maven.compiler.release}</maxJdkVersion>
+                                    <searchTransitive>true</searchTransitive>
+                                    <ignoredScopes>
+                                        <ignoredScope>test</ignoredScope>
+                                    </ignoredScopes>
+                                </enforceBytecodeVersion>
                             </rules>
                             <fail>true</fail>
                         </configuration>
@@ -304,7 +322,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <jvmTarget>17</jvmTarget>
+                    <jvmTarget>${maven.compiler.release}</jvmTarget>
                 </configuration>
             </plugin>
             <plugin>
@@ -336,7 +354,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <release>17</release>
+                    <release>${maven.compiler.release}</release>
                     <testRelease>21</testRelease>
                     <encoding>utf-8</encoding>
                 </configuration>
