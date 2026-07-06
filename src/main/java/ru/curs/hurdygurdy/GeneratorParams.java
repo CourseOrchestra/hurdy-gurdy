@@ -5,6 +5,7 @@ public final class GeneratorParams {
     private boolean generateResponseParameter = false;
     private boolean generateApiInterface = false;
     private boolean forceSnakeCaseForProperties = true;
+    private Framework framework = Framework.SPRING;
 
     private GeneratorParams(String rootPackage) {
         this.rootPackage = rootPackage;
@@ -25,6 +26,11 @@ public final class GeneratorParams {
         return this;
     }
 
+    public GeneratorParams framework(Framework value) {
+        this.framework = value;
+        return this;
+    }
+
     public String getRootPackage() {
         return rootPackage;
     }
@@ -39,6 +45,10 @@ public final class GeneratorParams {
 
     public boolean isForceSnakeCaseForProperties() {
         return forceSnakeCaseForProperties;
+    }
+
+    public Framework getFramework() {
+        return framework;
     }
 
     public static GeneratorParams rootPackage(String rootPackage) {

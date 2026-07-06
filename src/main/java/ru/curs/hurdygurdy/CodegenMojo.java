@@ -21,6 +21,9 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "language", defaultValue = "java")
     String language;
 
+    @Parameter(property = "framework", defaultValue = "spring")
+    String framework;
+
     @Parameter(property = "spec", required = true)
     String spec;
 
@@ -45,7 +48,8 @@ public class CodegenMojo extends AbstractMojo {
                 GeneratorParams.rootPackage(rootPackage)
                         .generateResponseParameter(generateResponseParameter)
                         .generateApiInterface(generateApiInterface)
-                        .forceSnakeCaseForProperties(forceSnakeCaseForProperties);
+                        .forceSnakeCaseForProperties(forceSnakeCaseForProperties)
+                        .framework(Framework.of(framework));
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language)
                         ? new JavaCodegen(params)

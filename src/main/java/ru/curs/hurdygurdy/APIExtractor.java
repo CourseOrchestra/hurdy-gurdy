@@ -42,6 +42,10 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         return builders.computeIfAbsent(className, k -> builderSupplier.apply(className));
     }
 
+    protected Framework getFramework() {
+        return params.getFramework();
+    }
+
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
