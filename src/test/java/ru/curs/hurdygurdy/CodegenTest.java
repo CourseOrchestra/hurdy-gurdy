@@ -141,6 +141,34 @@ class CodegenTest {
     }
 
     @Test
+    void springClientSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.SPRING).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientMultipart() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).role(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        // Snapshot only: @RestForm would require the resteasy-reactive artifact to compile.
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void inheritedDiscriminatorProperty() throws IOException {
         codegen.generate(Path.of("src/test/resources/matchconfig.yaml"), result);
         verify(result);

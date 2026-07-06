@@ -4,6 +4,7 @@ import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -56,6 +57,20 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             ClassName.get("jakarta.ws.rs.container", "ContainerRequestContext");
     private static final ClassName QUARKUS_REST_FORM =
             ClassName.get("org.jboss.resteasy.reactive", "RestForm");
+    private static final ClassName MP_REGISTER_REST_CLIENT =
+            ClassName.get("org.eclipse.microprofile.rest.client.inject", "RegisterRestClient");
+    private static final ClassName SPRING_GET_EXCHANGE =
+            ClassName.get("org.springframework.web.service.annotation", "GetExchange");
+    private static final ClassName SPRING_POST_EXCHANGE =
+            ClassName.get("org.springframework.web.service.annotation", "PostExchange");
+    private static final ClassName SPRING_PUT_EXCHANGE =
+            ClassName.get("org.springframework.web.service.annotation", "PutExchange");
+    private static final ClassName SPRING_PATCH_EXCHANGE =
+            ClassName.get("org.springframework.web.service.annotation", "PatchExchange");
+    private static final ClassName SPRING_DELETE_EXCHANGE =
+            ClassName.get("org.springframework.web.service.annotation", "DeleteExchange");
+    private static final ClassName SPRING_RESPONSE_ENTITY =
+            ClassName.get("org.springframework.http", "ResponseEntity");
 
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
                             GeneratorParams params) {
@@ -65,6 +80,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     if (params.getFramework() == Framework.QUARKUS) {
                         b.addAnnotation(AnnotationSpec.builder(JAXRS_PATH)
                                 .addMember("value", "$S", "").build());
+                        if (params.getRole() == Role.CLIENT) {
+                            b.addAnnotation(AnnotationSpec.builder(MP_REGISTER_REST_CLIENT).build());
+                        }
                     }
                     return b;
                 },
@@ -82,6 +100,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                      boolean generateResponseParameter) {
         if (getFramework() == Framework.QUARKUS) {
             buildQuarkusMethod(openAPI, classBuilder, stringPathItemEntry,
+                    operationEntry, operationId, generateResponseParameter);
+        } else if (getRole() == Role.CLIENT) {
+            buildSpringClientMethod(openAPI, classBuilder, stringPathItemEntry,
                     operationEntry, operationId, generateResponseParameter);
         } else {
             buildSpringMethod(openAPI, classBuilder, stringPathItemEntry,
@@ -233,12 +254,119 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .addAnnotation(AnnotationSpec.builder(JAXRS_HEADER_PARAM)
                                 .addMember("value", "$S", parameter.getName()).build())
                         .build()));
-        if (generateResponseParameter && isIncludeRequest(operationEntry.getValue())) {
+        if (generateResponseParameter && isIncludeRequest(operationEntry.getValue())
+                && getRole() == Role.SERVER) {
             methodBuilder.addParameter(ParameterSpec.builder(
                             JAXRS_REQUEST_CONTEXT, "requestContext")
                     .addAnnotation(JAXRS_CONTEXT).build());
         }
         classBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void buildSpringClientMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
+                     Map.Entry<String, PathItem> stringPathItemEntry,
+                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
+                     String operationId,
+                     boolean generateResponseParameter) {
+        MethodSpec.Builder methodBuilder = MethodSpec
+                .methodBuilder(operationId)
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+        AnnotationSpec exchange =
+                getSpringExchangeAnnotationSpec(operationEntry, stringPathItemEntry.getKey());
+        if (exchange != null) {
+            methodBuilder.addAnnotation(exchange);
+        }
+        TypeName dtoReturn = determineReturnJavaType(operationEntry.getValue(), openAPI, classBuilder);
+        if (generateResponseParameter) {
+            TypeName body = dtoReturn.equals(TypeName.VOID) ? ClassName.get(Void.class) : dtoReturn.box();
+            methodBuilder.returns(ParameterizedTypeName.get(SPRING_RESPONSE_ENTITY, body));
+        } else {
+            methodBuilder.returns(dtoReturn);
+        }
+        Optional.ofNullable(operationEntry.getValue().getRequestBody())
+                .map(RequestBody::getContent)
+                .stream()
+                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, false))
+                .forEach(paramSpec ->
+                        methodBuilder.addParameter(ParameterSpec.builder(
+                                        paramSpec.typeName, paramSpec.name)
+                                .addAnnotation(paramSpec.annotation).build()));
+        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
+                .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
+                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
+                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
+                                        openAPI, classBuilder, null)),
+                                CaseUtils.snakeToCamel(parameter.getName()))
+                        .addAnnotation(AnnotationSpec.builder(PathVariable.class)
+                                .addMember("name", "$S", parameter.getName()).build())
+                        .build()));
+        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
+                .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
+                .forEach(parameter -> {
+                    AnnotationSpec.Builder builder = AnnotationSpec.builder(RequestParam.class)
+                            .addMember("required", "$L", parameter.getRequired())
+                            .addMember("name", "$S", parameter.getName());
+                    Optional.ofNullable(parameter.getSchema())
+                            .map(Schema::getDefault)
+                            .ifPresent(d -> builder.addMember("defaultValue", "$S", d.toString()));
+                    methodBuilder.addParameter(ParameterSpec.builder(
+                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                            classBuilder, null)),
+                                    CaseUtils.snakeToCamel(parameter.getName()))
+                            .addAnnotation(builder.build()).build());
+                });
+        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
+                .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
+                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
+                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                        classBuilder, null)),
+                                CaseUtils.kebabToCamel(parameter.getName()))
+                        .addAnnotation(AnnotationSpec.builder(RequestHeader.class)
+                                .addMember("required", "$L", parameter.getRequired())
+                                .addMember("name", "$S", parameter.getName()).build())
+                        .build()));
+        classBuilder.addMethod(methodBuilder.build());
+    }
+
+    private AnnotationSpec getSpringExchangeAnnotationSpec(
+            Map.Entry<PathItem.HttpMethod, Operation> operationEntry, String path) {
+        ClassName annotationClass;
+        switch (operationEntry.getKey()) {
+            case GET:
+                annotationClass = SPRING_GET_EXCHANGE;
+                break;
+            case POST:
+                annotationClass = SPRING_POST_EXCHANGE;
+                break;
+            case PUT:
+                annotationClass = SPRING_PUT_EXCHANGE;
+                break;
+            case PATCH:
+                annotationClass = SPRING_PATCH_EXCHANGE;
+                break;
+            case DELETE:
+                annotationClass = SPRING_DELETE_EXCHANGE;
+                break;
+            default:
+                annotationClass = null;
+                break;
+        }
+        if (annotationClass == null) {
+            return null;
+        }
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
+                .addMember("value", "$S", path);
+        getSuccessfulReply(operationEntry.getValue())
+                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .map(Map.Entry::getKey)
+                .ifPresent(mt -> builder.addMember("accept", "$S", mt));
+        Optional.ofNullable(operationEntry.getValue().getRequestBody())
+                .map(RequestBody::getContent)
+                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .map(Map.Entry::getKey)
+                .filter(s -> !s.isBlank() && !s.equals("application/json"))
+                .ifPresent(mt -> builder.addMember("contentType", "$S", mt));
+        return builder.build();
     }
 
     private static boolean isIncludeRequest(Operation operation) {
