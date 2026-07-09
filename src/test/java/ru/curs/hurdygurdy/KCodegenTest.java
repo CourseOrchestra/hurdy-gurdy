@@ -44,7 +44,7 @@ class KCodegenTest {
         codegen = new KotlinCodegen(GeneratorParams
                 .rootPackage("com.example")
                 .generateResponseParameter(false)
-                .generateApiInterface(true));
+                .generate(Role.CONTROLLER, Role.API));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
         // Snapshot only: see generateSample1 — references external types.
         Approvals.verify(getContent(result));

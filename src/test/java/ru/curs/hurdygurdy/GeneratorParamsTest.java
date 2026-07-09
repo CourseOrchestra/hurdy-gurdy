@@ -56,14 +56,13 @@ class GeneratorParamsTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void generateApiInterfaceAddsApiToSelection() {
         GeneratorParams params = GeneratorParams.rootPackage("com.example")
                 .generateApiInterface(true);
         assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER, Role.API);
-        assertThat(params.isGenerateApiInterface()).isTrue();
         params.generateApiInterface(false);
         assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER);
-        assertThat(params.isGenerateApiInterface()).isFalse();
     }
 
     @Test

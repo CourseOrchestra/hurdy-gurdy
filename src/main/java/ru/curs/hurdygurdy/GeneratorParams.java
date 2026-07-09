@@ -90,15 +90,6 @@ public final class GeneratorParams {
         return Collections.unmodifiableSet(generate);
     }
 
-    /**
-     * @return whether the {@code Api} interface is generated
-     * @deprecated use {@link #getGenerate()} instead
-     */
-    @Deprecated
-    public boolean isGenerateApiInterface() {
-        return generate.contains(Role.API);
-    }
-
     public boolean isForceSnakeCaseForProperties() {
         return forceSnakeCaseForProperties;
     }
