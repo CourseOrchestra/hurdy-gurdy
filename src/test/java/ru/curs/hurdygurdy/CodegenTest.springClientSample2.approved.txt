@@ -7,7 +7,7 @@
 ---
 /com/example/controller
 ---
-/com/example/controller/Controller.java
+/com/example/controller/Client.java
 package com.example.controller;
 
 import com.example.dto.PlayerActivitiesDTO;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
-public interface Controller {
+public interface Client {
   @PostExchange("/api/v1/activity")
   ResponseEntity<Void> syncPlayerActivities(@RequestBody PlayerActivitiesDTO request);
 
@@ -42,7 +42,7 @@ public interface Controller {
       @RequestHeader(required = true, name = "baz") String baz);
 }
 ---
-/com/example/controller/PlayerController.java
+/com/example/controller/PlayerClient.java
 package com.example.controller;
 
 import com.example.dto.PlayersDTO;
@@ -51,7 +51,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.service.annotation.PostExchange;
 
-public interface PlayerController {
+public interface PlayerClient {
   @PostExchange("/api/v1/players")
   ResponseEntity<Void> syncPlayers(@RequestBody PlayersDTO request);
 }

@@ -59,7 +59,7 @@ class DateSerdeTest {
     }
 
     @SuppressWarnings("unchecked")
-    private void assertRoundTrips(URLClassLoader loader) throws Exception {
+    private void assertRoundTrips(URLClassLoader loader) {
         JsonSerializer<ZonedDateTime> serializer = (JsonSerializer<ZonedDateTime>)
                 loader.loadClass(SER).getDeclaredConstructor().newInstance();
         JsonDeserializer<ZonedDateTime> deserializer = (JsonDeserializer<ZonedDateTime>)

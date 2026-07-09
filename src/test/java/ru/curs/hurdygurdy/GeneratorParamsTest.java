@@ -3,6 +3,7 @@ package ru.curs.hurdygurdy;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GeneratorParamsTest {
 
@@ -33,22 +34,45 @@ class GeneratorParamsTest {
     }
 
     @Test
-    void defaultRoleIsServer() {
-        assertThat(GeneratorParams.rootPackage("com.example").getRole())
-                .isEqualTo(Role.SERVER);
+    void defaultGenerateIsControllerOnly() {
+        assertThat(GeneratorParams.rootPackage("com.example").getGenerate())
+                .containsExactly(Role.CONTROLLER);
     }
 
     @Test
-    void roleIsSettable() {
+    void generateIsSettableAndReplacesSelection() {
         assertThat(GeneratorParams.rootPackage("com.example")
-                .role(Role.CLIENT).getRole()).isEqualTo(Role.CLIENT);
+                .generate(Role.CLIENT).getGenerate())
+                .containsExactly(Role.CLIENT);
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .generate(Role.CONTROLLER, Role.API, Role.CLIENT).getGenerate())
+                .containsExactly(Role.CONTROLLER, Role.API, Role.CLIENT);
     }
 
     @Test
-    void roleOfParsesCaseInsensitivelyAndDefaults() {
-        assertThat(Role.of("client")).isEqualTo(Role.CLIENT);
-        assertThat(Role.of("SERVER")).isEqualTo(Role.SERVER);
-        assertThat(Role.of(null)).isEqualTo(Role.SERVER);
-        assertThat(Role.of("  ")).isEqualTo(Role.SERVER);
+    void generateRejectsEmptySelection() {
+        assertThatThrownBy(() -> GeneratorParams.rootPackage("com.example").generate())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void generateApiInterfaceAddsApiToSelection() {
+        GeneratorParams params = GeneratorParams.rootPackage("com.example")
+                .generateApiInterface(true);
+        assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER, Role.API);
+        assertThat(params.isGenerateApiInterface()).isTrue();
+        params.generateApiInterface(false);
+        assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER);
+        assertThat(params.isGenerateApiInterface()).isFalse();
+    }
+
+    @Test
+    void roleParsesCaseInsensitivelyAndDefaults() {
+        assertThat(Role.parse("client")).containsExactly(Role.CLIENT);
+        assertThat(Role.parse("CONTROLLER, Api")).containsExactly(Role.CONTROLLER, Role.API);
+        assertThat(Role.parse("controller,api,client"))
+                .containsExactly(Role.CONTROLLER, Role.API, Role.CLIENT);
+        assertThat(Role.parse(null)).containsExactly(Role.CONTROLLER);
+        assertThat(Role.parse("  ")).containsExactly(Role.CONTROLLER);
     }
 }

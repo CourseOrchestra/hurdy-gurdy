@@ -7,72 +7,146 @@
 ---
 /com/example/controller
 ---
+/com/example/controller/Api.java
+package com.example.controller;
+
+import com.example.dto.PlayerActivitiesDTO;
+import java.lang.Integer;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Api {
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello();
+
+  @GetMapping(
+      value = "/api/v1/hello/{id}",
+      produces = "*/*"
+  )
+  String hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz);
+}
+---
 /com/example/controller/Client.java
 package com.example.controller;
 
 import com.example.dto.PlayerActivitiesDTO;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Response;
 import java.lang.Integer;
 import java.lang.String;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import java.lang.Void;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.service.annotation.GetExchange;
+import org.springframework.web.service.annotation.PostExchange;
 
-@Path("")
-@RegisterRestClient
 public interface Client {
-  /**
-   * @return a Response whose entity is expected to be empty (no body)
-   */
-  @POST
-  @Path("/api/v1/activity")
-  @Consumes("application/json")
-  Response syncPlayerActivities(PlayerActivitiesDTO request);
+  @PostExchange("/api/v1/activity")
+  ResponseEntity<Void> syncPlayerActivities(@RequestBody PlayerActivitiesDTO request);
 
-  /**
-   * @return a Response whose entity is expected to be java.lang.String
-   */
-  @GET
-  @Path("/api/v1/hello")
-  @Produces("*/*")
-  Response hello();
+  @GetExchange(
+      value = "/api/v1/hello",
+      accept = "*/*"
+  )
+  ResponseEntity<String> hello();
 
-  /**
-   * @return a Response whose entity is expected to be java.lang.String
-   */
-  @GET
-  @Path("/api/v1/hello/{id}")
-  @Produces("*/*")
-  Response hello(@PathParam("id") int id, @QueryParam("foo") String foo,
-      @QueryParam("bar") Integer bar, @HeaderParam("baz") String baz);
+  @GetExchange(
+      value = "/api/v1/hello/{id}",
+      accept = "*/*"
+  )
+  ResponseEntity<String> hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz);
+}
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.PlayerActivitiesDTO;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Integer;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletRequest request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello/{id}",
+      produces = "*/*"
+  )
+  String hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz, HttpServletResponse response);
+}
+---
+/com/example/controller/PlayerApi.java
+package com.example.controller;
+
+import com.example.dto.PlayersDTO;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+public interface PlayerApi {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request);
 }
 ---
 /com/example/controller/PlayerClient.java
 package com.example.controller;
 
 import com.example.dto.PlayersDTO;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import java.lang.Void;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.service.annotation.PostExchange;
 
-@Path("")
-@RegisterRestClient
 public interface PlayerClient {
-  /**
-   * @return a Response whose entity is expected to be empty (no body)
-   */
-  @POST
-  @Path("/api/v1/players")
-  @Consumes("application/json")
-  Response syncPlayers(PlayersDTO request);
+  @PostExchange("/api/v1/players")
+  ResponseEntity<Void> syncPlayers(@RequestBody PlayersDTO request);
+}
+---
+/com/example/controller/PlayerController.java
+package com.example.controller;
+
+import com.example.dto.PlayersDTO;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+public interface PlayerController {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
 }
 ---
 /com/example/dto

@@ -24,8 +24,8 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "framework", defaultValue = "spring")
     String framework;
 
-    @Parameter(property = "role", defaultValue = "server")
-    String role;
+    @Parameter(property = "generate", defaultValue = "controller")
+    String generate;
 
     @Parameter(property = "spec", required = true)
     String spec;
@@ -36,6 +36,10 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "generateResponseParameter", required = false)
     boolean generateResponseParameter = false;
 
+    /**
+     * @deprecated superseded by adding {@code api} to the {@code generate} parameter
+     */
+    @Deprecated
     @Parameter(property = "generateApiInterface", required = false)
     boolean generateApiInterface = false;
 
@@ -50,10 +54,13 @@ public class CodegenMojo extends AbstractMojo {
         GeneratorParams params =
                 GeneratorParams.rootPackage(rootPackage)
                         .generateResponseParameter(generateResponseParameter)
-                        .generateApiInterface(generateApiInterface)
                         .forceSnakeCaseForProperties(forceSnakeCaseForProperties)
                         .framework(Framework.of(framework))
-                        .role(Role.of(role));
+                        .generate(Role.parse(generate));
+        if (generateApiInterface) {
+            getLog().warn("generateApiInterface is deprecated; use <generate>controller,api</generate> instead");
+            params.generateApiInterface(true);
+        }
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language)
                         ? new JavaCodegen(params)

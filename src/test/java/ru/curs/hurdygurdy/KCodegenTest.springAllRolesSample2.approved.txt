@@ -7,6 +7,41 @@
 ---
 /com/example/controller
 ---
+/com/example/controller/Api.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import kotlin.Int
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Api {
+  @PostMapping(value = ["/api/v1/activity"])
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?)
+
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(): String?
+
+  @GetMapping(
+    value = ["/api/v1/hello/{id}"],
+    produces = ["*/*"],
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "foo") foo: String?,
+    @RequestParam(required = true, name = "bar") bar: Int?,
+    @RequestHeader(required = true, name = "baz") baz: String?,
+  ): String?
+}
+---
 /com/example/controller/Client.kt
 package com.example.controller
 
@@ -44,6 +79,56 @@ public interface Client {
   ): ResponseEntity<String>
 }
 ---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.Int
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @PostMapping(value = ["/api/v1/activity"])
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?, response: HttpServletResponse)
+
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(request: HttpServletRequest, response: HttpServletResponse): String?
+
+  @GetMapping(
+    value = ["/api/v1/hello/{id}"],
+    produces = ["*/*"],
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "foo") foo: String?,
+    @RequestParam(required = true, name = "bar") bar: Int?,
+    @RequestHeader(required = true, name = "baz") baz: String?,
+    response: HttpServletResponse,
+  ): String?
+}
+---
+/com/example/controller/PlayerApi.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface PlayerApi {
+  @PostMapping(value = ["/api/v1/players"])
+  public fun syncPlayers(@RequestBody request: PlayersDTO?)
+}
+---
 /com/example/controller/PlayerClient.kt
 package com.example.controller
 
@@ -56,6 +141,19 @@ import org.springframework.web.service.`annotation`.PostExchange
 public interface PlayerClient {
   @PostExchange(value = "/api/v1/players")
   public fun syncPlayers(@RequestBody request: PlayersDTO?): ResponseEntity<Unit>
+}
+---
+/com/example/controller/PlayerController.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import jakarta.servlet.http.HttpServletResponse
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface PlayerController {
+  @PostMapping(value = ["/api/v1/players"])
+  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse)
 }
 ---
 /com/example/dto

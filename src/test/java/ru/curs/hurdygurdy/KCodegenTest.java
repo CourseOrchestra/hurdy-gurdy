@@ -199,7 +199,7 @@ class KCodegenTest {
     void springClientSample2() throws IOException {
         codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
                 .generateResponseParameter(true)
-                .framework(Framework.SPRING).role(Role.CLIENT));
+                .framework(Framework.SPRING).generate(Role.CLIENT));
         codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
         verify(result);
     }
@@ -208,7 +208,7 @@ class KCodegenTest {
     void quarkusClientSample2() throws IOException {
         codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
                 .generateResponseParameter(true)
-                .framework(Framework.QUARKUS).role(Role.CLIENT));
+                .framework(Framework.QUARKUS).generate(Role.CLIENT));
         codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
         verify(result);
     }
@@ -217,10 +217,31 @@ class KCodegenTest {
     void quarkusClientMultipart() throws IOException {
         codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
                 .generateResponseParameter(true)
-                .framework(Framework.QUARKUS).role(Role.CLIENT));
+                .framework(Framework.QUARKUS).generate(Role.CLIENT));
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
         // Snapshot only.
         Approvals.verify(getContent(result));
+    }
+
+    @Test
+    void quarkusServerAndClientSample2() throws IOException {
+        // Both roles in a single run: XxxController (server resource) and
+        // XxxClient (@RegisterRestClient) side by side, sharing the DTOs.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void springAllRolesSample2() throws IOException {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .generate(Role.CONTROLLER, Role.API, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
     }
 
 

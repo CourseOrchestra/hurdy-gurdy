@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,12 +26,12 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     private final GeneratorParams params;
 
     private final Map<String, B> builders = new HashMap<>();
-    private final Function<String, B> builderSupplier;
+    private final BiFunction<String, Role, B> builderSupplier;
     private final Function<B, T> buildInvoker;
 
     protected APIExtractor(TypeDefiner<T> typeDefiner,
                            GeneratorParams params,
-                           Function<String, B> builderSupplier,
+                           BiFunction<String, Role, B> builderSupplier,
                            Function<B, T> buildInvoker) {
         this.typeDefiner = typeDefiner;
         this.params = params;
@@ -38,46 +39,41 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         this.buildInvoker = buildInvoker;
     }
 
-    private B builder(String className) {
-        return builders.computeIfAbsent(className, k -> builderSupplier.apply(className));
+    private B builder(String className, Role role) {
+        return builders.computeIfAbsent(className, k -> builderSupplier.apply(className, role));
     }
 
     protected Framework getFramework() {
         return params.getFramework();
     }
 
-    protected Role getRole() {
-        return params.getRole();
-    }
-
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         Paths paths = openAPI.getPaths();
         if (paths == null) return;
-        generateClass(openAPI, paths, "Controller", params.isGenerateResponseParameter());
-        builders.values().stream().map(buildInvoker).forEach(t ->
-                typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
-        if (params.isGenerateApiInterface()) {
+        for (Role role : params.getGenerate()) {
             builders.clear();
-            generateClass(openAPI, paths, "Api", false);
+            //the Api interface never carries response-related artifacts
+            generateClass(openAPI, paths, role,
+                    role != Role.API && params.isGenerateResponseParameter());
             builders.values().stream().map(buildInvoker).forEach(t ->
                     typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
         }
     }
 
-    private void generateClass(OpenAPI openAPI, Paths paths, String name, boolean responseParameter) {
+    private void generateClass(OpenAPI openAPI, Paths paths, Role role, boolean responseParameter) {
         for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
             for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry
                     : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
                 List<String> tags = operationEntry.getValue().getTags();
                 String typeName = CaseUtils.snakeToCamel(tags != null && !tags.isEmpty() ? tags.get(0) : "", true)
-                        + name;
+                        + role.getSuffix();
                 String operationId = CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId());
                 if (operationId == null) {
                     operationId = CaseUtils.pathToCamel(stringPathItemEntry.getKey())
                             + CaseUtils.snakeToCamel(operationEntry.getKey().name().toLowerCase(), true);
                 }
-                buildMethod(openAPI, builder(typeName), stringPathItemEntry,
-                        operationEntry, operationId, responseParameter);
+                buildMethod(openAPI, builder(typeName, role), stringPathItemEntry,
+                        operationEntry, operationId, role, responseParameter);
             }
         }
     }
@@ -87,6 +83,7 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
                               Map.Entry<String, PathItem> stringPathItemEntry,
                               Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
                               String operationId,
+                              Role role,
                               boolean generateResponseParameter);
 
     static Optional<Content> getSuccessfulReply(Operation operation) {

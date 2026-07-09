@@ -11,51 +11,142 @@
 package com.example.controller
 
 import com.example.dto.PlayerActivitiesDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.core.Response
 import kotlin.Int
 import kotlin.String
-import kotlin.Unit
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.`annotation`.PathVariable
-import org.springframework.web.bind.`annotation`.RequestBody
-import org.springframework.web.bind.`annotation`.RequestHeader
-import org.springframework.web.bind.`annotation`.RequestParam
-import org.springframework.web.service.`annotation`.GetExchange
-import org.springframework.web.service.`annotation`.PostExchange
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 
+@Path("")
+@RegisterRestClient
 public interface Client {
-  @PostExchange(value = "/api/v1/activity")
-  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?): ResponseEntity<Unit>
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/activity")
+  @Consumes("application/json")
+  public fun syncPlayerActivities(request: PlayerActivitiesDTO?): Response
 
-  @GetExchange(
-    value = "/api/v1/hello",
-    accept = ["*/*"],
-  )
-  public fun hello(): ResponseEntity<String>
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello")
+  @Produces("*/*")
+  public fun hello(): Response
 
-  @GetExchange(
-    value = "/api/v1/hello/{id}",
-    accept = ["*/*"],
-  )
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello/{id}")
+  @Produces("*/*")
   public fun hello(
-    @PathVariable(name = "id") id: Int?,
-    @RequestParam(required = false, name = "foo") foo: String?,
-    @RequestParam(required = true, name = "bar") bar: Int?,
-    @RequestHeader(required = true, name = "baz") baz: String?,
-  ): ResponseEntity<String>
+    @PathParam("id") id: Int?,
+    @QueryParam("foo") foo: String?,
+    @QueryParam("bar") bar: Int?,
+    @HeaderParam("baz") baz: String?,
+  ): Response
+}
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.container.ContainerRequestContext
+import jakarta.ws.rs.core.Context
+import jakarta.ws.rs.core.Response
+import kotlin.Int
+import kotlin.String
+
+@Path("")
+public interface Controller {
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/activity")
+  @Consumes("application/json")
+  public fun syncPlayerActivities(request: PlayerActivitiesDTO?): Response
+
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello")
+  @Produces("*/*")
+  public fun hello(@Context requestContext: ContainerRequestContext): Response
+
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello/{id}")
+  @Produces("*/*")
+  public fun hello(
+    @PathParam("id") id: Int?,
+    @QueryParam("foo") foo: String?,
+    @QueryParam("bar") bar: Int?,
+    @HeaderParam("baz") baz: String?,
+  ): Response
 }
 ---
 /com/example/controller/PlayerClient.kt
 package com.example.controller
 
 import com.example.dto.PlayersDTO
-import kotlin.Unit
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.`annotation`.RequestBody
-import org.springframework.web.service.`annotation`.PostExchange
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.core.Response
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 
+@Path("")
+@RegisterRestClient
 public interface PlayerClient {
-  @PostExchange(value = "/api/v1/players")
-  public fun syncPlayers(@RequestBody request: PlayersDTO?): ResponseEntity<Unit>
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/players")
+  @Consumes("application/json")
+  public fun syncPlayers(request: PlayersDTO?): Response
+}
+---
+/com/example/controller/PlayerController.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.core.Response
+
+@Path("")
+public interface PlayerController {
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/players")
+  @Consumes("application/json")
+  public fun syncPlayers(request: PlayersDTO?): Response
 }
 ---
 /com/example/dto

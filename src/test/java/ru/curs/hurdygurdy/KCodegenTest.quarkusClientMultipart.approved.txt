@@ -7,7 +7,7 @@
 ---
 /com/example/controller
 ---
-/com/example/controller/Controller.kt
+/com/example/controller/Client.kt
 package com.example.controller
 
 import com.example.dto.RunWorkflowRequest
@@ -22,7 +22,7 @@ import org.jboss.resteasy.reactive.multipart.FileUpload
 
 @Path("")
 @RegisterRestClient
-public interface Controller {
+public interface Client {
   /**
    * @return a Response whose entity is expected to be com.example.dto.RunWorkflowRequest
    */

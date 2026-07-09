@@ -7,89 +7,44 @@
 ---
 /com/example/controller
 ---
-/com/example/controller/Client.java
+/com/example/controller/Controller.java
 package com.example.controller;
 
 import com.example.dto.PlayerActivitiesDTO;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Response;
-import java.lang.Integer;
-import java.lang.String;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-
-@Path("")
-@RegisterRestClient
-public interface Client {
-  /**
-   * @return a Response whose entity is expected to be empty (no body)
-   */
-  @POST
-  @Path("/api/v1/activity")
-  @Consumes("application/json")
-  Response syncPlayerActivities(PlayerActivitiesDTO request);
-
-  /**
-   * @return a Response whose entity is expected to be java.lang.String
-   */
-  @GET
-  @Path("/api/v1/hello")
-  @Produces("*/*")
-  Response hello();
-
-  /**
-   * @return a Response whose entity is expected to be java.lang.String
-   */
-  @GET
-  @Path("/api/v1/hello/{id}")
-  @Produces("*/*")
-  Response hello(@PathParam("id") int id, @QueryParam("foo") String foo,
-      @QueryParam("bar") Integer bar, @HeaderParam("baz") String baz);
-}
----
-/com/example/controller/PlayerClient.java
-package com.example.controller;
-
 import com.example.dto.PlayersDTO;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import com.example.dto.PromoDTO;
+import com.example.dto.TagsDTO;
+import java.lang.String;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-@Path("")
-@RegisterRestClient
-public interface PlayerClient {
-  /**
-   * @return a Response whose entity is expected to be empty (no body)
-   */
-  @POST
-  @Path("/api/v1/players")
-  @Consumes("application/json")
-  Response syncPlayers(PlayersDTO request);
+interface Controller {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
+
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/promo/{name}",
+      produces = "application/json"
+  )
+  PromoDTO getPromo(@PathVariable(name = "name") String name, HttpServletResponse response);
+
+  @PostMapping("/api/v1/tags")
+  void postTags(@RequestBody TagsDTO request, HttpServletResponse response);
 }
 ---
 /com/example/dto
----
-/com/example/dto/Car.java
-package com.example.dto;
-
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import java.lang.String;
-import lombok.Data;
-
-@Data
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Car extends Vehicle {
-  private String carProperty;
-}
 ---
 /com/example/dto/DepositDTO.java
 package com.example.dto;
@@ -108,8 +63,6 @@ import lombok.Data;
 public class DepositDTO {
   private PlayerDTO player;
 
-  private PlayerEnum playerenum;
-
   private String depositId;
 
   private Long amountCents;
@@ -123,17 +76,33 @@ public class DepositDTO {
   private ZonedDateTime processedAt;
 }
 ---
-/com/example/dto/Parent.java
+/com/example/dto/ErrorDTO.java
 package com.example.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
 import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Parent {
-  private Vehicle vehicle;
+public class ErrorDTO {
+  private String className;
+
+  private String id;
+
+  private String message;
+}
+---
+/com/example/dto/Gender.java
+package com.example.dto;
+
+public enum Gender {
+  m,
+
+  f,
+
+  n
 }
 ---
 /com/example/dto/PlayerActivitiesDTO.java
@@ -187,6 +156,8 @@ public class PlayerActivityDTO {
   private String userId;
 
   private String currency;
+
+  private Long winsSumCents;
 
   private Long betsSumCents;
 
@@ -257,30 +228,6 @@ public class PlayerDTO {
   private ZonedDateTime signUpAt;
 
   private boolean duplicate;
-
-  public enum Gender {
-    m,
-
-    f,
-
-    n
-  }
-}
----
-/com/example/dto/PlayerEnum.java
-package com.example.dto;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public enum PlayerEnum {
-  @JsonProperty("good")
-  GOOD,
-
-  @JsonProperty("bad")
-  BAD,
-
-  @JsonProperty("ugly")
-  UGLY
 }
 ---
 /com/example/dto/PlayersDTO.java
@@ -297,40 +244,56 @@ public class PlayersDTO {
   private List<PlayerDTO> players;
 }
 ---
-/com/example/dto/Truck.java
+/com/example/dto/PromoDTO.java
 package com.example.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
 import java.lang.String;
 import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Truck extends Vehicle {
-  private String truckProperty;
+public class PromoDTO {
+  private Integer id;
+
+  private String name;
+
+  private String landingUrl;
 }
 ---
-/com/example/dto/Vehicle.java
+/com/example/dto/TagDTO.java
 package com.example.dto;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
 import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "vehicle_type"
-)
-@JsonSubTypes({
-    @JsonSubTypes.Type(value = Car.class, name = "CAR"),
-    @JsonSubTypes.Type(value = Truck.class, name = "TRUCK")})
-public class Vehicle {
+public class TagDTO {
+  private Integer promoId;
+
+  private String tag;
+
+  private String ip;
+}
+---
+/com/example/dto/TagsDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TagsDTO {
+  private List<TagDTO> items;
 }
 ---
 /com/example/dto/ZonedDateTimeDeserializer.java
@@ -357,12 +320,6 @@ public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
       return ZonedDateTime.parse(date, formatter);
     }
     catch (DateTimeException e) {
-      try  {
-        return ZonedDateTime.parse(date + "Z", formatter);
-      }
-      catch (DateTimeException ignored) {
-        // do nothing, exception thrown below
-      }
       throw new JsonParseException(jsonParser, e.getMessage());
     }
   }

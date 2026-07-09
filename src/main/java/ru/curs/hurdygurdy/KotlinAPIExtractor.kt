@@ -30,14 +30,14 @@ class KotlinAPIExtractor(
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         typeDefiner,
         params,
-        {
-            val b = TypeSpec.interfaceBuilder(normalizeToCamel(it))
+        { name, role ->
+            val b = TypeSpec.interfaceBuilder(normalizeToCamel(name))
             if (params.framework == Framework.QUARKUS) {
                 b.addAnnotation(
                     AnnotationSpec.builder(ClassName("jakarta.ws.rs", "Path"))
                         .addMember("%S", "").build()
                 )
-                if (params.role == Role.CLIENT) {
+                if (role == Role.CLIENT) {
                     b.addAnnotation(AnnotationSpec.builder(MP_REGISTER_REST_CLIENT).build())
                 }
             }
@@ -79,12 +79,13 @@ class KotlinAPIExtractor(
         stringPathItemEntry: Map.Entry<String, PathItem>,
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
         operationId: String,
+        role: Role,
         generateResponseParameter: Boolean
     ) {
         if (framework == Framework.QUARKUS) {
             buildQuarkusMethod(
                 openAPI, classBuilder, stringPathItemEntry,
-                operationEntry, operationId, generateResponseParameter
+                operationEntry, operationId, role, generateResponseParameter
             )
         } else if (role == Role.CLIENT) {
             buildSpringClientMethod(
@@ -215,6 +216,7 @@ class KotlinAPIExtractor(
         stringPathItemEntry: Map.Entry<String, PathItem>,
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
         operationId: String,
+        role: Role,
         generateResponseParameter: Boolean
     ) {
         val methodBuilder = FunSpec
@@ -292,7 +294,7 @@ class KotlinAPIExtractor(
                         ).build()
                 )
             }
-        if (generateResponseParameter && isIncludeRequest(operationEntry.value) && role == Role.SERVER) {
+        if (generateResponseParameter && isIncludeRequest(operationEntry.value) && role == Role.CONTROLLER) {
             methodBuilder.addParameter(
                 ParameterSpec.builder("requestContext", JAXRS_REQUEST_CONTEXT)
                     .addAnnotation(JAXRS_CONTEXT)

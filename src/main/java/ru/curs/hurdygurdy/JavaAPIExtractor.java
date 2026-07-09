@@ -75,12 +75,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
                             GeneratorParams params) {
         super(typeDefiner, params,
-                name -> {
+                (name, role) -> {
                     TypeSpec.Builder b = TypeSpec.interfaceBuilder(normalizeToCamel(name));
                     if (params.getFramework() == Framework.QUARKUS) {
                         b.addAnnotation(AnnotationSpec.builder(JAXRS_PATH)
                                 .addMember("value", "$S", "").build());
-                        if (params.getRole() == Role.CLIENT) {
+                        if (role == Role.CLIENT) {
                             b.addAnnotation(AnnotationSpec.builder(MP_REGISTER_REST_CLIENT).build());
                         }
                     }
@@ -97,11 +97,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                      Map.Entry<String, PathItem> stringPathItemEntry,
                      Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
                      String operationId,
+                     Role role,
                      boolean generateResponseParameter) {
         if (getFramework() == Framework.QUARKUS) {
             buildQuarkusMethod(openAPI, classBuilder, stringPathItemEntry,
-                    operationEntry, operationId, generateResponseParameter);
-        } else if (getRole() == Role.CLIENT) {
+                    operationEntry, operationId, role, generateResponseParameter);
+        } else if (role == Role.CLIENT) {
             buildSpringClientMethod(openAPI, classBuilder, stringPathItemEntry,
                     operationEntry, operationId, generateResponseParameter);
         } else {
@@ -192,6 +193,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                      Map.Entry<String, PathItem> stringPathItemEntry,
                      Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
                      String operationId,
+                     Role role,
                      boolean generateResponseParameter) {
         MethodSpec.Builder methodBuilder = MethodSpec
                 .methodBuilder(operationId)
@@ -255,7 +257,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                 .addMember("value", "$S", parameter.getName()).build())
                         .build()));
         if (generateResponseParameter && isIncludeRequest(operationEntry.getValue())
-                && getRole() == Role.SERVER) {
+                && role == Role.CONTROLLER) {
             methodBuilder.addParameter(ParameterSpec.builder(
                             JAXRS_REQUEST_CONTEXT, "requestContext")
                     .addAnnotation(JAXRS_CONTEXT).build());
@@ -330,27 +332,14 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     private AnnotationSpec getSpringExchangeAnnotationSpec(
             Map.Entry<PathItem.HttpMethod, Operation> operationEntry, String path) {
-        ClassName annotationClass;
-        switch (operationEntry.getKey()) {
-            case GET:
-                annotationClass = SPRING_GET_EXCHANGE;
-                break;
-            case POST:
-                annotationClass = SPRING_POST_EXCHANGE;
-                break;
-            case PUT:
-                annotationClass = SPRING_PUT_EXCHANGE;
-                break;
-            case PATCH:
-                annotationClass = SPRING_PATCH_EXCHANGE;
-                break;
-            case DELETE:
-                annotationClass = SPRING_DELETE_EXCHANGE;
-                break;
-            default:
-                annotationClass = null;
-                break;
-        }
+        ClassName annotationClass = switch (operationEntry.getKey()) {
+            case GET -> SPRING_GET_EXCHANGE;
+            case POST -> SPRING_POST_EXCHANGE;
+            case PUT -> SPRING_PUT_EXCHANGE;
+            case PATCH -> SPRING_PATCH_EXCHANGE;
+            case DELETE -> SPRING_DELETE_EXCHANGE;
+            default -> null;
+        };
         if (annotationClass == null) {
             return null;
         }
@@ -451,27 +440,14 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     private List<AnnotationSpec> getQuarkusMethodAnnotations(
             Map.Entry<PathItem.HttpMethod, Operation> operationEntry, String path) {
         List<AnnotationSpec> result = new ArrayList<>();
-        ClassName verb;
-        switch (operationEntry.getKey()) {
-            case GET:
-                verb = JAXRS_GET;
-                break;
-            case POST:
-                verb = JAXRS_POST;
-                break;
-            case PUT:
-                verb = JAXRS_PUT;
-                break;
-            case PATCH:
-                verb = JAXRS_PATCH;
-                break;
-            case DELETE:
-                verb = JAXRS_DELETE;
-                break;
-            default:
-                verb = null;
-                break;
-        }
+        ClassName verb = switch (operationEntry.getKey()) {
+            case GET -> JAXRS_GET;
+            case POST -> JAXRS_POST;
+            case PUT -> JAXRS_PUT;
+            case PATCH -> JAXRS_PATCH;
+            case DELETE -> JAXRS_DELETE;
+            default -> null;
+        };
         if (verb == null) {
             return result;
         }
@@ -494,24 +470,14 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     private AnnotationSpec getControllerMethodAnnotationSpec(Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
                                                              String path) {
-        Class<?> annotationClass = null;
-        switch (operationEntry.getKey()) {
-            case GET:
-                annotationClass = GetMapping.class;
-                break;
-            case POST:
-                annotationClass = PostMapping.class;
-                break;
-            case PUT:
-                annotationClass = PutMapping.class;
-                break;
-            case PATCH:
-                annotationClass = PatchMapping.class;
-                break;
-            case DELETE:
-                annotationClass = DeleteMapping.class;
-                break;
-        }
+        Class<?> annotationClass = switch (operationEntry.getKey()) {
+            case GET -> GetMapping.class;
+            case POST -> PostMapping.class;
+            case PUT -> PutMapping.class;
+            case PATCH -> PatchMapping.class;
+            case DELETE -> DeleteMapping.class;
+            default -> null;
+        };
         if (annotationClass != null) {
             AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
                     .addMember("value", "$S", path);

@@ -7,7 +7,7 @@
 ---
 /com/example/controller
 ---
-/com/example/controller/Controller.kt
+/com/example/controller/Client.kt
 package com.example.controller
 
 import com.example.dto.PlayerActivitiesDTO
@@ -26,7 +26,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 
 @Path("")
 @RegisterRestClient
-public interface Controller {
+public interface Client {
   /**
    * @return a Response whose entity is expected to be empty (no body)
    */
@@ -57,7 +57,7 @@ public interface Controller {
   ): Response
 }
 ---
-/com/example/controller/PlayerController.kt
+/com/example/controller/PlayerClient.kt
 package com.example.controller
 
 import com.example.dto.PlayersDTO
@@ -69,7 +69,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 
 @Path("")
 @RegisterRestClient
-public interface PlayerController {
+public interface PlayerClient {
   /**
    * @return a Response whose entity is expected to be empty (no body)
    */

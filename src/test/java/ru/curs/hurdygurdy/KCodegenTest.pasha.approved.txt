@@ -1,0 +1,5512 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.ActivityCursorPage
+import com.example.dto.ActivityItem
+import com.example.dto.Agile
+import com.example.dto.AppearanceSettings
+import com.example.dto.Article
+import com.example.dto.ArticleAttachment
+import com.example.dto.ArticleComment
+import com.example.dto.BackupFile
+import com.example.dto.BackupStatus
+import com.example.dto.BuildBundle
+import com.example.dto.BuildBundleElement
+import com.example.dto.CommandList
+import com.example.dto.CustomField
+import com.example.dto.CustomFieldDefaults
+import com.example.dto.DatabaseBackupSettings
+import com.example.dto.EnumBundle
+import com.example.dto.EnumBundleElement
+import com.example.dto.FieldType
+import com.example.dto.GeneralUserProfile
+import com.example.dto.GlobalSettings
+import com.example.dto.GlobalTimeTrackingSettings
+import com.example.dto.Issue
+import com.example.dto.IssueAttachment
+import com.example.dto.IssueComment
+import com.example.dto.IssueCountResponse
+import com.example.dto.IssueCustomField
+import com.example.dto.IssueLink
+import com.example.dto.IssueLinkType
+import com.example.dto.IssueTag
+import com.example.dto.IssueTimeTracker
+import com.example.dto.IssueWorkItem
+import com.example.dto.License
+import com.example.dto.LocaleSettings
+import com.example.dto.Me
+import com.example.dto.NotificationSettings
+import com.example.dto.NotificationsUserProfile
+import com.example.dto.OwnedBundle
+import com.example.dto.OwnedBundleElement
+import com.example.dto.Project
+import com.example.dto.ProjectCustomField
+import com.example.dto.ProjectTimeTrackingSettings
+import com.example.dto.RestCorsSettings
+import com.example.dto.SavedQuery
+import com.example.dto.SearchSuggestions
+import com.example.dto.Sprint
+import com.example.dto.StateBundle
+import com.example.dto.StateBundleElement
+import com.example.dto.SystemSettings
+import com.example.dto.Telemetry
+import com.example.dto.TimeTrackingUserProfile
+import com.example.dto.User
+import com.example.dto.UserBundle
+import com.example.dto.UserGroup
+import com.example.dto.VcsChange
+import com.example.dto.VersionBundle
+import com.example.dto.VersionBundleElement
+import com.example.dto.WorkItemType
+import com.example.dto.WorkTimeSettings
+import java.time.LocalDate
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.Unit
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.DeleteMapping
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @GetMapping(
+    value = ["/activities"],
+    produces = ["application/json"],
+  )
+  public fun activitiesGet(
+    @RequestParam(required = false, name = "categories") categories: String?,
+    @RequestParam(required = false, name = "reverse") reverse: Boolean?,
+    @RequestParam(required = false, name = "start") start: String?,
+    @RequestParam(required = false, name = "end") end: String?,
+    @RequestParam(required = false, name = "author") author: String?,
+    @RequestParam(required = false, name = "issueQuery") issueQuery: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ActivityItem>?
+
+  @GetMapping(
+    value = ["/activities/{id}"],
+    produces = ["application/json"],
+  )
+  public fun activitiesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): ActivityItem?
+
+  @GetMapping(
+    value = ["/activitiesPage"],
+    produces = ["application/json"],
+  )
+  public fun activitiesPageGet(
+    @RequestParam(required = false, name = "categories") categories: String?,
+    @RequestParam(required = false, name = "reverse") reverse: Boolean?,
+    @RequestParam(required = false, name = "start") start: String?,
+    @RequestParam(required = false, name = "end") end: String?,
+    @RequestParam(required = false, name = "author") author: String?,
+    @RequestParam(required = false, name = "issueQuery") issueQuery: String?,
+    @RequestParam(required = false, name = "cursor") cursor: String?,
+    @RequestParam(required = false, name = "activityId") activityId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ActivityCursorPage?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/build"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<BuildBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/build"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildPost(@RequestBody request: BuildBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): BuildBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): BuildBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdPost(
+    @RequestBody request: BuildBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): BuildBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/build/{id}"])
+  public fun adminCustomFieldSettingsBundlesBuildIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdValuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<BuildBundleElement>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdValuesPost(
+    @RequestBody request: BuildBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): BuildBundleElement?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "buildBundleElementId") buildBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): BuildBundleElement?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementIdPost(
+    @RequestBody request: BuildBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "buildBundleElementId") buildBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): BuildBundleElement?
+
+  @DeleteMapping(value =
+      ["/admin/customFieldSettings/bundles/build/{id}/values/{buildBundleElementId}"])
+  public
+      fun adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "buildBundleElementId")
+      buildBundleElementId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/enum"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<EnumBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/enum"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumPost(@RequestBody request: EnumBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): EnumBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): EnumBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdPost(
+    @RequestBody request: EnumBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): EnumBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/enum/{id}"])
+  public fun adminCustomFieldSettingsBundlesEnumIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdValuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<EnumBundleElement>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdValuesPost(
+    @RequestBody request: EnumBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): EnumBundleElement?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}/values/{enumBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdValuesEnumBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "enumBundleElementId") enumBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): EnumBundleElement?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/enum/{id}/values/{enumBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesEnumIdValuesEnumBundleElementIdPost(
+    @RequestBody request: EnumBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "enumBundleElementId") enumBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): EnumBundleElement?
+
+  @DeleteMapping(value =
+      ["/admin/customFieldSettings/bundles/enum/{id}/values/{enumBundleElementId}"])
+  public fun adminCustomFieldSettingsBundlesEnumIdValuesEnumBundleElementIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "enumBundleElementId")
+      enumBundleElementId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<OwnedBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldPost(@RequestBody request: OwnedBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): OwnedBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): OwnedBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdPost(
+    @RequestBody request: OwnedBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): OwnedBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/ownedField/{id}"])
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdDelete(@PathVariable(name = "id")
+      id: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdValuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<OwnedBundleElement>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdValuesPost(
+    @RequestBody request: OwnedBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): OwnedBundleElement?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}/values/{ownedBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdValuesOwnedBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "ownedBundleElementId") ownedBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): OwnedBundleElement?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/ownedField/{id}/values/{ownedBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesOwnedFieldIdValuesOwnedBundleElementIdPost(
+    @RequestBody request: OwnedBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "ownedBundleElementId") ownedBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): OwnedBundleElement?
+
+  @DeleteMapping(value =
+      ["/admin/customFieldSettings/bundles/ownedField/{id}/values/{ownedBundleElementId}"])
+  public
+      fun adminCustomFieldSettingsBundlesOwnedFieldIdValuesOwnedBundleElementIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "ownedBundleElementId")
+      ownedBundleElementId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/state"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<StateBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/state"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStatePost(@RequestBody request: StateBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): StateBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): StateBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdPost(
+    @RequestBody request: StateBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): StateBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/state/{id}"])
+  public fun adminCustomFieldSettingsBundlesStateIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdValuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<StateBundleElement>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdValuesPost(
+    @RequestBody request: StateBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): StateBundleElement?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}/values/{stateBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdValuesStateBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "stateBundleElementId") stateBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): StateBundleElement?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/state/{id}/values/{stateBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesStateIdValuesStateBundleElementIdPost(
+    @RequestBody request: StateBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "stateBundleElementId") stateBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): StateBundleElement?
+
+  @DeleteMapping(value =
+      ["/admin/customFieldSettings/bundles/state/{id}/values/{stateBundleElementId}"])
+  public
+      fun adminCustomFieldSettingsBundlesStateIdValuesStateBundleElementIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "stateBundleElementId")
+      stateBundleElementId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<UserBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/user"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserPost(@RequestBody request: UserBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): UserBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): UserBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdPost(
+    @RequestBody request: UserBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): UserBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/user/{id}"])
+  public fun adminCustomFieldSettingsBundlesUserIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/aggregatedUsers"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdAggregatedUsersGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<User>?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/groups"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdGroupsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<UserGroup>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/groups"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdGroupsPost(
+    @RequestBody request: UserGroup?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): UserGroup?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/groups/{userGroupId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdGroupsUserGroupIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "userGroupId") userGroupId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): UserGroup?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/user/{id}/groups/{userGroupId}"])
+  public fun adminCustomFieldSettingsBundlesUserIdGroupsUserGroupIdDelete(@PathVariable(name = "id")
+      id: String?, @PathVariable(name = "userGroupId") userGroupId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/individuals"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdIndividualsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<User>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/individuals"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdIndividualsPost(
+    @RequestBody request: User?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): User?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/user/{id}/individuals/{userId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesUserIdIndividualsUserIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "userId") userId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): User?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/user/{id}/individuals/{userId}"])
+  public fun adminCustomFieldSettingsBundlesUserIdIndividualsUserIdDelete(@PathVariable(name = "id")
+      id: String?, @PathVariable(name = "userId") userId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/version"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<VersionBundle>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/version"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionPost(@RequestBody request: VersionBundle?,
+      @RequestParam(required = false, name = "fields") fields: String?): VersionBundle?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): VersionBundle?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdPost(
+    @RequestBody request: VersionBundle?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VersionBundle?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/bundles/version/{id}"])
+  public fun adminCustomFieldSettingsBundlesVersionIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdValuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<VersionBundleElement>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}/values"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdValuesPost(
+    @RequestBody request: VersionBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VersionBundleElement?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}/values/{versionBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdValuesVersionBundleElementIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "versionBundleElementId") versionBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VersionBundleElement?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/bundles/version/{id}/values/{versionBundleElementId}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsBundlesVersionIdValuesVersionBundleElementIdPost(
+    @RequestBody request: VersionBundleElement?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "versionBundleElementId") versionBundleElementId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VersionBundleElement?
+
+  @DeleteMapping(value =
+      ["/admin/customFieldSettings/bundles/version/{id}/values/{versionBundleElementId}"])
+  public
+      fun adminCustomFieldSettingsBundlesVersionIdValuesVersionBundleElementIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "versionBundleElementId")
+      versionBundleElementId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/customFields"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<CustomField>?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/customFields"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsPost(@RequestBody request: CustomField?,
+      @RequestParam(required = false, name = "fields") fields: String?): CustomField?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/customFields/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): CustomField?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/customFields/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsIdPost(
+    @RequestBody request: CustomField?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): CustomField?
+
+  @DeleteMapping(value = ["/admin/customFieldSettings/customFields/{id}"])
+  public fun adminCustomFieldSettingsCustomFieldsIdDelete(@PathVariable(name = "id") id: String?):
+      Unit
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/customFields/{id}/fieldDefaults"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsIdFieldDefaultsGet(@PathVariable(name = "id")
+      id: String?, @RequestParam(required = false, name = "fields") fields: String?):
+      CustomFieldDefaults?
+
+  @PostMapping(
+    value = ["/admin/customFieldSettings/customFields/{id}/fieldDefaults"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsIdFieldDefaultsPost(
+    @RequestBody request: CustomFieldDefaults?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): CustomFieldDefaults?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/customFields/{id}/instances"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsCustomFieldsIdInstancesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ProjectCustomField>?
+
+  @GetMapping(
+    value = ["/admin/customFieldSettings/types"],
+    produces = ["application/json"],
+  )
+  public fun adminCustomFieldSettingsTypesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<FieldType>?
+
+  @GetMapping(
+    value = ["/admin/databaseBackup/backups"],
+    produces = ["application/json"],
+  )
+  public fun adminDatabaseBackupBackupsGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<BackupFile>?
+
+  @GetMapping(
+    value = ["/admin/databaseBackup/backups/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminDatabaseBackupBackupsIdGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): BackupFile?
+
+  @GetMapping(
+    value = ["/admin/databaseBackup/settings"],
+    produces = ["application/json"],
+  )
+  public fun adminDatabaseBackupSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): DatabaseBackupSettings?
+
+  @PostMapping(
+    value = ["/admin/databaseBackup/settings"],
+    produces = ["application/json"],
+  )
+  public fun adminDatabaseBackupSettingsPost(@RequestBody request: DatabaseBackupSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): DatabaseBackupSettings?
+
+  @GetMapping(
+    value = ["/admin/databaseBackup/settings/backupStatus"],
+    produces = ["application/json"],
+  )
+  public fun adminDatabaseBackupSettingsBackupStatusGet(@RequestParam(required = false, name =
+      "fields") fields: String?): BackupStatus?
+
+  @GetMapping(
+    value = ["/admin/globalSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): GlobalSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsPost(@RequestBody request: GlobalSettings?, @RequestParam(required =
+      false, name = "fields") fields: String?): GlobalSettings?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/appearanceSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsAppearanceSettingsGet(@RequestParam(required = false, name =
+      "fields") fields: String?): AppearanceSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/appearanceSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsAppearanceSettingsPost(@RequestBody request: AppearanceSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): AppearanceSettings?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/license"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsLicenseGet(@RequestParam(required = false, name = "fields")
+      fields: String?): License?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/license"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsLicensePost(@RequestBody request: License?, @RequestParam(required =
+      false, name = "fields") fields: String?): License?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/localeSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsLocaleSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): LocaleSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/localeSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsLocaleSettingsPost(@RequestBody request: LocaleSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): LocaleSettings?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/notificationSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsNotificationSettingsGet(@RequestParam(required = false, name =
+      "fields") fields: String?): NotificationSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/notificationSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsNotificationSettingsPost(@RequestBody
+      request: NotificationSettings?, @RequestParam(required = false, name = "fields")
+      fields: String?): NotificationSettings?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/restSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsRestSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): RestCorsSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/restSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsRestSettingsPost(@RequestBody request: RestCorsSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): RestCorsSettings?
+
+  @GetMapping(
+    value = ["/admin/globalSettings/systemSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsSystemSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): SystemSettings?
+
+  @PostMapping(
+    value = ["/admin/globalSettings/systemSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminGlobalSettingsSystemSettingsPost(@RequestBody request: SystemSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): SystemSettings?
+
+  @GetMapping(
+    value = ["/admin/projects"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Project>?
+
+  @PostMapping(
+    value = ["/admin/projects"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsPost(
+    @RequestBody request: Project?,
+    @RequestParam(required = false, name = "template") template: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Project?
+
+  @GetMapping(
+    value = ["/admin/projects/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required =
+      false, name = "fields") fields: String?): Project?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdPost(
+    @RequestBody request: Project?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Project?
+
+  @DeleteMapping(value = ["/admin/projects/{id}"])
+  public fun adminProjectsIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/customFields"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdCustomFieldsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ProjectCustomField>?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/customFields"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdCustomFieldsPost(
+    @RequestBody request: ProjectCustomField?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ProjectCustomField?
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/customFields/{projectCustomFieldId}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdCustomFieldsProjectCustomFieldIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "projectCustomFieldId") projectCustomFieldId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ProjectCustomField?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/customFields/{projectCustomFieldId}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdCustomFieldsProjectCustomFieldIdPost(
+    @RequestBody request: ProjectCustomField?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "projectCustomFieldId") projectCustomFieldId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ProjectCustomField?
+
+  @DeleteMapping(value = ["/admin/projects/{id}/customFields/{projectCustomFieldId}"])
+  public fun adminProjectsIdCustomFieldsProjectCustomFieldIdDelete(@PathVariable(name = "id")
+      id: String?, @PathVariable(name = "projectCustomFieldId") projectCustomFieldId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/issues"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdIssuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "customFields") customFields: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Issue>?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/issues"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdIssuesPost(
+    @RequestBody request: Issue?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/issues/{issueId}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdIssuesIssueIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueId") issueId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/issues/{issueId}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdIssuesIssueIdPost(
+    @RequestBody request: Issue?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueId") issueId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @DeleteMapping(value = ["/admin/projects/{id}/issues/{issueId}"])
+  public fun adminProjectsIdIssuesIssueIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "issueId") issueId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/timeTrackingSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdTimeTrackingSettingsGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?):
+      ProjectTimeTrackingSettings?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/timeTrackingSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdTimeTrackingSettingsPost(
+    @RequestBody request: ProjectTimeTrackingSettings?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ProjectTimeTrackingSettings?
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/timeTrackingSettings/workItemTypes"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdTimeTrackingSettingsWorkItemTypesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<WorkItemType>?
+
+  @PostMapping(
+    value = ["/admin/projects/{id}/timeTrackingSettings/workItemTypes"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdTimeTrackingSettingsWorkItemTypesPost(
+    @RequestBody request: WorkItemType?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): WorkItemType?
+
+  @GetMapping(
+    value = ["/admin/projects/{id}/timeTrackingSettings/workItemTypes/{workItemTypeId}"],
+    produces = ["application/json"],
+  )
+  public fun adminProjectsIdTimeTrackingSettingsWorkItemTypesWorkItemTypeIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "workItemTypeId") workItemTypeId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): WorkItemType?
+
+  @DeleteMapping(value =
+      ["/admin/projects/{id}/timeTrackingSettings/workItemTypes/{workItemTypeId}"])
+  public fun adminProjectsIdTimeTrackingSettingsWorkItemTypesWorkItemTypeIdDelete(@PathVariable(name
+      = "id") id: String?, @PathVariable(name = "workItemTypeId") workItemTypeId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/telemetry"],
+    produces = ["application/json"],
+  )
+  public fun adminTelemetryGet(@RequestParam(required = false, name = "fields") fields: String?):
+      Telemetry?
+
+  @GetMapping(
+    value = ["/admin/timeTrackingSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsGet(@RequestParam(required = false, name = "fields")
+      fields: String?): GlobalTimeTrackingSettings?
+
+  @GetMapping(
+    value = ["/admin/timeTrackingSettings/workItemTypes"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkItemTypesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<WorkItemType>?
+
+  @PostMapping(
+    value = ["/admin/timeTrackingSettings/workItemTypes"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkItemTypesPost(@RequestBody request: WorkItemType?,
+      @RequestParam(required = false, name = "fields") fields: String?): WorkItemType?
+
+  @GetMapping(
+    value = ["/admin/timeTrackingSettings/workItemTypes/{workItemTypeId}"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkItemTypesWorkItemTypeIdGet(@PathVariable(name =
+      "workItemTypeId") workItemTypeId: String?, @RequestParam(required = false, name = "fields")
+      fields: String?): WorkItemType?
+
+  @PostMapping(
+    value = ["/admin/timeTrackingSettings/workItemTypes/{workItemTypeId}"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkItemTypesWorkItemTypeIdPost(
+    @RequestBody request: WorkItemType?,
+    @PathVariable(name = "workItemTypeId") workItemTypeId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): WorkItemType?
+
+  @DeleteMapping(value = ["/admin/timeTrackingSettings/workItemTypes/{workItemTypeId}"])
+  public fun adminTimeTrackingSettingsWorkItemTypesWorkItemTypeIdDelete(@PathVariable(name =
+      "workItemTypeId") workItemTypeId: String?): Unit
+
+  @GetMapping(
+    value = ["/admin/timeTrackingSettings/workTimeSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkTimeSettingsGet(@RequestParam(required = false, name =
+      "fields") fields: String?): WorkTimeSettings?
+
+  @PostMapping(
+    value = ["/admin/timeTrackingSettings/workTimeSettings"],
+    produces = ["application/json"],
+  )
+  public fun adminTimeTrackingSettingsWorkTimeSettingsPost(@RequestBody request: WorkTimeSettings?,
+      @RequestParam(required = false, name = "fields") fields: String?): WorkTimeSettings?
+
+  @GetMapping(
+    value = ["/agiles"],
+    produces = ["application/json"],
+  )
+  public fun agilesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Agile>?
+
+  @PostMapping(
+    value = ["/agiles"],
+    produces = ["application/json"],
+  )
+  public fun agilesPost(
+    @RequestBody request: Agile?,
+    @RequestParam(required = false, name = "template") template: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Agile?
+
+  @GetMapping(
+    value = ["/agiles/{id}"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): Agile?
+
+  @PostMapping(
+    value = ["/agiles/{id}"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdPost(
+    @RequestBody request: Agile?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Agile?
+
+  @DeleteMapping(value = ["/agiles/{id}"])
+  public fun agilesIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/agiles/{id}/sprints"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdSprintsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Sprint>?
+
+  @PostMapping(
+    value = ["/agiles/{id}/sprints"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdSprintsPost(
+    @RequestBody request: Sprint?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Sprint?
+
+  @GetMapping(
+    value = ["/agiles/{id}/sprints/{sprintId}"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdSprintsSprintIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "sprintId") sprintId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Sprint?
+
+  @PostMapping(
+    value = ["/agiles/{id}/sprints/{sprintId}"],
+    produces = ["application/json"],
+  )
+  public fun agilesIdSprintsSprintIdPost(
+    @RequestBody request: Sprint?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "sprintId") sprintId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Sprint?
+
+  @DeleteMapping(value = ["/agiles/{id}/sprints/{sprintId}"])
+  public fun agilesIdSprintsSprintIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "sprintId") sprintId: String?): Unit
+
+  @GetMapping(
+    value = ["/articles"],
+    produces = ["application/json"],
+  )
+  public fun articlesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Article>?
+
+  @PostMapping(
+    value = ["/articles"],
+    produces = ["application/json"],
+  )
+  public fun articlesPost(
+    @RequestBody request: Article?,
+    @RequestParam(required = false, name = "draftId") draftId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Article?
+
+  @GetMapping(
+    value = ["/articles/{id}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): Article?
+
+  @PostMapping(
+    value = ["/articles/{id}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdPost(
+    @RequestBody request: Article?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Article?
+
+  @DeleteMapping(value = ["/articles/{id}"])
+  public fun articlesIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/articles/{id}/attachments"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdAttachmentsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ArticleAttachment>?
+
+  @PostMapping(
+    value = ["/articles/{id}/attachments"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdAttachmentsPost(
+    @RequestBody request: ArticleAttachment?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleAttachment?
+
+  @GetMapping(
+    value = ["/articles/{id}/attachments/{articleAttachmentId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdAttachmentsArticleAttachmentIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleAttachmentId") articleAttachmentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleAttachment?
+
+  @PostMapping(
+    value = ["/articles/{id}/attachments/{articleAttachmentId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdAttachmentsArticleAttachmentIdPost(
+    @RequestBody request: ArticleAttachment?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleAttachmentId") articleAttachmentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleAttachment?
+
+  @DeleteMapping(value = ["/articles/{id}/attachments/{articleAttachmentId}"])
+  public fun articlesIdAttachmentsArticleAttachmentIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "articleAttachmentId") articleAttachmentId: String?): Unit
+
+  @GetMapping(
+    value = ["/articles/{id}/childArticles"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdChildArticlesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Article>?
+
+  @PostMapping(
+    value = ["/articles/{id}/childArticles"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdChildArticlesPost(
+    @RequestBody request: Article?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Article?
+
+  @GetMapping(
+    value = ["/articles/{id}/childArticles/{articleId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdChildArticlesArticleIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleId") articleId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Article?
+
+  @PostMapping(
+    value = ["/articles/{id}/childArticles/{articleId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdChildArticlesArticleIdPost(
+    @RequestBody request: Article?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleId") articleId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Article?
+
+  @DeleteMapping(value = ["/articles/{id}/childArticles/{articleId}"])
+  public fun articlesIdChildArticlesArticleIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "articleId") articleId: String?): Unit
+
+  @GetMapping(
+    value = ["/articles/{id}/comments"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdCommentsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ArticleComment>?
+
+  @PostMapping(
+    value = ["/articles/{id}/comments"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdCommentsPost(
+    @RequestBody request: ArticleComment?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "draftId") draftId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleComment?
+
+  @GetMapping(
+    value = ["/articles/{id}/comments/{articleCommentId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdCommentsArticleCommentIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleCommentId") articleCommentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleComment?
+
+  @PostMapping(
+    value = ["/articles/{id}/comments/{articleCommentId}"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdCommentsArticleCommentIdPost(
+    @RequestBody request: ArticleComment?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "articleCommentId") articleCommentId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ArticleComment?
+
+  @DeleteMapping(value = ["/articles/{id}/comments/{articleCommentId}"])
+  public fun articlesIdCommentsArticleCommentIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "articleCommentId") articleCommentId: String?): Unit
+
+  @GetMapping(
+    value = ["/articles/{id}/parentArticle"],
+    produces = ["application/json"],
+  )
+  public fun articlesIdParentArticleGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): Article?
+
+  @PostMapping(
+    value = ["/commands"],
+    produces = ["application/json"],
+  )
+  public fun commandsPost(
+    @RequestBody request: CommandList?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): CommandList?
+
+  @PostMapping(
+    value = ["/commands/assist"],
+    produces = ["application/json"],
+  )
+  public fun commandsAssistPost(@RequestBody request: CommandList?, @RequestParam(required = false,
+      name = "fields") fields: String?): CommandList?
+
+  @GetMapping(
+    value = ["/groups"],
+    produces = ["application/json"],
+  )
+  public fun groupsGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<UserGroup>?
+
+  @GetMapping(
+    value = ["/groups/{id}"],
+    produces = ["application/json"],
+  )
+  public fun groupsIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): UserGroup?
+
+  @GetMapping(
+    value = ["/issueLinkTypes"],
+    produces = ["application/json"],
+  )
+  public fun issueLinkTypesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueLinkType>?
+
+  @PostMapping(
+    value = ["/issueLinkTypes"],
+    produces = ["application/json"],
+  )
+  public fun issueLinkTypesPost(@RequestBody request: IssueLinkType?, @RequestParam(required =
+      false, name = "fields") fields: String?): IssueLinkType?
+
+  @GetMapping(
+    value = ["/issueLinkTypes/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issueLinkTypesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required =
+      false, name = "fields") fields: String?): IssueLinkType?
+
+  @PostMapping(
+    value = ["/issueLinkTypes/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issueLinkTypesIdPost(
+    @RequestBody request: IssueLinkType?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueLinkType?
+
+  @DeleteMapping(value = ["/issueLinkTypes/{id}"])
+  public fun issueLinkTypesIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/issueTags"],
+    produces = ["application/json"],
+  )
+  public fun issueTagsGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueTag>?
+
+  @PostMapping(
+    value = ["/issueTags"],
+    produces = ["application/json"],
+  )
+  public fun issueTagsPost(@RequestBody request: IssueTag?, @RequestParam(required = false, name =
+      "fields") fields: String?): IssueTag?
+
+  @GetMapping(
+    value = ["/issueTags/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issueTagsIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): IssueTag?
+
+  @PostMapping(
+    value = ["/issueTags/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issueTagsIdPost(
+    @RequestBody request: IssueTag?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueTag?
+
+  @DeleteMapping(value = ["/issueTags/{id}"])
+  public fun issueTagsIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/issueTags/{id}/issues"],
+    produces = ["application/json"],
+  )
+  public fun issueTagsIdIssuesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "customFields") customFields: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Issue>?
+
+  @GetMapping(
+    value = ["/issues"],
+    produces = ["application/json"],
+  )
+  public fun issuesGet(
+    @RequestParam(required = false, name = "query") query: String?,
+    @RequestParam(required = false, name = "customFields") customFields: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Issue>?
+
+  @PostMapping(
+    value = ["/issues"],
+    produces = ["application/json"],
+  )
+  public fun issuesPost(
+    @RequestBody request: Issue?,
+    @RequestParam(required = false, name = "draftId") draftId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @GetMapping(
+    value = ["/issues/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): Issue?
+
+  @PostMapping(
+    value = ["/issues/{id}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdPost(
+    @RequestBody request: Issue?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @DeleteMapping(value = ["/issues/{id}"])
+  public fun issuesIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/activities"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdActivitiesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "categories") categories: String?,
+    @RequestParam(required = false, name = "reverse") reverse: Boolean?,
+    @RequestParam(required = false, name = "start") start: String?,
+    @RequestParam(required = false, name = "end") end: String?,
+    @RequestParam(required = false, name = "author") author: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<ActivityItem>?
+
+  @GetMapping(
+    value = ["/issues/{id}/activities/{activityItemId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdActivitiesActivityItemIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "activityItemId") activityItemId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ActivityItem?
+
+  @GetMapping(
+    value = ["/issues/{id}/activitiesPage"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdActivitiesPageGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "categories") categories: String?,
+    @RequestParam(required = false, name = "reverse") reverse: Boolean?,
+    @RequestParam(required = false, name = "start") start: String?,
+    @RequestParam(required = false, name = "end") end: String?,
+    @RequestParam(required = false, name = "author") author: String?,
+    @RequestParam(required = false, name = "cursor") cursor: String?,
+    @RequestParam(required = false, name = "activityId") activityId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): ActivityCursorPage?
+
+  @GetMapping(
+    value = ["/issues/{id}/attachments"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdAttachmentsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueAttachment>?
+
+  @PostMapping(
+    value = ["/issues/{id}/attachments"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdAttachmentsPost(
+    @RequestBody request: IssueAttachment?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueAttachment?
+
+  @GetMapping(
+    value = ["/issues/{id}/attachments/{issueAttachmentId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdAttachmentsIssueAttachmentIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueAttachmentId") issueAttachmentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueAttachment?
+
+  @PostMapping(
+    value = ["/issues/{id}/attachments/{issueAttachmentId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdAttachmentsIssueAttachmentIdPost(
+    @RequestBody request: IssueAttachment?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueAttachmentId") issueAttachmentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueAttachment?
+
+  @DeleteMapping(value = ["/issues/{id}/attachments/{issueAttachmentId}"])
+  public fun issuesIdAttachmentsIssueAttachmentIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "issueAttachmentId") issueAttachmentId: String?): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/comments"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCommentsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueComment>?
+
+  @PostMapping(
+    value = ["/issues/{id}/comments"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCommentsPost(
+    @RequestBody request: IssueComment?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "draftId") draftId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueComment?
+
+  @GetMapping(
+    value = ["/issues/{id}/comments/{issueCommentId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCommentsIssueCommentIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueCommentId") issueCommentId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueComment?
+
+  @PostMapping(
+    value = ["/issues/{id}/comments/{issueCommentId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCommentsIssueCommentIdPost(
+    @RequestBody request: IssueComment?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueCommentId") issueCommentId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueComment?
+
+  @DeleteMapping(value = ["/issues/{id}/comments/{issueCommentId}"])
+  public fun issuesIdCommentsIssueCommentIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "issueCommentId") issueCommentId: String?): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/customFields"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCustomFieldsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueCustomField>?
+
+  @GetMapping(
+    value = ["/issues/{id}/customFields/{issueCustomFieldId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCustomFieldsIssueCustomFieldIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueCustomFieldId") issueCustomFieldId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueCustomField?
+
+  @PostMapping(
+    value = ["/issues/{id}/customFields/{issueCustomFieldId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdCustomFieldsIssueCustomFieldIdPost(
+    @RequestBody request: IssueCustomField?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueCustomFieldId") issueCustomFieldId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueCustomField?
+
+  @GetMapping(
+    value = ["/issues/{id}/links"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdLinksGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueLink>?
+
+  @GetMapping(
+    value = ["/issues/{id}/links/{issueLinkId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdLinksIssueLinkIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueLinkId") issueLinkId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueLink?
+
+  @GetMapping(
+    value = ["/issues/{id}/links/{issueLinkId}/issues"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdLinksIssueLinkIdIssuesGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueLinkId") issueLinkId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Issue>?
+
+  @PostMapping(
+    value = ["/issues/{id}/links/{issueLinkId}/issues"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdLinksIssueLinkIdIssuesPost(
+    @RequestBody request: Issue?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueLinkId") issueLinkId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Issue?
+
+  @DeleteMapping(value = ["/issues/{id}/links/{issueLinkId}/issues/{issueId}"])
+  public fun issuesIdLinksIssueLinkIdIssuesIssueIdDelete(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueLinkId") issueLinkId: String?,
+    @PathVariable(name = "issueId") issueId: String?,
+  ): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/project"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdProjectGet(@PathVariable(name = "id") id: String?, @RequestParam(required =
+      false, name = "fields") fields: String?): Project?
+
+  @PostMapping(
+    value = ["/issues/{id}/project"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdProjectPost(
+    @RequestBody request: Project?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): Project?
+
+  @GetMapping(
+    value = ["/issues/{id}/sprints"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdSprintsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<Sprint>?
+
+  @GetMapping(
+    value = ["/issues/{id}/tags"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTagsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueTag>?
+
+  @PostMapping(
+    value = ["/issues/{id}/tags"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTagsPost(
+    @RequestBody request: IssueTag?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueTag?
+
+  @GetMapping(
+    value = ["/issues/{id}/tags/{issueTagId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTagsIssueTagIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueTagId") issueTagId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueTag?
+
+  @DeleteMapping(value = ["/issues/{id}/tags/{issueTagId}"])
+  public fun issuesIdTagsIssueTagIdDelete(@PathVariable(name = "id") id: String?, @PathVariable(name
+      = "issueTagId") issueTagId: String?): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/timeTracking"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTimeTrackingGet(@PathVariable(name = "id") id: String?, @RequestParam(required
+      = false, name = "fields") fields: String?): IssueTimeTracker?
+
+  @GetMapping(
+    value = ["/issues/{id}/timeTracking/workItems"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTimeTrackingWorkItemsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueWorkItem>?
+
+  @PostMapping(
+    value = ["/issues/{id}/timeTracking/workItems"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTimeTrackingWorkItemsPost(
+    @RequestBody request: IssueWorkItem?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueWorkItem?
+
+  @GetMapping(
+    value = ["/issues/{id}/timeTracking/workItems/{issueWorkItemId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTimeTrackingWorkItemsIssueWorkItemIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueWorkItemId") issueWorkItemId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueWorkItem?
+
+  @PostMapping(
+    value = ["/issues/{id}/timeTracking/workItems/{issueWorkItemId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdTimeTrackingWorkItemsIssueWorkItemIdPost(
+    @RequestBody request: IssueWorkItem?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "issueWorkItemId") issueWorkItemId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): IssueWorkItem?
+
+  @DeleteMapping(value = ["/issues/{id}/timeTracking/workItems/{issueWorkItemId}"])
+  public fun issuesIdTimeTrackingWorkItemsIssueWorkItemIdDelete(@PathVariable(name = "id")
+      id: String?, @PathVariable(name = "issueWorkItemId") issueWorkItemId: String?): Unit
+
+  @GetMapping(
+    value = ["/issues/{id}/vcsChanges"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdVcsChangesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<VcsChange>?
+
+  @PostMapping(
+    value = ["/issues/{id}/vcsChanges"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdVcsChangesPost(
+    @RequestBody request: VcsChange?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VcsChange?
+
+  @GetMapping(
+    value = ["/issues/{id}/vcsChanges/{vcsChangeId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdVcsChangesVcsChangeIdGet(
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "vcsChangeId") vcsChangeId: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VcsChange?
+
+  @PostMapping(
+    value = ["/issues/{id}/vcsChanges/{vcsChangeId}"],
+    produces = ["application/json"],
+  )
+  public fun issuesIdVcsChangesVcsChangeIdPost(
+    @RequestBody request: VcsChange?,
+    @PathVariable(name = "id") id: String?,
+    @PathVariable(name = "vcsChangeId") vcsChangeId: String?,
+    @RequestParam(required = false, name = "muteUpdateNotifications")
+        muteUpdateNotifications: Boolean?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): VcsChange?
+
+  @DeleteMapping(value = ["/issues/{id}/vcsChanges/{vcsChangeId}"])
+  public fun issuesIdVcsChangesVcsChangeIdDelete(@PathVariable(name = "id") id: String?,
+      @PathVariable(name = "vcsChangeId") vcsChangeId: String?): Unit
+
+  @PostMapping(
+    value = ["/issuesGetter/count"],
+    produces = ["application/json"],
+  )
+  public fun issuesGetterCountPost(@RequestBody request: IssueCountResponse?, @RequestParam(required
+      = false, name = "fields") fields: String?): IssueCountResponse?
+
+  @GetMapping(
+    value = ["/savedQueries"],
+    produces = ["application/json"],
+  )
+  public fun savedQueriesGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<SavedQuery>?
+
+  @PostMapping(
+    value = ["/savedQueries"],
+    produces = ["application/json"],
+  )
+  public fun savedQueriesPost(@RequestBody request: SavedQuery?, @RequestParam(required = false,
+      name = "fields") fields: String?): SavedQuery?
+
+  @GetMapping(
+    value = ["/savedQueries/{id}"],
+    produces = ["application/json"],
+  )
+  public fun savedQueriesIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required =
+      false, name = "fields") fields: String?): SavedQuery?
+
+  @PostMapping(
+    value = ["/savedQueries/{id}"],
+    produces = ["application/json"],
+  )
+  public fun savedQueriesIdPost(
+    @RequestBody request: SavedQuery?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): SavedQuery?
+
+  @DeleteMapping(value = ["/savedQueries/{id}"])
+  public fun savedQueriesIdDelete(@PathVariable(name = "id") id: String?): Unit
+
+  @PostMapping(
+    value = ["/search/assist"],
+    produces = ["application/json"],
+  )
+  public fun searchAssistPost(@RequestBody request: SearchSuggestions?, @RequestParam(required =
+      false, name = "fields") fields: String?): SearchSuggestions?
+
+  @GetMapping(
+    value = ["/users"],
+    produces = ["application/json"],
+  )
+  public fun usersGet(
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<User>?
+
+  @GetMapping(
+    value = ["/users/{id}"],
+    produces = ["application/json"],
+  )
+  public fun usersIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false, name
+      = "fields") fields: String?): User?
+
+  @GetMapping(
+    value = ["/users/{id}/profiles/general"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesGeneralGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): GeneralUserProfile?
+
+  @PostMapping(
+    value = ["/users/{id}/profiles/general"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesGeneralPost(
+    @RequestBody request: GeneralUserProfile?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): GeneralUserProfile?
+
+  @GetMapping(
+    value = ["/users/{id}/profiles/notifications"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesNotificationsGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): NotificationsUserProfile?
+
+  @PostMapping(
+    value = ["/users/{id}/profiles/notifications"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesNotificationsPost(
+    @RequestBody request: NotificationsUserProfile?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): NotificationsUserProfile?
+
+  @GetMapping(
+    value = ["/users/{id}/profiles/timetracking"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesTimetrackingGet(@PathVariable(name = "id") id: String?,
+      @RequestParam(required = false, name = "fields") fields: String?): TimeTrackingUserProfile?
+
+  @PostMapping(
+    value = ["/users/{id}/profiles/timetracking"],
+    produces = ["application/json"],
+  )
+  public fun usersIdProfilesTimetrackingPost(
+    @RequestBody request: TimeTrackingUserProfile?,
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+  ): TimeTrackingUserProfile?
+
+  @GetMapping(
+    value = ["/users/{id}/savedQueries"],
+    produces = ["application/json"],
+  )
+  public fun usersIdSavedQueriesGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<SavedQuery>?
+
+  @GetMapping(
+    value = ["/users/{id}/tags"],
+    produces = ["application/json"],
+  )
+  public fun usersIdTagsGet(
+    @PathVariable(name = "id") id: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueTag>?
+
+  @GetMapping(
+    value = ["/users/me"],
+    produces = ["application/json"],
+  )
+  public fun usersMeGet(@RequestParam(required = false, name = "fields") fields: String?): Me?
+
+  @GetMapping(
+    value = ["/workItems"],
+    produces = ["application/json"],
+  )
+  public fun workItemsGet(
+    @RequestParam(required = false, name = "query") query: String?,
+    @RequestParam(required = false, name = "startDate") startDate: LocalDate?,
+    @RequestParam(required = false, name = "endDate") endDate: LocalDate?,
+    @RequestParam(required = false, name = "start") start: Int?,
+    @RequestParam(required = false, name = "end") end: Int?,
+    @RequestParam(required = false, name = "createdStart") createdStart: Int?,
+    @RequestParam(required = false, name = "createdEnd") createdEnd: Int?,
+    @RequestParam(required = false, name = "updatedStart") updatedStart: Int?,
+    @RequestParam(required = false, name = "updatedEnd") updatedEnd: Int?,
+    @RequestParam(required = false, name = "author") author: String?,
+    @RequestParam(required = false, name = "creator") creator: String?,
+    @RequestParam(required = false, name = "fields") fields: String?,
+    @RequestParam(required = false, name = "${'$'}skip") `$skip`: Int?,
+    @RequestParam(required = false, name = "${'$'}top") `$top`: Int?,
+  ): List<IssueWorkItem>?
+
+  @GetMapping(
+    value = ["/workItems/{id}"],
+    produces = ["application/json"],
+  )
+  public fun workItemsIdGet(@PathVariable(name = "id") id: String?, @RequestParam(required = false,
+      name = "fields") fields: String?): IssueWorkItem?
+}
+---
+/com/example/dto
+---
+/com/example/dto/ActivityCategory.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ActivityCategory(
+  public val id: String? = null,
+)
+---
+/com/example/dto/ActivityCursorPage.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ActivityCursorPage(
+  public val id: String? = null,
+  public val reverse: Boolean? = null,
+  public val beforeCursor: String? = null,
+  public val afterCursor: String? = null,
+  public val hasBefore: Boolean? = null,
+  public val hasAfter: Boolean? = null,
+  public val activities: List<ActivityItem>? = null,
+)
+---
+/com/example/dto/ActivityItem.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Any
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ActivityItem(
+  public val id: String? = null,
+  public val author: User? = null,
+  public val timestamp: Long? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+  public val target: Any? = null,
+  public val targetMember: String? = null,
+  public val `field`: FilterField? = null,
+  public val category: ActivityCategory? = null,
+)
+---
+/com/example/dto/Agile.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Agile(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val owner: User? = null,
+  public val visibleFor: UserGroup? = null,
+  public val visibleForProjectBased: Boolean? = null,
+  public val updateableBy: UserGroup? = null,
+  public val updateableByProjectBased: Boolean? = null,
+  public val orphansAtTheTop: Boolean? = null,
+  public val hideOrphansSwimlane: Boolean? = null,
+  public val estimationField: CustomField? = null,
+  public val originalEstimationField: CustomField? = null,
+  public val projects: List<Project>? = null,
+  public val sprints: List<Sprint>? = null,
+  public val currentSprint: Sprint? = null,
+  public val columnSettings: ColumnSettings? = null,
+  public val swimlaneSettings: SwimlaneSettings? = null,
+  public val sprintsSettings: SprintsSettings? = null,
+  public val colorCoding: ColorCoding? = null,
+  public val status: AgileStatus? = null,
+)
+---
+/com/example/dto/AgileColumn.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class AgileColumn(
+  public val id: String? = null,
+  public val presentation: String? = null,
+  public val isResolved: Boolean? = null,
+  public val ordinal: Int? = null,
+  public val parent: ColumnSettings? = null,
+  public val wipLimit: WIPLimit? = null,
+  public val fieldValues: List<AgileColumnFieldValue>? = null,
+)
+---
+/com/example/dto/AgileColumnFieldValue.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+
+public data class AgileColumnFieldValue(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val isResolved: Boolean? = null,
+) : DatabaseAttributeValue()
+---
+/com/example/dto/AgileStatus.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class AgileStatus(
+  public val id: String? = null,
+  public val valid: Boolean? = null,
+  public val hasJobs: Boolean? = null,
+  public val errors: List<String>? = null,
+  public val warnings: List<String>? = null,
+)
+---
+/com/example/dto/AppearanceSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class AppearanceSettings(
+  public val id: String? = null,
+  public val timeZone: TimeZoneDescriptor? = null,
+  public val dateFieldFormat: DateFormatDescriptor? = null,
+  public val logo: Logo? = null,
+)
+---
+/com/example/dto/Article.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+public data class Article(
+  public val id: String? = null,
+  public val reporter: User? = null,
+  public val visibility: Visibility? = null,
+  public val summary: String? = null,
+  public val content: String? = null,
+  public val attachments: List<ArticleAttachment>? = null,
+  public val project: Project? = null,
+  public val parentArticle: Article? = null,
+  public val childArticles: List<Article>? = null,
+  public val hasChildren: Boolean? = null,
+  public val updatedBy: User? = null,
+  public val updated: Long? = null,
+  public val created: Long? = null,
+  public val idReadable: String? = null,
+  public val ordinal: Long? = null,
+  public val comments: List<ArticleComment>? = null,
+  public val hasStar: Boolean? = null,
+  public val externalArticle: ExternalArticle? = null,
+) : BaseArticle()
+---
+/com/example/dto/ArticleAttachment.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ArticleAttachment(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val author: User? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val size: Long? = null,
+  public val extension: String? = null,
+  public val charset: String? = null,
+  public val mimeType: String? = null,
+  public val metaData: String? = null,
+  public val draft: Boolean? = null,
+  public val removed: Boolean? = null,
+  public val base64Content: String? = null,
+  public val url: String? = null,
+  public val visibility: Visibility? = null,
+  public val article: BaseArticle? = null,
+  public val comment: ArticleComment? = null,
+)
+---
+/com/example/dto/ArticleComment.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ArticleComment(
+  public val id: String? = null,
+  public val text: String? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val author: User? = null,
+  public val article: Article? = null,
+  public val attachments: List<ArticleAttachment>? = null,
+  public val visibility: Visibility? = null,
+)
+---
+/com/example/dto/AttachmentActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class AttachmentActivityItem(
+  public val id: String? = null,
+  public val target: IssueAttachment? = null,
+  public val removed: List<IssueAttachment>? = null,
+  public val added: List<IssueAttachment>? = null,
+) : CreatedDeletedActivityItem()
+---
+/com/example/dto/AttributeBasedSwimlaneSettings.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class AttributeBasedSwimlaneSettings(
+  public val id: String? = null,
+  public val `field`: FilterField? = null,
+  public val values: List<SwimlaneEntityAttributeValue>? = null,
+) : SwimlaneSettings()
+---
+/com/example/dto/BackupError.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BackupError(
+  public val id: String? = null,
+  public val date: Long? = null,
+  public val errorMessage: String? = null,
+)
+---
+/com/example/dto/BackupFile.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BackupFile(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val size: Long? = null,
+  public val creationDate: Long? = null,
+  public val link: String? = null,
+)
+---
+/com/example/dto/BackupStatus.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BackupStatus(
+  public val id: String? = null,
+  public val backupInProgress: Boolean? = null,
+  public val backupCancelled: Boolean? = null,
+  public val backupError: BackupError? = null,
+)
+---
+/com/example/dto/BaseArticle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BaseArticle(
+  public val id: String? = null,
+  public val reporter: User? = null,
+  public val visibility: Visibility? = null,
+  public val summary: String? = null,
+  public val content: String? = null,
+  public val attachments: List<ArticleAttachment>? = null,
+)
+---
+/com/example/dto/BaseBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class BaseBundle(
+  public val id: String? = null,
+  public val values: List<BundleElement>? = null,
+) : Bundle()
+---
+/com/example/dto/BaseWorkItem.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BaseWorkItem(
+  public val id: String? = null,
+)
+---
+/com/example/dto/BitBucketChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class BitBucketChangesProcessor(
+  public val id: String? = null,
+  public val server: BitBucketServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/BitBucketServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class BitBucketServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/BitbucketStandaloneChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class BitbucketStandaloneChangesProcessor(
+  public val id: String? = null,
+  public val server: BitbucketStandaloneServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/BitbucketStandaloneServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class BitbucketStandaloneServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/BuildBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class BuildBundle(
+  public val id: String? = null,
+  public val values: List<BuildBundleElement>? = null,
+) : BaseBundle()
+---
+/com/example/dto/BuildBundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class BuildBundleCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: BuildBundle? = null,
+  public val defaultValues: List<BuildBundleElement>? = null,
+) : BundleCustomFieldDefaults()
+---
+/com/example/dto/BuildBundleElement.kt
+package com.example.dto
+
+import kotlin.Long
+import kotlin.String
+
+public data class BuildBundleElement(
+  public val id: String? = null,
+  public val assembleDate: Long? = null,
+) : BundleElement()
+---
+/com/example/dto/BuildProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class BuildProjectCustomField(
+  public val id: String? = null,
+  public val bundle: BuildBundle? = null,
+  public val defaultValues: List<BuildBundleElement>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/Bundle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Bundle(
+  public val id: String? = null,
+  public val isUpdateable: Boolean? = null,
+)
+---
+/com/example/dto/BundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class BundleCustomFieldDefaults(
+  public val id: String? = null,
+) : CustomFieldDefaults()
+---
+/com/example/dto/BundleElement.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class BundleElement(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val bundle: Bundle? = null,
+  public val description: String? = null,
+  public val ordinal: Int? = null,
+  public val color: FieldStyle? = null,
+  public val hasRunningJob: Boolean? = null,
+)
+---
+/com/example/dto/BundleProjectCustomField.kt
+package com.example.dto
+
+public object BundleProjectCustomField : ProjectCustomField()
+---
+/com/example/dto/ChangesProcessor.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ChangesProcessor(
+  public val id: String? = null,
+  public val server: VcsServer? = null,
+  public val project: Project? = null,
+  public val relatedProjects: List<Project>? = null,
+  public val enabled: Boolean? = null,
+  public val visibleForGroups: List<UserGroup>? = null,
+  public val addComments: Boolean? = null,
+  public val lookupIssuesInBranchName: Boolean? = null,
+)
+---
+/com/example/dto/ColorCoding.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ColorCoding(
+  public val id: String? = null,
+)
+---
+/com/example/dto/ColumnSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ColumnSettings(
+  public val id: String? = null,
+  public val `field`: CustomField? = null,
+  public val columns: List<AgileColumn>? = null,
+)
+---
+/com/example/dto/CommandLimitedVisibility.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class CommandLimitedVisibility(
+  public val id: String? = null,
+  public val permittedGroups: List<UserGroup>? = null,
+  public val permittedUsers: List<User>? = null,
+) : CommandVisibility()
+---
+/com/example/dto/CommandList.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class CommandList(
+  public val id: String? = null,
+  public val comment: String? = null,
+  public val visibility: CommandVisibility? = null,
+  public val query: String? = null,
+  public val caret: Int? = null,
+  public val silent: Boolean? = null,
+  public val usesMarkdown: Boolean? = null,
+  public val runAs: String? = null,
+  public val commands: List<ParsedCommand>? = null,
+  public val issues: List<Issue>? = null,
+  public val suggestions: List<Suggestion>? = null,
+)
+---
+/com/example/dto/CommandUnlimitedVisibility.kt
+package com.example.dto
+
+public object CommandUnlimitedVisibility : CommandVisibility()
+---
+/com/example/dto/CommandVisibility.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class CommandVisibility(
+  public val id: String? = null,
+)
+---
+/com/example/dto/CommentActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class CommentActivityItem(
+  public val id: String? = null,
+  public val target: IssueComment? = null,
+  public val removed: List<IssueComment>? = null,
+  public val added: List<IssueComment>? = null,
+  public val authorGroup: UserGroup? = null,
+) : CreatedDeletedActivityItem()
+---
+/com/example/dto/CommentAttachmentsActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class CommentAttachmentsActivityItem(
+  public val id: String? = null,
+  public val target: IssueComment? = null,
+  public val removed: List<IssueAttachment>? = null,
+  public val added: List<IssueAttachment>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/CreatedDeletedActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class CreatedDeletedActivityItem(
+  public val id: String? = null,
+) : ActivityItem()
+---
+/com/example/dto/CustomField.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class CustomField(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val localizedName: String? = null,
+  public val fieldType: FieldType? = null,
+  public val isAutoAttached: Boolean? = null,
+  public val isDisplayedInIssueList: Boolean? = null,
+  public val ordinal: Int? = null,
+  public val aliases: String? = null,
+  public val fieldDefaults: CustomFieldDefaults? = null,
+  public val hasRunningJob: Boolean? = null,
+  public val isUpdateable: Boolean? = null,
+  public val instances: List<ProjectCustomField>? = null,
+)
+---
+/com/example/dto/CustomFieldActivityItem.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class CustomFieldActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+) : ActivityItem()
+---
+/com/example/dto/CustomFieldCondition.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class CustomFieldCondition(
+  public val id: String? = null,
+  public val parent: ProjectCustomField? = null,
+)
+---
+/com/example/dto/CustomFieldDefaults.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class CustomFieldDefaults(
+  public val id: String? = null,
+  public val canBeEmpty: Boolean? = null,
+  public val emptyFieldText: String? = null,
+  public val isPublic: Boolean? = null,
+  public val parent: CustomField? = null,
+)
+---
+/com/example/dto/CustomFilterField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class CustomFilterField(
+  public val id: String? = null,
+  public val customField: CustomField? = null,
+) : FilterField()
+---
+/com/example/dto/DatabaseAttributeValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class DatabaseAttributeValue(
+  public val id: String? = null,
+)
+---
+/com/example/dto/DatabaseBackupSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class DatabaseBackupSettings(
+  public val id: String? = null,
+  public val location: String? = null,
+  public val filesToKeep: Int? = null,
+  public val cronExpression: String? = null,
+  public val archiveFormat: ArchiveFormat? = null,
+  public val isOn: Boolean? = null,
+  public val availableDiskSpace: Long? = null,
+  public val notifiedUsers: List<User>? = null,
+  public val backupStatus: BackupStatus? = null,
+) {
+  public enum class ArchiveFormat {
+    TAR_GZ,
+    ZIP,
+  }
+}
+---
+/com/example/dto/DatabaseMultiValueIssueCustomField.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class DatabaseMultiValueIssueCustomField(
+  public val id: String? = null,
+  public val `value`: Any? = null,
+) : IssueCustomField()
+---
+/com/example/dto/DatabaseSingleValueIssueCustomField.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class DatabaseSingleValueIssueCustomField(
+  public val id: String? = null,
+  public val `value`: Any? = null,
+) : IssueCustomField()
+---
+/com/example/dto/DateFormatDescriptor.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class DateFormatDescriptor(
+  public val id: String? = null,
+  public val presentation: String? = null,
+  public val pattern: String? = null,
+  public val datePattern: String? = null,
+)
+---
+/com/example/dto/DateIssueCustomField.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class DateIssueCustomField(
+  public val id: String? = null,
+  public val `value`: Any? = null,
+) : SimpleIssueCustomField()
+---
+/com/example/dto/DuplicateVote.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class DuplicateVote(
+  public val id: String? = null,
+  public val issue: Issue? = null,
+  public val user: User? = null,
+)
+---
+/com/example/dto/DurationValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class DurationValue(
+  public val id: String? = null,
+  public val minutes: Int? = null,
+  public val presentation: String? = null,
+)
+---
+/com/example/dto/EmailSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class EmailSettings(
+  public val id: String? = null,
+  public val isEnabled: Boolean? = null,
+  public val host: String? = null,
+  public val port: Int? = null,
+  public val mailProtocol: MailProtocol? = null,
+  public val anonymous: Boolean? = null,
+  public val login: String? = null,
+  public val sslKey: StorageEntry? = null,
+  public val from: String? = null,
+  public val replyTo: String? = null,
+) {
+  public enum class MailProtocol {
+    SMTP,
+    SMTPS,
+    SMTP_TLS,
+  }
+}
+---
+/com/example/dto/EnumBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class EnumBundle(
+  public val id: String? = null,
+  public val values: List<EnumBundleElement>? = null,
+) : BaseBundle()
+---
+/com/example/dto/EnumBundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class EnumBundleCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: EnumBundle? = null,
+  public val defaultValues: List<EnumBundleElement>? = null,
+) : BundleCustomFieldDefaults()
+---
+/com/example/dto/EnumBundleElement.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class EnumBundleElement(
+  public val id: String? = null,
+) : LocalizableBundleElement()
+---
+/com/example/dto/EnumProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class EnumProjectCustomField(
+  public val id: String? = null,
+  public val bundle: EnumBundle? = null,
+  public val defaultValues: List<EnumBundleElement>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/Event.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Event(
+  public val id: String? = null,
+  public val presentation: String? = null,
+)
+---
+/com/example/dto/ExternalArticle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ExternalArticle(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val url: String? = null,
+  public val key: String? = null,
+)
+---
+/com/example/dto/ExternalIssue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ExternalIssue(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val url: String? = null,
+  public val key: String? = null,
+)
+---
+/com/example/dto/FieldBasedColorCoding.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class FieldBasedColorCoding(
+  public val id: String? = null,
+  public val prototype: CustomField? = null,
+) : ColorCoding()
+---
+/com/example/dto/FieldBasedCondition.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+public data class FieldBasedCondition(
+  public val id: String? = null,
+  public val `field`: BundleProjectCustomField? = null,
+  public val values: List<BundleElement>? = null,
+  public val showForNullValue: Boolean? = null,
+) : CustomFieldCondition()
+---
+/com/example/dto/FieldStyle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class FieldStyle(
+  public val id: String? = null,
+  public val background: String? = null,
+  public val foreground: String? = null,
+)
+---
+/com/example/dto/FieldType.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class FieldType(
+  public val id: String? = null,
+)
+---
+/com/example/dto/FilterField.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class FilterField(
+  public val id: String? = null,
+  public val presentation: String? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/GeneralUserProfile.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class GeneralUserProfile(
+  public val id: String? = null,
+  public val dateFieldFormat: DateFormatDescriptor? = null,
+  public val timezone: TimeZoneDescriptor? = null,
+  public val locale: LocaleDescriptor? = null,
+)
+---
+/com/example/dto/GiteaChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GiteaChangesProcessor(
+  public val id: String? = null,
+  public val server: GiteaServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/GiteaServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GiteaServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/GitHubChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GitHubChangesProcessor(
+  public val id: String? = null,
+  public val server: GitHubServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/GitHubServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GitHubServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/GitLabChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GitLabChangesProcessor(
+  public val id: String? = null,
+  public val server: GitLabServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/GitLabServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GitLabServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/GlobalSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class GlobalSettings(
+  public val id: String? = null,
+  public val systemSettings: SystemSettings? = null,
+  public val notificationSettings: NotificationSettings? = null,
+  public val restSettings: RestCorsSettings? = null,
+  public val appearanceSettings: AppearanceSettings? = null,
+  public val localeSettings: LocaleSettings? = null,
+  public val license: License? = null,
+)
+---
+/com/example/dto/GlobalTimeTrackingSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class GlobalTimeTrackingSettings(
+  public val id: String? = null,
+  public val workItemTypes: List<WorkItemType>? = null,
+  public val workTimeSettings: WorkTimeSettings? = null,
+  public val attributePrototypes: List<WorkItemAttributePrototype>? = null,
+)
+---
+/com/example/dto/GogsChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GogsChangesProcessor(
+  public val id: String? = null,
+  public val server: GogsServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/GogsServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class GogsServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/GroupProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class GroupProjectCustomField(
+  public val id: String? = null,
+  public val defaultValues: List<UserGroup>? = null,
+) : ProjectCustomField()
+---
+/com/example/dto/Issue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Issue(
+  public val id: String? = null,
+  public val idReadable: String? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val resolved: Long? = null,
+  public val numberInProject: Long? = null,
+  public val project: Project? = null,
+  public val summary: String? = null,
+  public val description: String? = null,
+  public val usesMarkdown: Boolean? = null,
+  public val wikifiedDescription: String? = null,
+  public val reporter: User? = null,
+  public val updater: User? = null,
+  public val draftOwner: User? = null,
+  public val isDraft: Boolean? = null,
+  public val visibility: Visibility? = null,
+  public val votes: Int? = null,
+  public val comments: List<IssueComment>? = null,
+  public val commentsCount: Int? = null,
+  public val tags: List<IssueTag>? = null,
+  public val links: List<IssueLink>? = null,
+  public val externalIssue: ExternalIssue? = null,
+  public val customFields: List<IssueCustomField>? = null,
+  public val voters: IssueVoters? = null,
+  public val watchers: IssueWatchers? = null,
+  public val attachments: List<IssueAttachment>? = null,
+  public val subtasks: IssueLink? = null,
+  public val parent: IssueLink? = null,
+)
+---
+/com/example/dto/IssueAttachment.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueAttachment(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val author: User? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val size: Long? = null,
+  public val extension: String? = null,
+  public val charset: String? = null,
+  public val mimeType: String? = null,
+  public val metaData: String? = null,
+  public val draft: Boolean? = null,
+  public val removed: Boolean? = null,
+  public val base64Content: String? = null,
+  public val url: String? = null,
+  public val visibility: Visibility? = null,
+  public val issue: Issue? = null,
+  public val comment: IssueComment? = null,
+  public val thumbnailURL: String? = null,
+)
+---
+/com/example/dto/IssueBasedSwimlaneSettings.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class IssueBasedSwimlaneSettings(
+  public val id: String? = null,
+  public val `field`: FilterField? = null,
+  public val defaultCardType: SwimlaneValue? = null,
+  public val values: List<SwimlaneValue>? = null,
+) : SwimlaneSettings()
+---
+/com/example/dto/IssueComment.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueComment(
+  public val id: String? = null,
+  public val text: String? = null,
+  public val usesMarkdown: Boolean? = null,
+  public val textPreview: String? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val author: User? = null,
+  public val issue: Issue? = null,
+  public val attachments: List<IssueAttachment>? = null,
+  public val visibility: Visibility? = null,
+  public val deleted: Boolean? = null,
+)
+---
+/com/example/dto/IssueCountResponse.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueCountResponse(
+  public val id: String? = null,
+  public val count: Long? = null,
+  public val unresolvedOnly: Boolean? = null,
+  public val query: String? = null,
+  public val folder: IssueFolder? = null,
+)
+---
+/com/example/dto/IssueCreatedActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class IssueCreatedActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: List<Issue>? = null,
+  public val added: List<Issue>? = null,
+) : CreatedDeletedActivityItem()
+---
+/com/example/dto/IssueCustomField.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Any
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueCustomField(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val projectCustomField: ProjectCustomField? = null,
+  public val `value`: Any? = null,
+)
+---
+/com/example/dto/IssueFolder.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueFolder(
+  public val id: String? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/IssueLink.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueLink(
+  public val id: String? = null,
+  public val direction: Direction? = null,
+  public val linkType: IssueLinkType? = null,
+  public val issues: List<Issue>? = null,
+  public val trimmedIssues: List<Issue>? = null,
+) {
+  public enum class Direction {
+    OUTWARD,
+    INWARD,
+    BOTH,
+  }
+}
+---
+/com/example/dto/IssueLinkType.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueLinkType(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val localizedName: String? = null,
+  public val sourceToTarget: String? = null,
+  public val localizedSourceToTarget: String? = null,
+  public val targetToSource: String? = null,
+  public val localizedTargetToSource: String? = null,
+  public val directed: Boolean? = null,
+  public val aggregation: Boolean? = null,
+  public val readOnly: Boolean? = null,
+)
+---
+/com/example/dto/IssueResolvedActivityItem.kt
+package com.example.dto
+
+import kotlin.Long
+import kotlin.String
+
+public data class IssueResolvedActivityItem(
+  public val id: String? = null,
+  public val removed: Long? = null,
+  public val added: Long? = null,
+) : SimpleValueActivityItem()
+---
+/com/example/dto/IssueTag.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+public data class IssueTag(
+  public val id: String? = null,
+  public val issues: List<Issue>? = null,
+  public val color: FieldStyle? = null,
+  public val untagOnResolve: Boolean? = null,
+  public val visibleFor: UserGroup? = null,
+  public val updateableBy: UserGroup? = null,
+  public val readSharingSettings: WatchFolderSharingSettings? = null,
+  public val updateSharingSettings: WatchFolderSharingSettings? = null,
+) : WatchFolder()
+---
+/com/example/dto/IssueTimeTracker.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueTimeTracker(
+  public val id: String? = null,
+  public val workItems: List<IssueWorkItem>? = null,
+  public val enabled: Boolean? = null,
+)
+---
+/com/example/dto/IssueVoters.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueVoters(
+  public val id: String? = null,
+  public val hasVote: Boolean? = null,
+  public val original: List<User>? = null,
+  public val duplicate: List<DuplicateVote>? = null,
+)
+---
+/com/example/dto/IssueWatcher.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueWatcher(
+  public val id: String? = null,
+  public val user: User? = null,
+  public val issue: Issue? = null,
+  public val isStarred: Boolean? = null,
+)
+---
+/com/example/dto/IssueWatchers.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class IssueWatchers(
+  public val id: String? = null,
+  public val hasStar: Boolean? = null,
+  public val issueWatchers: List<IssueWatcher>? = null,
+  public val duplicateWatchers: List<IssueWatcher>? = null,
+)
+---
+/com/example/dto/IssueWorkItem.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+public data class IssueWorkItem(
+  public val id: String? = null,
+  public val author: User? = null,
+  public val creator: User? = null,
+  public val text: String? = null,
+  public val textPreview: String? = null,
+  public val type: WorkItemType? = null,
+  public val created: Long? = null,
+  public val updated: Long? = null,
+  public val duration: DurationValue? = null,
+  public val date: Long? = null,
+  public val issue: Issue? = null,
+  public val usesMarkdown: Boolean? = null,
+  public val attributes: List<WorkItemAttribute>? = null,
+) : BaseWorkItem()
+---
+/com/example/dto/JabberSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class JabberSettings(
+  public val id: String? = null,
+  public val isEnabled: Boolean? = null,
+  public val host: String? = null,
+  public val port: Int? = null,
+  public val login: String? = null,
+  public val serviceName: String? = null,
+)
+---
+/com/example/dto/JenkinsChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class JenkinsChangesProcessor(
+  public val id: String? = null,
+  public val server: JenkinsServer? = null,
+) : ChangesProcessor()
+---
+/com/example/dto/JenkinsServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class JenkinsServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsServer()
+---
+/com/example/dto/License.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class License(
+  public val id: String? = null,
+  public val username: String? = null,
+  public val license: String? = null,
+  public val error: String? = null,
+)
+---
+/com/example/dto/LimitedVisibility.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class LimitedVisibility(
+  public val id: String? = null,
+  public val permittedGroups: List<UserGroup>? = null,
+  public val permittedUsers: List<User>? = null,
+) : Visibility()
+---
+/com/example/dto/LinksActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class LinksActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: List<Issue>? = null,
+  public val added: List<Issue>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/LocaleDescriptor.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class LocaleDescriptor(
+  public val id: String? = null,
+  public val locale: String? = null,
+  public val language: String? = null,
+  public val community: Boolean? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/LocaleSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class LocaleSettings(
+  public val id: String? = null,
+  public val locale: LocaleDescriptor? = null,
+  public val isRTL: Boolean? = null,
+)
+---
+/com/example/dto/LocalizableBundleElement.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class LocalizableBundleElement(
+  public val id: String? = null,
+  public val localizedName: String? = null,
+) : BundleElement()
+---
+/com/example/dto/Logo.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Logo(
+  public val id: String? = null,
+  public val url: String? = null,
+)
+---
+/com/example/dto/Me.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class Me(
+  public val id: String? = null,
+) : User()
+---
+/com/example/dto/MultiBuildIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiBuildIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<BuildBundleElement>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/MultiEnumIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiEnumIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<EnumBundleElement>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/MultiGroupIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiGroupIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<UserGroup>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/MultiOwnedIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiOwnedIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<OwnedBundleElement>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/MultiUserIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiUserIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<User>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/MultiValueActivityItem.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class MultiValueActivityItem(
+  public val id: String? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+) : ActivityItem()
+---
+/com/example/dto/MultiVersionIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class MultiVersionIssueCustomField(
+  public val id: String? = null,
+  public val `value`: List<VersionBundleElement>? = null,
+) : DatabaseMultiValueIssueCustomField()
+---
+/com/example/dto/NotificationSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class NotificationSettings(
+  public val id: String? = null,
+  public val emailSettings: EmailSettings? = null,
+  public val jabberSettings: JabberSettings? = null,
+)
+---
+/com/example/dto/NotificationsUserProfile.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class NotificationsUserProfile(
+  public val id: String? = null,
+  public val notifyOnOwnChanges: Boolean? = null,
+  public val jabberNotificationsEnabled: Boolean? = null,
+  public val emailNotificationsEnabled: Boolean? = null,
+  public val mentionNotificationsEnabled: Boolean? = null,
+  public val duplicateClusterNotificationsEnabled: Boolean? = null,
+  public val mailboxIntegrationNotificationsEnabled: Boolean? = null,
+  public val usePlainTextEmails: Boolean? = null,
+  public val autoWatchOnComment: Boolean? = null,
+  public val autoWatchOnCreate: Boolean? = null,
+  public val autoWatchOnVote: Boolean? = null,
+  public val autoWatchOnUpdate: Boolean? = null,
+)
+---
+/com/example/dto/OnlineUsers.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class OnlineUsers(
+  public val id: String? = null,
+  public val users: Int? = null,
+)
+---
+/com/example/dto/OwnedBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class OwnedBundle(
+  public val id: String? = null,
+  public val values: List<OwnedBundleElement>? = null,
+) : BaseBundle()
+---
+/com/example/dto/OwnedBundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class OwnedBundleCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: OwnedBundle? = null,
+  public val defaultValues: List<OwnedBundleElement>? = null,
+) : BundleCustomFieldDefaults()
+---
+/com/example/dto/OwnedBundleElement.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class OwnedBundleElement(
+  public val id: String? = null,
+  public val owner: User? = null,
+) : BundleElement()
+---
+/com/example/dto/OwnedProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class OwnedProjectCustomField(
+  public val id: String? = null,
+  public val bundle: OwnedBundle? = null,
+  public val defaultValues: List<OwnedBundleElement>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/ParsedCommand.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ParsedCommand(
+  public val id: String? = null,
+  public val description: String? = null,
+  public val error: Boolean? = null,
+  public val delete: Boolean? = null,
+)
+---
+/com/example/dto/PeriodFieldFormat.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class PeriodFieldFormat(
+  public val id: String? = null,
+)
+---
+/com/example/dto/PeriodIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class PeriodIssueCustomField(
+  public val id: String? = null,
+  public val `value`: PeriodValue? = null,
+) : IssueCustomField()
+---
+/com/example/dto/PeriodProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class PeriodProjectCustomField(
+  public val id: String? = null,
+) : ProjectCustomField()
+---
+/com/example/dto/PeriodValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class PeriodValue(
+  public val id: String? = null,
+  public val minutes: Int? = null,
+  public val presentation: String? = null,
+)
+---
+/com/example/dto/PredefinedFilterField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class PredefinedFilterField(
+  public val id: String? = null,
+) : FilterField()
+---
+/com/example/dto/Project.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+public data class Project(
+  public val id: String? = null,
+  public val startingNumber: Long? = null,
+  public val shortName: String? = null,
+  public val description: String? = null,
+  public val leader: User? = null,
+  public val createdBy: User? = null,
+  public val issues: List<Issue>? = null,
+  public val customFields: Any? = null,
+  public val archived: Boolean? = null,
+  public val fromEmail: String? = null,
+  public val replyToEmail: String? = null,
+  public val template: Boolean? = null,
+  public val iconUrl: String? = null,
+  public val team: UserGroup? = null,
+) : IssueFolder()
+---
+/com/example/dto/ProjectActivityItem.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class ProjectActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+) : SingleValueActivityItem()
+---
+/com/example/dto/ProjectBasedColorCoding.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class ProjectBasedColorCoding(
+  public val id: String? = null,
+  public val projectColors: List<ProjectColor>? = null,
+) : ColorCoding()
+---
+/com/example/dto/ProjectColor.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ProjectColor(
+  public val id: String? = null,
+  public val project: Project? = null,
+  public val color: FieldStyle? = null,
+)
+---
+/com/example/dto/ProjectCustomField.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ProjectCustomField(
+  public val id: String? = null,
+  public val `field`: CustomField? = null,
+  public val project: Project? = null,
+  public val canBeEmpty: Boolean? = null,
+  public val emptyFieldText: String? = null,
+  public val ordinal: Int? = null,
+  public val isPublic: Boolean? = null,
+  public val hasRunningJob: Boolean? = null,
+  public val condition: CustomFieldCondition? = null,
+)
+---
+/com/example/dto/ProjectTimeTrackingSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class ProjectTimeTrackingSettings(
+  public val id: String? = null,
+  public val enabled: Boolean? = null,
+  public val estimate: ProjectCustomField? = null,
+  public val timeSpent: ProjectCustomField? = null,
+  public val workItemTypes: List<WorkItemType>? = null,
+  public val project: Project? = null,
+  public val attributes: List<WorkItemProjectAttribute>? = null,
+)
+---
+/com/example/dto/RestCorsSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class RestCorsSettings(
+  public val id: String? = null,
+  public val allowedOrigins: List<String>? = null,
+  public val allowAllOrigins: Boolean? = null,
+)
+---
+/com/example/dto/SavedQuery.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class SavedQuery(
+  public val id: String? = null,
+  public val query: String? = null,
+  public val issues: List<Issue>? = null,
+  public val visibleFor: UserGroup? = null,
+  public val updateableBy: UserGroup? = null,
+  public val readSharingSettings: WatchFolderSharingSettings? = null,
+  public val updateSharingSettings: WatchFolderSharingSettings? = null,
+) : WatchFolder()
+---
+/com/example/dto/SearchSuggestions.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class SearchSuggestions(
+  public val id: String? = null,
+  public val caret: Int? = null,
+  public val ignoreUnresolvedSetting: Boolean? = null,
+  public val query: String? = null,
+  public val suggestions: List<Suggestion>? = null,
+  public val folders: List<IssueFolder>? = null,
+)
+---
+/com/example/dto/SimpleIssueCustomField.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class SimpleIssueCustomField(
+  public val id: String? = null,
+  public val `value`: Any? = null,
+) : IssueCustomField()
+---
+/com/example/dto/SimpleProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SimpleProjectCustomField(
+  public val id: String? = null,
+) : ProjectCustomField()
+---
+/com/example/dto/SimpleValueActivityItem.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class SimpleValueActivityItem(
+  public val id: String? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+) : SingleValueActivityItem()
+---
+/com/example/dto/SingleBuildIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleBuildIssueCustomField(
+  public val id: String? = null,
+  public val `value`: BuildBundleElement? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SingleEnumIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleEnumIssueCustomField(
+  public val id: String? = null,
+  public val `value`: EnumBundleElement? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SingleGroupIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleGroupIssueCustomField(
+  public val id: String? = null,
+  public val `value`: UserGroup? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SingleOwnedIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleOwnedIssueCustomField(
+  public val id: String? = null,
+  public val `value`: OwnedBundleElement? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SingleUserIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleUserIssueCustomField(
+  public val id: String? = null,
+  public val `value`: User? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SingleValueActivityItem.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+
+public data class SingleValueActivityItem(
+  public val id: String? = null,
+  public val removed: Any? = null,
+  public val added: Any? = null,
+) : ActivityItem()
+---
+/com/example/dto/SingleVersionIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SingleVersionIssueCustomField(
+  public val id: String? = null,
+  public val `value`: VersionBundleElement? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/SpaceChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SpaceChangesProcessor(
+  public val id: String? = null,
+  public val server: SpaceServer? = null,
+) : VcsHostingChangesProcessor()
+---
+/com/example/dto/SpaceServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class SpaceServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsHostingServer()
+---
+/com/example/dto/Sprint.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Sprint(
+  public val id: String? = null,
+  public val agile: Agile? = null,
+  public val name: String? = null,
+  public val goal: String? = null,
+  public val start: Long? = null,
+  public val finish: Long? = null,
+  public val archived: Boolean? = null,
+  public val isDefault: Boolean? = null,
+  public val issues: List<Issue>? = null,
+  public val unresolvedIssuesCount: Int? = null,
+  public val previousSprint: Sprint? = null,
+)
+---
+/com/example/dto/SprintActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class SprintActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: List<Sprint>? = null,
+  public val added: List<Sprint>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/SprintsSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class SprintsSettings(
+  public val id: String? = null,
+  public val isExplicit: Boolean? = null,
+  public val cardOnSeveralSprints: Boolean? = null,
+  public val defaultSprint: Sprint? = null,
+  public val disableSprints: Boolean? = null,
+  public val explicitQuery: String? = null,
+  public val sprintSyncField: CustomField? = null,
+  public val hideSubtasksOfCards: Boolean? = null,
+)
+---
+/com/example/dto/StateBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class StateBundle(
+  public val id: String? = null,
+  public val values: List<StateBundleElement>? = null,
+) : BaseBundle()
+---
+/com/example/dto/StateBundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class StateBundleCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: StateBundle? = null,
+  public val defaultValues: List<StateBundleElement>? = null,
+) : BundleCustomFieldDefaults()
+---
+/com/example/dto/StateBundleElement.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+
+public data class StateBundleElement(
+  public val id: String? = null,
+  public val isResolved: Boolean? = null,
+) : LocalizableBundleElement()
+---
+/com/example/dto/StateIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class StateIssueCustomField(
+  public val id: String? = null,
+  public val `value`: StateBundleElement? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/StateMachineIssueCustomField.kt
+package com.example.dto
+
+import kotlin.Any
+import kotlin.String
+import kotlin.collections.List
+
+public data class StateMachineIssueCustomField(
+  public val id: String? = null,
+  public val `value`: Any? = null,
+  public val event: Event? = null,
+  public val possibleEvents: List<Event>? = null,
+) : DatabaseSingleValueIssueCustomField()
+---
+/com/example/dto/StateProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class StateProjectCustomField(
+  public val id: String? = null,
+  public val bundle: StateBundle? = null,
+  public val defaultValues: List<StateBundleElement>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/StorageEntry.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class StorageEntry(
+  public val id: String? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/Suggestion.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Suggestion(
+  public val id: String? = null,
+  public val completionStart: Int? = null,
+  public val completionEnd: Int? = null,
+  public val matchingStart: Int? = null,
+  public val matchingEnd: Int? = null,
+  public val caret: Int? = null,
+  public val description: String? = null,
+  public val option: String? = null,
+  public val prefix: String? = null,
+  public val suffix: String? = null,
+  public val group: String? = null,
+  public val icon: String? = null,
+  public val auxiliaryIcon: String? = null,
+  public val className: String? = null,
+)
+---
+/com/example/dto/SwimlaneEntityAttributeValue.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+
+public data class SwimlaneEntityAttributeValue(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val isResolved: Boolean? = null,
+) : DatabaseAttributeValue()
+---
+/com/example/dto/SwimlaneSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class SwimlaneSettings(
+  public val id: String? = null,
+  public val enabled: Boolean? = null,
+)
+---
+/com/example/dto/SwimlaneValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class SwimlaneValue(
+  public val id: String? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/SystemSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class SystemSettings(
+  public val id: String? = null,
+  public val baseUrl: String? = null,
+  public val maxUploadFileSize: Long? = null,
+  public val maxExportItems: Int? = null,
+  public val administratorEmail: String? = null,
+  public val allowStatisticsCollection: Boolean? = null,
+  public val isApplicationReadOnly: Boolean? = null,
+)
+---
+/com/example/dto/TagsActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class TagsActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: List<IssueTag>? = null,
+  public val added: List<IssueTag>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/TeamcityChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TeamcityChangesProcessor(
+  public val id: String? = null,
+  public val server: TeamcityServer? = null,
+) : ChangesProcessor()
+---
+/com/example/dto/TeamcityServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TeamcityServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsServer()
+---
+/com/example/dto/Telemetry.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Telemetry(
+  public val id: String? = null,
+  public val installationFolder: String? = null,
+  public val databaseLocation: String? = null,
+  public val logsLocation: String? = null,
+  public val availableProcessors: Int? = null,
+  public val availableMemory: String? = null,
+  public val allocatedMemory: String? = null,
+  public val usedMemory: String? = null,
+  public val uptime: String? = null,
+  public val startedTime: Long? = null,
+  public val databaseBackgroundThreads: Int? = null,
+  public val pendingAsyncJobs: Int? = null,
+  public val cachedResultsCountInDBQueriesCache: Int? = null,
+  public val databaseQueriesCacheHitRate: String? = null,
+  public val blobStringsCacheHitRate: String? = null,
+  public val totalTransactions: Long? = null,
+  public val transactionsPerSecond: String? = null,
+  public val requestsPerSecond: String? = null,
+  public val databaseSize: String? = null,
+  public val fullDatabaseSize: String? = null,
+  public val textIndexSize: String? = null,
+  public val onlineUsers: OnlineUsers? = null,
+  public val reportCalculatorThreads: Int? = null,
+  public val notificationAnalyzerThreads: Int? = null,
+)
+---
+/com/example/dto/TextCustomFieldActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TextCustomFieldActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: String? = null,
+  public val added: String? = null,
+  public val markup: String? = null,
+) : CustomFieldActivityItem()
+---
+/com/example/dto/TextFieldValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class TextFieldValue(
+  public val id: String? = null,
+  public val text: String? = null,
+  public val markdownText: String? = null,
+)
+---
+/com/example/dto/TextIssueCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TextIssueCustomField(
+  public val id: String? = null,
+  public val `value`: TextFieldValue? = null,
+) : IssueCustomField()
+---
+/com/example/dto/TextMarkupActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TextMarkupActivityItem(
+  public val id: String? = null,
+  public val removed: String? = null,
+  public val added: String? = null,
+  public val markup: String? = null,
+) : SimpleValueActivityItem()
+---
+/com/example/dto/TextProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class TextProjectCustomField(
+  public val id: String? = null,
+) : SimpleProjectCustomField()
+---
+/com/example/dto/TimeTrackingUserProfile.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class TimeTrackingUserProfile(
+  public val id: String? = null,
+  public val periodFormat: PeriodFieldFormat? = null,
+)
+---
+/com/example/dto/TimeZoneDescriptor.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class TimeZoneDescriptor(
+  public val id: String? = null,
+  public val presentation: String? = null,
+  public val offset: Int? = null,
+)
+---
+/com/example/dto/UnlimitedVisibility.kt
+package com.example.dto
+
+public object UnlimitedVisibility : Visibility()
+---
+/com/example/dto/UpsourceChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class UpsourceChangesProcessor(
+  public val id: String? = null,
+  public val server: UpsourceServer? = null,
+) : ChangesProcessor()
+---
+/com/example/dto/UpsourceServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class UpsourceServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsServer()
+---
+/com/example/dto/User.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class User(
+  public val id: String? = null,
+  public val login: String? = null,
+  public val fullName: String? = null,
+  public val email: String? = null,
+  public val jabberAccountName: String? = null,
+  public val ringId: String? = null,
+  public val guest: Boolean? = null,
+  public val online: Boolean? = null,
+  public val banned: Boolean? = null,
+  public val tags: List<IssueTag>? = null,
+  public val savedQueries: List<SavedQuery>? = null,
+  public val avatarUrl: String? = null,
+  public val profiles: UserProfiles? = null,
+)
+---
+/com/example/dto/UserBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class UserBundle(
+  public val id: String? = null,
+  public val groups: List<UserGroup>? = null,
+  public val individuals: List<User>? = null,
+  public val aggregatedUsers: List<User>? = null,
+) : Bundle()
+---
+/com/example/dto/UserCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class UserCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: UserBundle? = null,
+  public val defaultValues: List<User>? = null,
+) : CustomFieldDefaults()
+---
+/com/example/dto/UserGroup.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class UserGroup(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val ringId: String? = null,
+  public val usersCount: Long? = null,
+  public val icon: String? = null,
+  public val allUsersGroup: Boolean? = null,
+  public val teamForProject: Project? = null,
+)
+---
+/com/example/dto/UserProfiles.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class UserProfiles(
+  public val id: String? = null,
+  public val general: GeneralUserProfile? = null,
+  public val notifications: NotificationsUserProfile? = null,
+  public val timetracking: TimeTrackingUserProfile? = null,
+)
+---
+/com/example/dto/UserProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class UserProjectCustomField(
+  public val id: String? = null,
+  public val bundle: UserBundle? = null,
+  public val defaultValues: List<User>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/UsesMarkupActivityItem.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.String
+
+public data class UsesMarkupActivityItem(
+  public val id: String? = null,
+  public val removed: Boolean? = null,
+  public val added: Boolean? = null,
+  public val markup: String? = null,
+) : SimpleValueActivityItem()
+---
+/com/example/dto/VcsChange.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class VcsChange(
+  public val id: String? = null,
+  public val date: Long? = null,
+  public val fetched: Long? = null,
+  public val files: Int? = null,
+  public val author: User? = null,
+  public val processors: List<ChangesProcessor>? = null,
+  public val text: String? = null,
+  public val urls: List<String>? = null,
+  public val version: String? = null,
+  public val issue: Issue? = null,
+  public val state: Int? = null,
+)
+---
+/com/example/dto/VcsChangeActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VcsChangeActivityItem(
+  public val id: String? = null,
+  public val removed: List<VcsChange>? = null,
+  public val added: List<VcsChange>? = null,
+  public val author: User? = null,
+) : CreatedDeletedActivityItem()
+---
+/com/example/dto/VcsHostingChangesProcessor.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class VcsHostingChangesProcessor(
+  public val id: String? = null,
+  public val server: VcsHostingServer? = null,
+  public val path: String? = null,
+  public val branchSpecification: String? = null,
+  public val committers: UserGroup? = null,
+) : ChangesProcessor()
+---
+/com/example/dto/VcsHostingServer.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class VcsHostingServer(
+  public val id: String? = null,
+  public val url: String? = null,
+) : VcsServer()
+---
+/com/example/dto/VcsServer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class VcsServer(
+  public val id: String? = null,
+  public val url: String? = null,
+)
+---
+/com/example/dto/VcsUnresolvedUser.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class VcsUnresolvedUser(
+  public val id: String? = null,
+  public val name: String? = null,
+) : User()
+---
+/com/example/dto/VersionBundle.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VersionBundle(
+  public val id: String? = null,
+  public val values: List<VersionBundleElement>? = null,
+) : BaseBundle()
+---
+/com/example/dto/VersionBundleCustomFieldDefaults.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VersionBundleCustomFieldDefaults(
+  public val id: String? = null,
+  public val bundle: VersionBundle? = null,
+  public val defaultValues: List<VersionBundleElement>? = null,
+) : BundleCustomFieldDefaults()
+---
+/com/example/dto/VersionBundleElement.kt
+package com.example.dto
+
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+
+public data class VersionBundleElement(
+  public val id: String? = null,
+  public val archived: Boolean? = null,
+  public val releaseDate: Long? = null,
+  public val released: Boolean? = null,
+) : BundleElement()
+---
+/com/example/dto/VersionProjectCustomField.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VersionProjectCustomField(
+  public val id: String? = null,
+  public val bundle: VersionBundle? = null,
+  public val defaultValues: List<VersionBundleElement>? = null,
+) : BundleProjectCustomField()
+---
+/com/example/dto/Visibility.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class Visibility(
+  public val id: String? = null,
+)
+---
+/com/example/dto/VisibilityActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class VisibilityActivityItem(
+  public val id: String? = null,
+  public val targetMember: String? = null,
+  public val targetSubMember: String? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/VisibilityGroupActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VisibilityGroupActivityItem(
+  public val id: String? = null,
+  public val targetMember: String? = null,
+  public val targetSubMember: String? = null,
+  public val removed: List<UserGroup>? = null,
+  public val added: List<UserGroup>? = null,
+) : VisibilityActivityItem()
+---
+/com/example/dto/VisibilityUserActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VisibilityUserActivityItem(
+  public val id: String? = null,
+  public val targetMember: String? = null,
+  public val targetSubMember: String? = null,
+  public val removed: List<User>? = null,
+  public val added: List<User>? = null,
+) : VisibilityActivityItem()
+---
+/com/example/dto/VotersActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class VotersActivityItem(
+  public val id: String? = null,
+  public val target: Issue? = null,
+  public val removed: List<User>? = null,
+  public val added: List<User>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/WatchFolder.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class WatchFolder(
+  public val id: String? = null,
+  public val owner: User? = null,
+  public val visibleFor: UserGroup? = null,
+  public val updateableBy: UserGroup? = null,
+  public val readSharingSettings: WatchFolderSharingSettings? = null,
+  public val updateSharingSettings: WatchFolderSharingSettings? = null,
+) : IssueFolder()
+---
+/com/example/dto/WatchFolderSharingSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WatchFolderSharingSettings(
+  public val id: String? = null,
+  public val permittedGroups: List<UserGroup>? = null,
+  public val permittedUsers: List<User>? = null,
+)
+---
+/com/example/dto/WIPLimit.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WIPLimit(
+  public val id: String? = null,
+  public val max: Int? = null,
+  public val min: Int? = null,
+  public val column: AgileColumn? = null,
+)
+---
+/com/example/dto/WorkItemActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class WorkItemActivityItem(
+  public val id: String? = null,
+  public val target: IssueWorkItem? = null,
+  public val removed: List<IssueWorkItem>? = null,
+  public val added: List<IssueWorkItem>? = null,
+) : CreatedDeletedActivityItem()
+---
+/com/example/dto/WorkItemAttribute.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkItemAttribute(
+  public val id: String? = null,
+  public val workItem: BaseWorkItem? = null,
+  public val projectAttribute: WorkItemProjectAttribute? = null,
+  public val `value`: WorkItemAttributeValue? = null,
+  public val name: String? = null,
+)
+---
+/com/example/dto/WorkItemAttributePrototype.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkItemAttributePrototype(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val instances: WorkItemProjectAttribute? = null,
+  public val values: List<WorkItemAttributeValue>? = null,
+)
+---
+/com/example/dto/WorkItemAttributeValue.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkItemAttributeValue(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val description: String? = null,
+  public val autoAttach: Boolean? = null,
+  public val prototype: WorkItemAttributePrototype? = null,
+)
+---
+/com/example/dto/WorkItemAuthorActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class WorkItemAuthorActivityItem(
+  public val id: String? = null,
+  public val target: IssueWorkItem? = null,
+  public val removed: User? = null,
+  public val added: User? = null,
+) : SingleValueActivityItem()
+---
+/com/example/dto/WorkItemDurationActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class WorkItemDurationActivityItem(
+  public val id: String? = null,
+  public val target: IssueWorkItem? = null,
+  public val removed: DurationValue? = null,
+  public val added: DurationValue? = null,
+) : SingleValueActivityItem()
+---
+/com/example/dto/WorkItemProjectAttribute.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkItemProjectAttribute(
+  public val id: String? = null,
+  public val timeTrackingSettings: ProjectTimeTrackingSettings? = null,
+  public val prototype: WorkItemAttributePrototype? = null,
+  public val values: List<WorkItemAttributeValue>? = null,
+  public val name: String? = null,
+  public val ordinal: Int? = null,
+)
+---
+/com/example/dto/WorkItemType.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Boolean
+import kotlin.String
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkItemType(
+  public val id: String? = null,
+  public val name: String? = null,
+  public val autoAttached: Boolean? = null,
+)
+---
+/com/example/dto/WorkItemTypeActivityItem.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.List
+
+public data class WorkItemTypeActivityItem(
+  public val id: String? = null,
+  public val target: IssueWorkItem? = null,
+  public val removed: List<WorkItemType>? = null,
+  public val added: List<WorkItemType>? = null,
+) : MultiValueActivityItem()
+---
+/com/example/dto/WorkTimeSettings.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "${'$'}type",
+)
+public sealed class WorkTimeSettings(
+  public val id: String? = null,
+  public val minutesADay: Int? = null,
+  public val workDays: List<Int>? = null,
+  public val firstDayOfWeek: Int? = null,
+  public val daysAWeek: Int? = null,
+)
