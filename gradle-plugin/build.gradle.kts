@@ -6,6 +6,13 @@ plugins {
 
 group = "ru.curs"
 
+// Compile against Java 17 (matching the core artifact's maven.compiler.release)
+// regardless of the JDK running Gradle, so the published plugin loads on any
+// consumer Gradle running on JDK 17+.
+kotlin {
+    jvmToolchain(17)
+}
+
 repositories {
     mavenLocal()
     mavenCentral()
