@@ -90,6 +90,14 @@
             <version>3.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- Provides @RestForm and FileUpload so that generated Quarkus
+             multipart code can be compile-verified. -->
+        <dependency>
+            <groupId>io.quarkus.resteasy.reactive</groupId>
+            <artifactId>resteasy-reactive-common</artifactId>
+            <version>3.23.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
