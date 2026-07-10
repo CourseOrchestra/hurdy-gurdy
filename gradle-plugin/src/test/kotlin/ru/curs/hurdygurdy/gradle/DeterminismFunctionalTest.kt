@@ -6,7 +6,6 @@ import ru.curs.hurdygurdy.GeneratorParams
 import ru.curs.hurdygurdy.JavaCodegen
 import ru.curs.hurdygurdy.Role
 import java.io.File
-import java.nio.file.Files
 import kotlin.test.assertEquals
 
 class DeterminismFunctionalTest {
