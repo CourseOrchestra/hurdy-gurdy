@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.eclipse.microprofile.rest.client</groupId>
             <artifactId>microprofile-rest-client-api</artifactId>
-            <version>3.0</version>
+            <version>4.0</version>
             <scope>test</scope>
         </dependency>
         <!-- Provides @RestForm and FileUpload so that generated Quarkus
