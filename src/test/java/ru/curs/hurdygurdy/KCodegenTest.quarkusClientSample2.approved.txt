@@ -1,0 +1,326 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.core.Response
+import kotlin.Int
+import kotlin.String
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
+
+@Path("")
+@RegisterRestClient
+public interface Client {
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/activity")
+  @Consumes("application/json")
+  public fun syncPlayerActivities(request: PlayerActivitiesDTO?): Response
+
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello")
+  @Produces("*/*")
+  public fun hello(): Response
+
+  /**
+   * @return a Response whose entity is expected to be kotlin.String?
+   */
+  @GET
+  @Path("/api/v1/hello/{id}")
+  @Produces("*/*")
+  public fun hello(
+    @PathParam("id") id: Int?,
+    @QueryParam("foo") foo: String?,
+    @QueryParam("bar") bar: Int?,
+    @HeaderParam("baz") baz: String?,
+  ): Response
+}
+---
+/com/example/controller/PlayerClient.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.core.Response
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
+
+@Path("")
+@RegisterRestClient
+public interface PlayerClient {
+  /**
+   * @return a Response whose entity is expected to be empty (no body)
+   */
+  @POST
+  @Path("/api/v1/players")
+  @Consumes("application/json")
+  public fun syncPlayers(request: PlayersDTO?): Response
+}
+---
+/com/example/dto
+---
+/com/example/dto/Car.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Car(
+  public val carProperty: String? = null,
+) : Vehicle()
+---
+/com/example/dto/DepositDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.Long
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class DepositDTO(
+  public val player: PlayerDTO,
+  public val playerenum: PlayerEnum? = null,
+  public val depositId: String? = null,
+  public val amountCents: Long? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val processedAt: ZonedDateTime? = null,
+)
+---
+/com/example/dto/Parent.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Parent(
+  public val vehicle: Vehicle,
+)
+---
+/com/example/dto/PlayerActivitiesDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerActivitiesDTO(
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val from: ZonedDateTime? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val to: ZonedDateTime? = null,
+  public val items: List<PlayerActivityDTO>? = null,
+)
+---
+/com/example/dto/PlayerActivityDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerActivityDTO(
+  public val tag: String? = null,
+  public val userId: String? = null,
+  public val currency: String? = null,
+  public val betsSumCents: Long? = null,
+  public val wagerCents: Long? = null,
+  public val additionalDeductionsSumCents: Long? = null,
+  public val roundsCount: Long? = null,
+  public val bonusIssuesSumCents: Long? = null,
+  public val chargebacksSumCents: Long? = null,
+  public val chargebacksCount: Long? = null,
+  public val depositsSumCents: Long? = null,
+  public val depositsCount: Long? = null,
+  public val cashoutsSumCents: Long? = null,
+  public val cashoutsCount: Long? = null,
+  public val deposits: List<DepositDTO>? = null,
+)
+---
+/com/example/dto/PlayerDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.LocalDate
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerDTO(
+  public val tag: String? = null,
+  public val email: String? = null,
+  public val userId: String? = null,
+  public val dateOfBirth: LocalDate? = null,
+  public val firstName: String? = null,
+  public val lastName: String? = null,
+  public val nickname: String? = null,
+  public val gender: Gender? = null,
+  public val country: String? = null,
+  public val language: String? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val signUpAt: ZonedDateTime? = null,
+  public val duplicate: Boolean? = null,
+) {
+  public enum class Gender {
+    @JsonProperty("m")
+    M,
+    @JsonProperty("f")
+    F,
+    @JsonProperty("n")
+    N,
+  }
+}
+---
+/com/example/dto/PlayerEnum.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class PlayerEnum {
+  @JsonProperty("good")
+  GOOD,
+  @JsonProperty("bad")
+  BAD,
+  @JsonProperty("ugly")
+  UGLY,
+}
+---
+/com/example/dto/PlayersDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayersDTO(
+  public val players: List<PlayerDTO>? = null,
+)
+---
+/com/example/dto/Truck.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Truck(
+  public val truckProperty: String? = null,
+) : Vehicle()
+---
+/com/example/dto/Vehicle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "vehicle_type",
+)
+@JsonSubTypes(
+  JsonSubTypes.Type(value = Car::class, name = "CAR"),
+  JsonSubTypes.Type(value = Truck::class, name = "TRUCK"),
+)
+public sealed class Vehicle()
+---
+/com/example/dto/ZonedDateTimeDeserializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import java.time.DateTimeException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext): ZonedDateTime {
+    val date = jsonParser.text
+    try  {
+      return ZonedDateTime.parse(date, formatter)
+    }
+    catch (e: DateTimeException) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter)
+      }
+      catch (_: DateTimeException) {
+        // do nothing, exception thrown below
+      }
+      throw JsonParseException(jsonParser, e.message)
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun serialize(
+    `value`: ZonedDateTime,
+    gen: JsonGenerator,
+    serializers: SerializerProvider,
+  ) {
+    gen.writeString(formatter.format(value))
+  }
+}

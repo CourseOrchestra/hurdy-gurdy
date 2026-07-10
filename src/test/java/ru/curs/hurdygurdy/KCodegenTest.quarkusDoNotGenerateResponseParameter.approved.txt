@@ -1,0 +1,48 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.ToveDTO
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import kotlin.Int
+
+@Path("")
+public interface Controller {
+  @GET
+  @Path("/api/v1/tove/{id}")
+  @Produces("application/json")
+  public fun getTove(@PathParam("id") id: Int?): ToveDTO?
+
+  @PUT
+  @Path("/api/v1/tove/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  public fun updateTove(request: ToveDTO?, @PathParam("id") id: Int?): ToveDTO?
+}
+---
+/com/example/dto
+---
+/com/example/dto/ToveDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class ToveDTO(
+  public val name: String? = null,
+)

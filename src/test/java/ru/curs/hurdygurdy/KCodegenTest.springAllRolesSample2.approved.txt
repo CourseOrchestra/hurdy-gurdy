@@ -1,0 +1,403 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Api.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import kotlin.Int
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Api {
+  @PostMapping(value = ["/api/v1/activity"])
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?)
+
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(): String?
+
+  @GetMapping(
+    value = ["/api/v1/hello/{id}"],
+    produces = ["*/*"],
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "foo") foo: String?,
+    @RequestParam(required = true, name = "bar") bar: Int?,
+    @RequestHeader(required = true, name = "baz") baz: String?,
+  ): String?
+}
+---
+/com/example/controller/Client.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import kotlin.Int
+import kotlin.String
+import kotlin.Unit
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+import org.springframework.web.service.`annotation`.GetExchange
+import org.springframework.web.service.`annotation`.PostExchange
+
+public interface Client {
+  @PostExchange(value = "/api/v1/activity")
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?): ResponseEntity<Unit>
+
+  @GetExchange(
+    value = "/api/v1/hello",
+    accept = ["*/*"],
+  )
+  public fun hello(): ResponseEntity<String>
+
+  @GetExchange(
+    value = "/api/v1/hello/{id}",
+    accept = ["*/*"],
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "foo") foo: String?,
+    @RequestParam(required = true, name = "bar") bar: Int?,
+    @RequestHeader(required = true, name = "baz") baz: String?,
+  ): ResponseEntity<String>
+}
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.PlayerActivitiesDTO
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.Int
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @PostMapping(value = ["/api/v1/activity"])
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?, response: HttpServletResponse)
+
+  @GetMapping(
+    value = ["/api/v1/hello"],
+    produces = ["*/*"],
+  )
+  public fun hello(request: HttpServletRequest, response: HttpServletResponse): String?
+
+  @GetMapping(
+    value = ["/api/v1/hello/{id}"],
+    produces = ["*/*"],
+  )
+  public fun hello(
+    @PathVariable(name = "id") id: Int?,
+    @RequestParam(required = false, name = "foo") foo: String?,
+    @RequestParam(required = true, name = "bar") bar: Int?,
+    @RequestHeader(required = true, name = "baz") baz: String?,
+    response: HttpServletResponse,
+  ): String?
+}
+---
+/com/example/controller/PlayerApi.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface PlayerApi {
+  @PostMapping(value = ["/api/v1/players"])
+  public fun syncPlayers(@RequestBody request: PlayersDTO?)
+}
+---
+/com/example/controller/PlayerClient.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import kotlin.Unit
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.service.`annotation`.PostExchange
+
+public interface PlayerClient {
+  @PostExchange(value = "/api/v1/players")
+  public fun syncPlayers(@RequestBody request: PlayersDTO?): ResponseEntity<Unit>
+}
+---
+/com/example/controller/PlayerController.kt
+package com.example.controller
+
+import com.example.dto.PlayersDTO
+import jakarta.servlet.http.HttpServletResponse
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface PlayerController {
+  @PostMapping(value = ["/api/v1/players"])
+  public fun syncPlayers(@RequestBody request: PlayersDTO?, response: HttpServletResponse)
+}
+---
+/com/example/dto
+---
+/com/example/dto/Car.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Car(
+  public val carProperty: String? = null,
+) : Vehicle()
+---
+/com/example/dto/DepositDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.Long
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class DepositDTO(
+  public val player: PlayerDTO,
+  public val playerenum: PlayerEnum? = null,
+  public val depositId: String? = null,
+  public val amountCents: Long? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val processedAt: ZonedDateTime? = null,
+)
+---
+/com/example/dto/Parent.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Parent(
+  public val vehicle: Vehicle,
+)
+---
+/com/example/dto/PlayerActivitiesDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.ZonedDateTime
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerActivitiesDTO(
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val from: ZonedDateTime? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val to: ZonedDateTime? = null,
+  public val items: List<PlayerActivityDTO>? = null,
+)
+---
+/com/example/dto/PlayerActivityDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerActivityDTO(
+  public val tag: String? = null,
+  public val userId: String? = null,
+  public val currency: String? = null,
+  public val betsSumCents: Long? = null,
+  public val wagerCents: Long? = null,
+  public val additionalDeductionsSumCents: Long? = null,
+  public val roundsCount: Long? = null,
+  public val bonusIssuesSumCents: Long? = null,
+  public val chargebacksSumCents: Long? = null,
+  public val chargebacksCount: Long? = null,
+  public val depositsSumCents: Long? = null,
+  public val depositsCount: Long? = null,
+  public val cashoutsSumCents: Long? = null,
+  public val cashoutsCount: Long? = null,
+  public val deposits: List<DepositDTO>? = null,
+)
+---
+/com/example/dto/PlayerDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonDeserialize
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import com.fasterxml.jackson.databind.`annotation`.JsonSerialize
+import java.time.LocalDate
+import java.time.ZonedDateTime
+import kotlin.Boolean
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayerDTO(
+  public val tag: String? = null,
+  public val email: String? = null,
+  public val userId: String? = null,
+  public val dateOfBirth: LocalDate? = null,
+  public val firstName: String? = null,
+  public val lastName: String? = null,
+  public val nickname: String? = null,
+  public val gender: Gender? = null,
+  public val country: String? = null,
+  public val language: String? = null,
+  @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
+  @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
+  public val signUpAt: ZonedDateTime? = null,
+  public val duplicate: Boolean? = null,
+) {
+  public enum class Gender {
+    @JsonProperty("m")
+    M,
+    @JsonProperty("f")
+    F,
+    @JsonProperty("n")
+    N,
+  }
+}
+---
+/com/example/dto/PlayerEnum.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class PlayerEnum {
+  @JsonProperty("good")
+  GOOD,
+  @JsonProperty("bad")
+  BAD,
+  @JsonProperty("ugly")
+  UGLY,
+}
+---
+/com/example/dto/PlayersDTO.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class PlayersDTO(
+  public val players: List<PlayerDTO>? = null,
+)
+---
+/com/example/dto/Truck.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Truck(
+  public val truckProperty: String? = null,
+) : Vehicle()
+---
+/com/example/dto/Vehicle.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "vehicle_type",
+)
+@JsonSubTypes(
+  JsonSubTypes.Type(value = Car::class, name = "CAR"),
+  JsonSubTypes.Type(value = Truck::class, name = "TRUCK"),
+)
+public sealed class Vehicle()
+---
+/com/example/dto/ZonedDateTimeDeserializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonParseException
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import java.time.DateTimeException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext): ZonedDateTime {
+    val date = jsonParser.text
+    try  {
+      return ZonedDateTime.parse(date, formatter)
+    }
+    catch (e: DateTimeException) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter)
+      }
+      catch (_: DateTimeException) {
+        // do nothing, exception thrown below
+      }
+      throw JsonParseException(jsonParser, e.message)
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.kt
+package com.example.dto
+
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+public class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime>() {
+  private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  public override fun serialize(
+    `value`: ZonedDateTime,
+    gen: JsonGenerator,
+    serializers: SerializerProvider,
+  ) {
+    gen.writeString(formatter.format(value))
+  }
+}

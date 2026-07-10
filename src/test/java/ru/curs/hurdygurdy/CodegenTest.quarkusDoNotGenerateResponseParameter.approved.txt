@@ -1,0 +1,49 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.ToveDTO;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+
+@Path("")
+public interface Controller {
+  @GET
+  @Path("/api/v1/tove/{id}")
+  @Produces("application/json")
+  ToveDTO getTove(@PathParam("id") int id);
+
+  @PUT
+  @Path("/api/v1/tove/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  ToveDTO updateTove(ToveDTO request, @PathParam("id") int id);
+}
+---
+/com/example/dto
+---
+/com/example/dto/ToveDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class ToveDTO {
+  private String name;
+}

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>2.10</version>
+    <version>2.11-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>OpenAPI codegen Maven Plugin</name>
@@ -78,6 +78,18 @@
             <scope>compile</scope>
         </dependency>
         <!-- test -->
+        <dependency>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
+            <version>3.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.rest.client</groupId>
+            <artifactId>microprofile-rest-client-api</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

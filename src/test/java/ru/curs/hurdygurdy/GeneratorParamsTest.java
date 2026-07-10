@@ -1,0 +1,77 @@
+package ru.curs.hurdygurdy;
+
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class GeneratorParamsTest {
+
+    @Test
+    void defaultFrameworkIsSpring() {
+        assertThat(GeneratorParams.rootPackage("com.example").getFramework())
+                .isEqualTo(Framework.SPRING);
+    }
+
+    @Test
+    void frameworkIsSettable() {
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .framework(Framework.QUARKUS).getFramework())
+                .isEqualTo(Framework.QUARKUS);
+    }
+
+    @Test
+    void ofParsesCaseInsensitively() {
+        assertThat(Framework.of("quarkus")).isEqualTo(Framework.QUARKUS);
+        assertThat(Framework.of("QUARKUS")).isEqualTo(Framework.QUARKUS);
+        assertThat(Framework.of("spring")).isEqualTo(Framework.SPRING);
+    }
+
+    @Test
+    void ofDefaultsToSpringForBlankOrNull() {
+        assertThat(Framework.of(null)).isEqualTo(Framework.SPRING);
+        assertThat(Framework.of("  ")).isEqualTo(Framework.SPRING);
+    }
+
+    @Test
+    void defaultGenerateIsControllerOnly() {
+        assertThat(GeneratorParams.rootPackage("com.example").getGenerate())
+                .containsExactly(Role.CONTROLLER);
+    }
+
+    @Test
+    void generateIsSettableAndReplacesSelection() {
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .generate(Role.CLIENT).getGenerate())
+                .containsExactly(Role.CLIENT);
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .generate(Role.CONTROLLER, Role.API, Role.CLIENT).getGenerate())
+                .containsExactly(Role.CONTROLLER, Role.API, Role.CLIENT);
+    }
+
+    @Test
+    void generateRejectsEmptySelection() {
+        assertThatThrownBy(() -> GeneratorParams.rootPackage("com.example").generate())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void generateApiInterfaceAddsApiToSelection() {
+        GeneratorParams params = GeneratorParams.rootPackage("com.example")
+                .generateApiInterface(true);
+        assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER, Role.API);
+        params.generateApiInterface(false);
+        assertThat(params.getGenerate()).containsExactly(Role.CONTROLLER);
+    }
+
+    @Test
+    void roleParsesCaseInsensitivelyAndDefaults() {
+        assertThat(Role.parse("client")).containsExactly(Role.CLIENT);
+        assertThat(Role.parse("CONTROLLER, Api")).containsExactly(Role.CONTROLLER, Role.API);
+        assertThat(Role.parse("controller,api,client"))
+                .containsExactly(Role.CONTROLLER, Role.API, Role.CLIENT);
+        assertThat(Role.parse(null)).containsExactly(Role.CONTROLLER);
+        assertThat(Role.parse("  ")).containsExactly(Role.CONTROLLER);
+    }
+}

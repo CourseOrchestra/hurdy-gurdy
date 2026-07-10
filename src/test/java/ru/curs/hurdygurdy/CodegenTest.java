@@ -37,7 +37,7 @@ class CodegenTest {
     void doNotGenerateResponseParameter() throws IOException {
         codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
                 .generateResponseParameter(false)
-                .generateApiInterface(true));
+                .generate(Role.CONTROLLER, Role.API));
         codegen.generate(Path.of("src/test/resources/sample1.yaml"), result);
         // Snapshot only: see generateSample1 — references external types.
         Approvals.verify(getContent(result));
@@ -108,6 +108,84 @@ class CodegenTest {
     @Test
     void browseruse() throws IOException {
         codegen.generate(Path.of("src/test/resources/browseruse.json"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusGenerateSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusDoNotGenerateResponseParameter() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusMultipart() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS));
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        // Snapshot only: compiling the generated @RestForm parameter would require
+        // the resteasy-reactive artifact, which we deliberately do not depend on.
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
+    void springClientSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.SPRING).generate(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).generate(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusClientMultipart() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS).generate(Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
+        // Snapshot only: @RestForm would require the resteasy-reactive artifact to compile.
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
+    void quarkusServerAndClientSample2() throws IOException {
+        // Both roles in a single run: XxxController (server resource) and
+        // XxxClient (@RegisterRestClient) side by side, sharing the DTOs.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .framework(Framework.QUARKUS)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void springAllRolesSample2() throws IOException {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .generate(Role.CONTROLLER, Role.API, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/sample2.yaml"), result);
         verify(result);
     }
 

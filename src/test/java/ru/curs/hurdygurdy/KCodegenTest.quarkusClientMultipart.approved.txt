@@ -1,0 +1,49 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.kt
+package com.example.controller
+
+import com.example.dto.RunWorkflowRequest
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.Response
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
+
+@Path("")
+@RegisterRestClient
+public interface Client {
+  /**
+   * @return a Response whose entity is expected to be com.example.dto.RunWorkflowRequest
+   */
+  @POST
+  @Path("/api/v1/workflow-run")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun runWorkflow(@RestForm("runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest, @RestForm("config") config: FileUpload?): Response
+}
+---
+/com/example/dto
+---
+/com/example/dto/RunWorkflowRequest.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class RunWorkflowRequest(
+  public val inputConnection: String? = null,
+  public val outputConnection: String? = null,
+)
