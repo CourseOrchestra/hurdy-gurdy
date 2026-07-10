@@ -1,7 +1,10 @@
 package ru.curs.hurdygurdy.gradle
 
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.tasks.SourceSetContainer
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.Role
 
@@ -21,7 +24,7 @@ class HurdyGurdyPlugin : Plugin<Project> {
             )
 
             val taskName = "generate" + spec.name.replaceFirstChar { it.uppercase() }
-            project.tasks.register(taskName, GenerateTask::class.java) { task ->
+            val generateTask = project.tasks.register(taskName, GenerateTask::class.java) { task ->
                 task.group = "hurdy-gurdy"
                 task.description = "Generates code from the '${spec.name}' OpenAPI spec"
                 task.spec.set(spec.spec)
@@ -32,6 +35,29 @@ class HurdyGurdyPlugin : Plugin<Project> {
                 task.generateResponseParameter.set(spec.generateResponseParameter)
                 task.forceSnakeCaseForProperties.set(spec.forceSnakeCaseForProperties)
                 task.outputDir.set(spec.outputDir)
+            }
+
+            project.pluginManager.withPlugin("java") {
+                val main = project.extensions.getByType(SourceSetContainer::class.java)
+                    .getByName("main")
+                when (spec.language.get()) {
+                    Language.JAVA -> main.java.srcDir(generateTask)
+                    Language.KOTLIN -> {
+                        var wired = false
+                        project.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+                            @Suppress("UNCHECKED_CAST")
+                            val kotlin = main.extensions.getByName("kotlin") as SourceDirectorySet
+                            kotlin.srcDir(generateTask)
+                            wired = true
+                        }
+                        project.afterEvaluate {
+                            if (!wired) throw GradleException(
+                                "hurdyGurdy spec '${spec.name}' sets language = KOTLIN but the " +
+                                "Kotlin JVM plugin (org.jetbrains.kotlin.jvm) is not applied"
+                            )
+                        }
+                    }
+                }
             }
         }
     }
