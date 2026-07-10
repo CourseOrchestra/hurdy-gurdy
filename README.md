@@ -39,6 +39,38 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 </plugin>
 ```
 
+## Usage example (as Gradle plugin)
+
+```kotlin
+import ru.curs.hurdygurdy.Framework
+import ru.curs.hurdygurdy.Role
+import ru.curs.hurdygurdy.gradle.Language
+
+plugins {
+    java
+    id("ru.curs.hurdy-gurdy") version "2.11"
+}
+
+hurdyGurdy {
+    petstore {
+        spec = layout.projectDirectory.file("src/main/openapi/api.yaml")
+        rootPackage = "com.example.project"
+        framework = Framework.SPRING            // default SPRING
+        language = Language.JAVA                // default JAVA
+        generate = setOf(Role.CONTROLLER)       // default [CONTROLLER]
+        generateResponseParameter = true        // default false
+        forceSnakeCaseForProperties = true      // default true
+    }
+}
+```
+
+Each named block registers a `generate<Name>` task (e.g. `generatePetstore`) whose
+output dir is added to the `main` source set, so `compileJava`/`compileKotlin`
+depend on it automatically. The task is cacheable: an unchanged spec keeps both
+generation and dependent compilation `UP-TO-DATE`.
+
+For Kotlin output, set `language = Language.KOTLIN` and apply the Kotlin JVM plugin.
+
 ## Usage example (in Kotlin code, e.g. Gradle's buildSrc)
 
 ```kotlin
