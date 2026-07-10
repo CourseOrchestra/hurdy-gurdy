@@ -37,6 +37,8 @@
     </developers>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>3.5.0</maven.jar.plugin.version>
@@ -88,6 +90,14 @@
             <groupId>org.eclipse.microprofile.rest.client</groupId>
             <artifactId>microprofile-rest-client-api</artifactId>
             <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Provides @RestForm and FileUpload so that generated Quarkus
+             multipart code can be compile-verified. -->
+        <dependency>
+            <groupId>io.quarkus.resteasy.reactive</groupId>
+            <artifactId>resteasy-reactive-common</artifactId>
+            <version>3.23.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -199,6 +209,14 @@
                                         <ignoredScope>test</ignoredScope>
                                     </ignoredScopes>
                                 </enforceBytecodeVersion>
+                                <!-- Sources and resources must be valid UTF-8
+                                    (${project.build.sourceEncoding}, which this rule also
+                                    requires to be set), so the build does not depend on
+                                    the platform encoding -->
+                                <requireEncoding>
+                                    <includes>src/main/**,src/test/**</includes>
+                                    <acceptAsciiSubset>true</acceptAsciiSubset>
+                                </requireEncoding>
                             </rules>
                             <fail>true</fail>
                         </configuration>
@@ -368,7 +386,6 @@
                 <configuration>
                     <release>${maven.compiler.release}</release>
                     <testRelease>21</testRelease>
-                    <encoding>utf-8</encoding>
                 </configuration>
             </plugin>
         </plugins>

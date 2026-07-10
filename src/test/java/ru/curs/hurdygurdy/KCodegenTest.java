@@ -4,12 +4,15 @@ import com.squareup.kotlinpoet.TypeSpec;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -159,9 +162,7 @@ class KCodegenTest {
                 .generateResponseParameter(true)
                 .framework(Framework.QUARKUS));
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
-        // Snapshot only: compiling the generated @RestForm parameter would require
-        // the resteasy-reactive artifact, which we deliberately do not depend on.
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -180,17 +181,22 @@ class KCodegenTest {
         verify(result);
     }
 
-    @Test
-    void youtrackOpenapiCompiles() throws IOException {
+    @ParameterizedTest
+    @EnumSource(Framework.class)
+    void youtrackOpenapiCompiles(Framework framework) throws IOException {
         // Real-world regression: the YouTrack OpenAPI spec has deep, property-
         // redeclaring inheritance chains (e.g. ActivityItem -> MultiValueActivityItem
         // -> WorkItemTypeActivityItem) that previously produced duplicate constructor
         // properties and non-compiling code. Its properties are camelCase, so the
         // snake-case check is disabled. Compile-only: no snapshot for 200+ files.
+        // Every framework and every role is covered, so the whole generation
+        // surface is exercised on a real spec.
         KotlinCodegen kc = new KotlinCodegen(GeneratorParams
                 .rootPackage("org.youtrack")
                 .generateResponseParameter(true)
-                .forceSnakeCaseForProperties(false));
+                .forceSnakeCaseForProperties(false)
+                .framework(framework)
+                .generate(EnumSet.allOf(Role.class)));
         kc.generate(Path.of("src/test/resources/youtrack_openapi.json"), result);
         GeneratedCodeCompiler.assertKotlinCompiles(result);
     }
@@ -219,8 +225,7 @@ class KCodegenTest {
                 .generateResponseParameter(true)
                 .framework(Framework.QUARKUS).generate(Role.CLIENT));
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
-        // Snapshot only.
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test

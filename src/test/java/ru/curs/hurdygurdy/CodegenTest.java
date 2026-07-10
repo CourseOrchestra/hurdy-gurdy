@@ -4,12 +4,15 @@ import com.squareup.javapoet.TypeSpec;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -135,9 +138,7 @@ class CodegenTest {
                 .generateResponseParameter(true)
                 .framework(Framework.QUARKUS));
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
-        // Snapshot only: compiling the generated @RestForm parameter would require
-        // the resteasy-reactive artifact, which we deliberately do not depend on.
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -164,8 +165,7 @@ class CodegenTest {
                 .generateResponseParameter(true)
                 .framework(Framework.QUARKUS).generate(Role.CLIENT));
         codegen.generate(Path.of("src/test/resources/multipart.yaml"), result);
-        // Snapshot only: @RestForm would require the resteasy-reactive artifact to compile.
-        Approvals.verify(getContent(result));
+        verify(result);
     }
 
     @Test
@@ -203,18 +203,22 @@ class CodegenTest {
         verify(result);
     }
 
-    @Test
-    void youtrackOpenapiCompiles() throws IOException {
+    @ParameterizedTest
+    @EnumSource(Framework.class)
+    void youtrackOpenapiCompiles(Framework framework) throws IOException {
         // Real-world regression: the YouTrack OpenAPI spec redeclares inherited
         // properties (often with a narrower type) across deep allOf chains, which
         // previously made Lombok emit clashing/uncompilable getters and setters, and
         // has a multipart parameter literally named "files[0]" that is not a legal
         // identifier. Properties are camelCase, so the snake-case check is disabled.
-        // Compile-only: no snapshot for 200+ files.
+        // Compile-only: no snapshot for 200+ files. Every framework and every role
+        // is covered, so the whole generation surface is exercised on a real spec.
         JavaCodegen jc = new JavaCodegen(GeneratorParams
                 .rootPackage("org.youtrack")
                 .generateResponseParameter(true)
-                .forceSnakeCaseForProperties(false));
+                .forceSnakeCaseForProperties(false)
+                .framework(framework)
+                .generate(EnumSet.allOf(Role.class)));
         jc.generate(Path.of("src/test/resources/youtrack_openapi.json"), result);
         GeneratedCodeCompiler.assertJavaCompiles(result);
     }
