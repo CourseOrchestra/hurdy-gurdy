@@ -241,7 +241,7 @@ class KotlinAPIExtractor(
             .stream().asSequence()
             .flatMap { getContentType(it, openAPI, classBuilder, true) }
             .forEach { paramSpec: RequestPartParams ->
-                val pb = ParameterSpec.builder(paramSpec.name, paramSpec.typeName)
+                val pb = ParameterSpec.builder(CaseUtils.toIdentifier(paramSpec.name), paramSpec.typeName)
                 paramSpec.annotation?.let(pb::addAnnotation)
                 methodBuilder.addParameter(pb.build())
             }
@@ -251,7 +251,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.snakeToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
@@ -265,7 +265,7 @@ class KotlinAPIExtractor(
             .filter { parameter: Parameter -> "query".equals(parameter.getIn(), ignoreCase = true) }
             .forEach { parameter: Parameter ->
                 val pb = ParameterSpec.builder(
-                    CaseUtils.snakeToCamel(parameter.name),
+                    CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                     typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                 )
                     .addAnnotation(
@@ -285,7 +285,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.kebabToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     )
                         .addAnnotation(
@@ -329,7 +329,7 @@ class KotlinAPIExtractor(
             .flatMap { getContentType(it, openAPI, classBuilder, false) }
             .forEach { paramSpec: RequestPartParams ->
                 methodBuilder.addParameter(
-                    ParameterSpec.builder(paramSpec.name, paramSpec.typeName)
+                    ParameterSpec.builder(CaseUtils.toIdentifier(paramSpec.name), paramSpec.typeName)
                         .addAnnotation(paramSpec.annotation!!).build()
                 )
             }
@@ -338,7 +338,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.snakeToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     ).addAnnotation(
                         AnnotationSpec.builder(PathVariable::class)
@@ -355,7 +355,7 @@ class KotlinAPIExtractor(
                 parameter.schema?.default?.let { builder.addMember("defaultValue = %S", it.toString()) }
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.snakeToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     ).addAnnotation(builder.build()).build()
                 )
@@ -365,7 +365,7 @@ class KotlinAPIExtractor(
             .forEach { parameter: Parameter ->
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
-                        CaseUtils.kebabToCamel(parameter.name),
+                        CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
                         typeDefiner.defineKotlinType(parameter.schema, openAPI, classBuilder, null, null),
                     ).addAnnotation(
                         AnnotationSpec.builder(RequestHeader::class)
