@@ -40,21 +40,19 @@ class HurdyGurdyPlugin : Plugin<Project> {
             project.pluginManager.withPlugin("java") {
                 val main = project.extensions.getByType(SourceSetContainer::class.java)
                     .getByName("main")
-                when (spec.language.get()) {
-                    Language.JAVA -> main.java.srcDir(generateTask)
-                    Language.KOTLIN -> {
-                        var wired = false
-                        project.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+                project.afterEvaluate {
+                    when (spec.language.get()) {
+                        Language.JAVA -> main.java.srcDir(generateTask)
+                        Language.KOTLIN -> {
+                            if (!project.pluginManager.hasPlugin("org.jetbrains.kotlin.jvm")) {
+                                throw GradleException(
+                                    "hurdyGurdy spec '${spec.name}' sets language = KOTLIN but the " +
+                                    "Kotlin JVM plugin (org.jetbrains.kotlin.jvm) is not applied"
+                                )
+                            }
                             @Suppress("UNCHECKED_CAST")
                             val kotlin = main.extensions.getByName("kotlin") as SourceDirectorySet
                             kotlin.srcDir(generateTask)
-                            wired = true
-                        }
-                        project.afterEvaluate {
-                            if (!wired) throw GradleException(
-                                "hurdyGurdy spec '${spec.name}' sets language = KOTLIN but the " +
-                                "Kotlin JVM plugin (org.jetbrains.kotlin.jvm) is not applied"
-                            )
                         }
                     }
                 }
