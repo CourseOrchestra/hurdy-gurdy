@@ -52,7 +52,7 @@ plugins {
 }
 
 hurdyGurdy {
-    create("petstore") {
+    "petstore" {
         spec = layout.projectDirectory.file("src/main/openapi/api.yaml")
         rootPackage = "com.example.project"
         framework = Framework.SPRING            // default SPRING

@@ -11,7 +11,7 @@ import ru.curs.hurdygurdy.Role
 class HurdyGurdyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val specs = project.container(GenerationSpec::class.java)
-        project.extensions.add("hurdyGurdy", specs)
+        project.extensions.add(HurdyGurdyExtension::class.java, "hurdyGurdy", HurdyGurdyExtension(specs))
 
         specs.all { spec ->
             spec.framework.convention(Framework.SPRING)
