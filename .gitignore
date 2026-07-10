@@ -105,6 +105,7 @@ local.properties
 ## GRADLE ##
 
 .gradle
+.kotlin/
 build/
 
 # Ignore Gradle GUI config
