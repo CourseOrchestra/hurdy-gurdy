@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     kotlin("jvm") version "2.4.0"
     `java-gradle-plugin`
@@ -6,11 +8,19 @@ plugins {
 
 group = "ru.curs"
 
-// Compile against Java 17 (matching the core artifact's maven.compiler.release)
+// Emit Java 17 bytecode (matching the core artifact's maven.compiler.release)
 // regardless of the JDK running Gradle, so the published plugin loads on any
-// consumer Gradle running on JDK 17+.
+// consumer Gradle running on JDK 17+. We target 17 rather than pinning a
+// toolchain so the build runs on a single JDK (the core Maven build requires
+// JDK 21+ to build, while both target Java 17 bytecode).
 kotlin {
-    jvmToolchain(17)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 repositories {
