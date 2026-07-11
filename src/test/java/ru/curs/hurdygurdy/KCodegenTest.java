@@ -181,6 +181,16 @@ class KCodegenTest {
         verify(result);
     }
 
+    @Test
+    void mappingLessDiscriminator() throws IOException {
+        // polyrecord.yaml's `Animal` is a discriminator base WITHOUT an explicit
+        // `discriminator.mapping`. The generator must derive @JsonSubTypes from the
+        // schemas whose allOf references Animal (Cat, Dog), so Jackson can resolve
+        // the subtype name on deserialize. See effectiveSubclassMapping.
+        codegen.generate(Path.of("src/test/resources/polyrecord.yaml"), result);
+        verify(result);
+    }
+
     @ParameterizedTest
     @EnumSource(Framework.class)
     void youtrackOpenapiCompiles(Framework framework) throws IOException {

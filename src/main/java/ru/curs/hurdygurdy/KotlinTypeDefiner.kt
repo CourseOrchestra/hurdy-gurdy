@@ -170,6 +170,39 @@ class KotlinTypeDefiner internal constructor(
             .copy(nullable = nullableOverride ?: meta.isNullable)
     }
 
+    /**
+     * The subtype mapping used to emit `@JsonSubTypes` for a discriminator base.
+     *
+     * Prefers the explicit `discriminator.mapping`; when the base declares a
+     * discriminator but no explicit mapping, derives
+     * `{schemaName -> "#/components/schemas/" + schemaName}` for every component
+     * schema whose `allOf` references this base, following the implicit convention
+     * that the discriminator value is the subtype's schema name.
+     *
+     * The `schema.discriminator == null` guard is essential: a plain allOf
+     * intermediate that other schemas reference must emit no `@JsonSubTypes`.
+     * Kotlin-only; does not touch the shared [getSubclassMapping] used by Java.
+     */
+    private fun effectiveSubclassMapping(
+        name: String, schema: Schema<*>, openAPI: OpenAPI
+    ): Map<String, String> {
+        val explicit = getSubclassMapping(schema).toMap()
+        if (explicit.isNotEmpty() || schema.discriminator == null) {
+            return explicit
+        }
+        val derived = LinkedHashMap<String, String>()
+        openAPI.components?.schemas?.forEach { (schemaName, s) ->
+            s.allOf?.forEach { a ->
+                if (a.`$ref` != null
+                    && (referencedTypeName(a.`$ref`, openAPI).copy(nullable = false) as ClassName).simpleName == name
+                ) {
+                    derived[schemaName] = "#/components/schemas/$schemaName"
+                }
+            }
+        }
+        return derived
+    }
+
 
     override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
@@ -312,7 +345,7 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.modifiers.remove(KModifier.DATA)
         }
 
-        val subclassMapping = getSubclassMapping(schema).toMap()
+        val subclassMapping = effectiveSubclassMapping(name, schema, openAPI)
         if (subclassMapping.isNotEmpty()) {
             val mappings =
                 subclassMapping
