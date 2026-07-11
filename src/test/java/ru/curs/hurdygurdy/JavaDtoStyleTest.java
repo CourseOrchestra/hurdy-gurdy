@@ -216,4 +216,30 @@ class JavaDtoStyleTest {
         // oneOf also a sealed interface
         assertThat(src).containsPattern("sealed interface Shape\\b");
     }
+
+    /**
+     * A base schema can itself be nested inside another polymorphic relation:
+     * a {@code oneOf} member ({@code Creature} oneOf [{@code Animal},
+     * {@code Reptile}]) or an {@code allOf}-child that is itself a
+     * discriminator base ({@code Car} allOf [{@code Vehicle}], {@code Car}
+     * declaring its own discriminator). The generated {@code sealed interface}
+     * for such a base must {@code extends}/{@code implements} its outer
+     * interface so that the outer interface's {@code permits} clause matches —
+     * otherwise javac rejects "invalid permits clause". The successful compile
+     * inside {@link #generate} is the primary assertion; the source checks pin
+     * down the exact supertype/permits shape.
+     */
+    @Test
+    void recordsNestedPolymorphismCompiles() throws IOException {
+        String src = generate(JavaDtoStyle.RECORDS, "src/test/resources/nestedpolyrecord.yaml");
+        // oneOf member that is a discriminator base extends the outer sealed interface
+        assertThat(sourceOf("Animal")).containsPattern("interface Animal\\b[^{]*\\bCreature\\b");
+        assertThat(sourceOf("Reptile")).containsPattern("interface Reptile\\b[^{]*\\bCreature\\b");
+        // outer oneOf interface permits exactly its members
+        assertThat(src).containsPattern("sealed interface Creature\\b[^{]*permits[^{]*\\bAnimal\\b");
+        assertThat(src).containsPattern("sealed interface Creature\\b[^{]*permits[^{]*\\bReptile\\b");
+        // allOf-child that is itself a discriminator base extends its base
+        assertThat(sourceOf("Car")).containsPattern("interface Car\\b[^{]*\\bVehicle\\b");
+        assertThat(src).containsPattern("sealed interface Vehicle\\b[^{]*permits[^{]*\\bCar\\b");
+    }
 }

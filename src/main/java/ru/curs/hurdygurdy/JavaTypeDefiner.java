@@ -25,6 +25,7 @@ import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -38,6 +39,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -260,7 +262,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             return Set.of();
         }
         Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
-                .map(c -> c.getSchemas())
+                .map(Components::getSchemas)
                 .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
                 .orElse(null);
         return schema == null ? Set.of() : inheritedPropertyKeys(schema, openAPI);
@@ -305,27 +307,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
 
         //This class is a superclass
-        if (schema.getDiscriminator() != null) {
-            classBuilder.addAnnotation(AnnotationSpec
-                    .builder(JsonTypeInfo.class)
-                    .addMember("use", "$T.$L", JsonTypeInfo.Id.class, JsonTypeInfo.Id.NAME.name())
-                    .addMember("include", "$T.$L", JsonTypeInfo.As.class, JsonTypeInfo.As.PROPERTY.name())
-                    .addMember("property", "$S", schema.getDiscriminator().getPropertyName())
-                    .build());
-        }
-        var subclassMapping = getSubclassMapping(schema);
-        if (!subclassMapping.isEmpty()) {
-            CodeBlock collect = subclassMapping.entrySet().stream()
-                    .map(e ->
-                            AnnotationSpec.builder(JsonSubTypes.Type.class)
-                                    .addMember("value", "$T.class", referencedClassName(openAPI, e.getValue()))
-                                    .addMember("name", "$S", e.getKey()).build())
-                    .map(a -> CodeBlock.of("$L", a))
-                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
-            classBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
-                    .addMember("value", "$L", collect)
-                    .build());
-        }
+        addDiscriminatorAnnotations(classBuilder, schema, openAPI);
 
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
@@ -373,7 +355,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
         // 3) concrete schema -> record (flatten allOf-inherited components)
         List<RecordComponent> inherited = inheritedComponents(schema, openAPI);
-        List<ClassName> implemented = recordSuperinterfaces(name, schema, openAPI);
+        List<ClassName> implemented = ancestorInterfaces(name, schema, openAPI);
         return buildConcreteRecord(name, currentSchemaOf(schema), openAPI, inherited, implemented);
     }
 
@@ -397,7 +379,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * refs only (mirrors inheritedPropertyKeys).
      */
     private List<RecordComponent> inheritedComponents(Schema<?> schema, OpenAPI openAPI) {
-        List<RecordComponent> result = new java.util.ArrayList<>();
+        List<RecordComponent> result = new ArrayList<>();
         if (!(schema instanceof ComposedSchema) || schema.getOneOf() != null || schema.getAllOf() == null) {
             return result;
         }
@@ -419,20 +401,26 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             return List.of();
         }
         Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
-                .map(c -> c.getSchemas())
+                .map(Components::getSchemas)
                 .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
                 .orElse(null);
         if (schema == null) {
             return List.of();
         }
-        List<RecordComponent> result = new java.util.ArrayList<>(inheritedComponents(schema, openAPI));
+        List<RecordComponent> result = new ArrayList<>(inheritedComponents(schema, openAPI));
         result.addAll(ownComponents(currentSchemaOf(schema)));
         return result;
     }
 
-    /** Interfaces a record implements: its allOf $ref parents and any oneOf it is a member of. */
-    private List<ClassName> recordSuperinterfaces(String name, Schema<?> schema, OpenAPI openAPI) {
-        List<ClassName> result = new java.util.ArrayList<>();
+    /**
+     * The ancestor interfaces a type declares as supertypes: its {@code allOf}
+     * {@code $ref} parents and any {@code oneOf} it is a member of. Used both by
+     * concrete records ({@code implements}) and by nested sealed base interfaces
+     * ({@code extends}), so a base's supertype clause stays consistent with the
+     * outer interface's {@code permits} clause.
+     */
+    private List<ClassName> ancestorInterfaces(String name, Schema<?> schema, OpenAPI openAPI) {
+        List<ClassName> result = new ArrayList<>();
         if (schema instanceof ComposedSchema && schema.getAllOf() != null) {
             for (Schema<?> s : schema.getAllOf()) {
                 if (s.get$ref() != null) {
@@ -458,7 +446,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     private TypeSpec buildConcreteRecord(String name, Schema<?> ownSchema, OpenAPI openAPI,
                                          List<RecordComponent> inherited, List<ClassName> implemented) {
-        List<RecordComponent> components = new java.util.ArrayList<>(inherited);
+        List<RecordComponent> components = new ArrayList<>(inherited);
         Set<String> inheritedKeys = new HashSet<>();
         inherited.forEach(c -> inheritedKeys.add(c.key()));
         for (RecordComponent c : ownComponents(ownSchema)) {
@@ -475,7 +463,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         implemented.forEach(recordBuilder::addSuperinterface);
 
         MethodSpec.Builder canonical = MethodSpec.constructorBuilder();
-        List<String> requiredNames = new java.util.ArrayList<>();
+        List<String> requiredNames = new ArrayList<>();
         for (RecordComponent c : components) {
             String propertyName = params.isForceSnakeCaseForProperties()
                     ? CaseUtils.snakeToCamel(c.key()) : c.key();
@@ -483,7 +471,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             TypeName typeName = defineJavaType(c.schema(), openAPI, recordBuilder,
                     CaseUtils.snakeToCamel(c.key(), true));
             ParameterSpec.Builder param = ParameterSpec.builder(typeName, propertyName);
-            if (typeName instanceof ClassName && "ZonedDateTime".equals(((ClassName) typeName).simpleName())) {
+            if (typeName instanceof ClassName className && "ZonedDateTime".equals(className.simpleName())) {
                 param.addAnnotation(AnnotationSpec.builder(ClassName.get(JsonDeserialize.class))
                                 .addMember("using", "ZonedDateTimeDeserializer.class").build())
                         .addAnnotation(AnnotationSpec.builder(ClassName.get(JsonSerialize.class))
@@ -524,66 +512,112 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 .build());
     }
 
+    /**
+     * The {@code @JsonTypeInfo(use = NAME, include = PROPERTY, property = ...)}
+     * name-based discriminator annotation for a base schema.
+     */
+    private AnnotationSpec discriminatorTypeInfo(Schema<?> schema) {
+        return AnnotationSpec.builder(JsonTypeInfo.class)
+                .addMember("use", "$T.$L", JsonTypeInfo.Id.class, JsonTypeInfo.Id.NAME.name())
+                .addMember("include", "$T.$L", JsonTypeInfo.As.class, JsonTypeInfo.As.PROPERTY.name())
+                .addMember("property", "$S", schema.getDiscriminator().getPropertyName())
+                .build();
+    }
+
+    /**
+     * Adds the name-based discriminator Jackson annotations shared by the
+     * class-based path ({@link #getDTOClass}) and the records-mode sealed
+     * interface ({@link #buildSealedInterface}): {@code @JsonTypeInfo} when the
+     * schema declares a discriminator, and {@code @JsonSubTypes} when it
+     * declares an explicit subtype mapping. Extracted so both paths emit a
+     * byte-for-byte identical block.
+     */
+    private void addDiscriminatorAnnotations(TypeSpec.Builder builder, Schema<?> schema, OpenAPI openAPI) {
+        if (schema.getDiscriminator() != null) {
+            builder.addAnnotation(discriminatorTypeInfo(schema));
+        }
+        var subclassMapping = getSubclassMapping(schema);
+        if (!subclassMapping.isEmpty()) {
+            CodeBlock collect = subclassMapping.entrySet().stream()
+                    .map(e ->
+                            AnnotationSpec.builder(JsonSubTypes.Type.class)
+                                    .addMember("value", "$T.class", referencedClassName(openAPI, e.getValue()))
+                                    .addMember("name", "$S", e.getKey()).build())
+                    .map(a -> CodeBlock.of("$L", a))
+                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
+            builder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
+                    .addMember("value", "$L", collect)
+                    .build());
+        }
+    }
+
+    /** Adds the {@code @JsonSubTypes}/{@code @JsonTypeInfo(DEDUCTION)} pair for a oneOf sealed interface. */
+    private void addOneOfDeductionAnnotations(TypeSpec.Builder ifaceBuilder, Schema<?> schema, OpenAPI openAPI) {
+        CodeBlock collect = schema.getOneOf().stream()
+                .map(Schema::get$ref).filter(Objects::nonNull)
+                .map(r -> referencedClassName(openAPI, r))
+                .map(cn -> AnnotationSpec.builder(JsonSubTypes.Type.class)
+                        .addMember("value", "$T.class", cn).build())
+                .map(a -> CodeBlock.of("$L", a))
+                .collect(CodeBlock.joining(",\n", "{\n", "}"));
+        ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
+                .addMember("value", "$L", collect).build());
+        ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonTypeInfo.class)
+                .addMember("use", "$T.DEDUCTION", JsonTypeInfo.Id.class).build());
+    }
+
+    /** Declares abstract accessor methods for a discriminator base's own (non-discriminator) properties. */
+    private void addBaseAccessors(TypeSpec.Builder ifaceBuilder, String name, Schema<?> schema, OpenAPI openAPI) {
+        for (RecordComponent c : ownComponents(schema)) {
+            String propertyName = params.isForceSnakeCaseForProperties()
+                    ? CaseUtils.snakeToCamel(c.key()) : c.key();
+            checkPropertyName(name, c.key());
+            TypeName typeName = defineJavaType(c.schema(), openAPI, ifaceBuilder,
+                    CaseUtils.snakeToCamel(c.key(), true));
+            ifaceBuilder.addMethod(MethodSpec.methodBuilder(propertyName)
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .returns(typeName).build());
+        }
+    }
+
     private TypeSpec buildSealedInterface(String name, Schema<?> schema, OpenAPI openAPI, boolean discriminator) {
-        TypeSpec.Builder ifaceBuilder = TypeSpec.interfaceBuilder(name)
-                .addModifiers(Modifier.PUBLIC, Modifier.SEALED);
+        List<ClassName> permitted = permittedSubtypes(name, schema, openAPI);
+        TypeSpec.Builder ifaceBuilder = TypeSpec.interfaceBuilder(name).addModifiers(Modifier.PUBLIC);
+        // A sealed interface must have at least one permitted subclass. When none
+        // are visible in this file, emit a plain (non-sealed) interface instead —
+        // still carrying the Jackson polymorphism annotations.
+        if (!permitted.isEmpty()) {
+            ifaceBuilder.addModifiers(Modifier.SEALED);
+        }
 
         // Jackson polymorphism annotations (mirror the class-based path)
         if (discriminator) {
-            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonTypeInfo.class)
-                    .addMember("use", "$T.$L", JsonTypeInfo.Id.class, JsonTypeInfo.Id.NAME.name())
-                    .addMember("include", "$T.$L", JsonTypeInfo.As.class, JsonTypeInfo.As.PROPERTY.name())
-                    .addMember("property", "$S", schema.getDiscriminator().getPropertyName())
-                    .build());
-            var subclassMapping = getSubclassMapping(schema);
-            if (!subclassMapping.isEmpty()) {
-                CodeBlock collect = subclassMapping.entrySet().stream()
-                        .map(e -> AnnotationSpec.builder(JsonSubTypes.Type.class)
-                                .addMember("value", "$T.class", referencedClassName(openAPI, e.getValue()))
-                                .addMember("name", "$S", e.getKey()).build())
-                        .map(a -> CodeBlock.of("$L", a))
-                        .collect(CodeBlock.joining(",\n", "{\n", "}"));
-                ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
-                        .addMember("value", "$L", collect).build());
-            }
+            addDiscriminatorAnnotations(ifaceBuilder, schema, openAPI);
         } else {
-            // oneOf: DEDUCTION
-            CodeBlock collect = schema.getOneOf().stream()
-                    .map(Schema::get$ref).filter(Objects::nonNull)
-                    .map(r -> referencedClassName(openAPI, r))
-                    .map(cn -> AnnotationSpec.builder(JsonSubTypes.Type.class)
-                            .addMember("value", "$T.class", cn).build())
-                    .map(a -> CodeBlock.of("$L", a))
-                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
-            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
-                    .addMember("value", "$L", collect).build());
-            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonTypeInfo.class)
-                    .addMember("use", "$T.DEDUCTION", JsonTypeInfo.Id.class).build());
+            addOneOfDeductionAnnotations(ifaceBuilder, schema, openAPI);
         }
 
-        // permits + accessor methods
-        for (ClassName permitted : permittedSubtypes(name, schema, openAPI)) {
-            ifaceBuilder.addPermittedSubclass(permitted);
+        // This base may itself be nested in an outer polymorphic relation (a oneOf
+        // member, or an allOf-child of a further base). Derive its supertypes from
+        // the SAME helper the concrete records use, so this interface's
+        // extends/implements clause and the outer interface's permits clause stay
+        // consistent — otherwise javac rejects the outer "permits" clause.
+        for (ClassName ancestor : ancestorInterfaces(name, schema, openAPI)) {
+            ifaceBuilder.addSuperinterface(ancestor);
+        }
+
+        for (ClassName p : permitted) {
+            ifaceBuilder.addPermittedSubclass(p);
         }
         if (discriminator) {
-            // declare accessors for the base's own (non-discriminator) properties
-            for (RecordComponent c : ownComponents(schema)) {
-                String propertyName = params.isForceSnakeCaseForProperties()
-                        ? CaseUtils.snakeToCamel(c.key()) : c.key();
-                checkPropertyName(name, c.key());
-                TypeName typeName = defineJavaType(c.schema(), openAPI, ifaceBuilder,
-                        CaseUtils.snakeToCamel(c.key(), true));
-                ifaceBuilder.addMethod(MethodSpec.methodBuilder(propertyName)
-                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                        .returns(typeName).build());
-            }
+            addBaseAccessors(ifaceBuilder, name, schema, openAPI);
         }
         return ifaceBuilder.build();
     }
 
     /** Concrete DTO class names that a sealed base permits. */
     private List<ClassName> permittedSubtypes(String name, Schema<?> schema, OpenAPI openAPI) {
-        List<ClassName> result = new java.util.ArrayList<>();
+        List<ClassName> result = new ArrayList<>();
         if (schema.getOneOf() != null) {
             schema.getOneOf().stream().map(Schema::get$ref).filter(Objects::nonNull)
                     .map(r -> referencedClassName(openAPI, r)).forEach(result::add);
@@ -607,7 +641,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /** Own (non-inherited) properties of a plain object schema, in declaration order. */
     private List<RecordComponent> ownComponents(Schema<?> schema) {
-        List<RecordComponent> result = new java.util.ArrayList<>();
+        List<RecordComponent> result = new ArrayList<>();
         Map<String, Schema> properties = schema.getProperties();
         if (properties == null) {
             return result;
@@ -683,7 +717,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         List<FieldSpec> fields = built.fieldSpecs().stream()
                 .filter(f -> f.modifiers().contains(Modifier.PRIVATE)
                         && !f.modifiers().contains(Modifier.STATIC))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         for (FieldSpec field : fields) {
             String capital = CaseUtils.snakeToCamel(field.name(), true);
             boolean isAdditionalProperties = "additionalProperties".equals(field.name());
@@ -746,7 +780,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // via a real "+" concatenation at runtime, not baked into a single
         // escaped string literal (which $S alone over the whole body would do).
         StringBuilder format = new StringBuilder("return $S");
-        List<Object> args = new java.util.ArrayList<>();
+        List<Object> args = new ArrayList<>();
         args.add(cast + "{");
         for (int i = 0; i < fields.size(); i++) {
             FieldSpec field = fields.get(i);
@@ -773,8 +807,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                 typeName,
                 propertyName, Modifier.PRIVATE);
-        if (typeName instanceof ClassName && "ZonedDateTime"
-                .equals(((ClassName) typeName).simpleName())) {
+        if (typeName instanceof ClassName className && "ZonedDateTime"
+                .equals(className.simpleName())) {
             fieldBuilder.addAnnotation(AnnotationSpec.builder(
                                     ClassName.get(JsonDeserialize.class))
                             .addMember("using", "ZonedDateTimeDeserializer.class").build())
