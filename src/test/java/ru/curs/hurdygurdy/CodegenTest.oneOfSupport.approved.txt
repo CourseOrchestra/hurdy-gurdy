@@ -52,7 +52,7 @@ import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant1 {
+public class Variant1 implements OneOf {
   private Long id1;
 }
 ---
@@ -66,6 +66,6 @@ import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant2 {
+public class Variant2 implements OneOf {
   private Long id2;
 }

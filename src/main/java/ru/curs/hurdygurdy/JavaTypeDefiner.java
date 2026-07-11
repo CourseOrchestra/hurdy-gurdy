@@ -318,6 +318,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
         oneOfToInterface(schema, openAPI, classBuilder);
+        // A class that is itself a oneOf member implements the generated oneOf
+        // interface, so Jackson deduction polymorphism through that interface
+        // works in class mode too (matches Kotlin's addInterfaces and the
+        // records-mode ancestorInterfaces oneOf branch).
+        if (schema.getOneOf() == null || schema.getOneOf().isEmpty()) {
+            oneOfInterfacesOf(name, openAPI).forEach(classBuilder::addSuperinterface);
+        }
 
         Map<String, Schema> schemaMap = schema.getProperties();
         if (schemaMap != null) {
@@ -457,6 +464,21 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             }
         }
         // oneOf membership: any schema whose oneOf lists this class
+        result.addAll(oneOfInterfacesOf(name, openAPI));
+        return result;
+    }
+
+    /**
+     * The oneOf-interface {@link ClassName}s that the DTO named {@code name} is
+     * a member of: every component schema whose {@code oneOf} lists a {@code
+     * $ref} resolving to {@code name}. Shared by the class-based path ({@link
+     * #getDTOClass}, so a class {@code implements} the oneOf interface(s) it is
+     * a member of) and the records-mode {@link #ancestorInterfaces} (so a
+     * record's {@code implements}/a nested base's {@code extends} clause stays
+     * consistent with the outer interface's {@code permits} clause).
+     */
+    private List<ClassName> oneOfInterfacesOf(String name, OpenAPI openAPI) {
+        List<ClassName> result = new ArrayList<>();
         openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
             if (s.getOneOf() != null) {
                 for (Object memberObj : s.getOneOf()) {
