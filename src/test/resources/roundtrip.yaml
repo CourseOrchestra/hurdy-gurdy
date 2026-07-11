@@ -171,6 +171,45 @@ components:
             has_bell:
               type: boolean
 
+    # Two-level (nested) discriminator: Outer is a discriminator base
+    # (propertyName kind); its subtype Middle is ITSELF a discriminator base
+    # (propertyName sub_kind) declared on the allOf ComposedSchema; Leaf is the
+    # concrete leaf. In records mode Middle is a sealed interface `extends Outer`
+    # and Leaf `implements Middle`. Middle's OWN discriminator (sub_kind) must
+    # NOT be flattened into `record Leaf` as a data component — Jackson manages
+    # it as the @JsonTypeInfo type-id, so a data component would double-emit it.
+    # This shape is what makes that double-emit runtime-visible (round-trip Leaf
+    # through Middle): it fails before the componentsOfRef discriminator-strip
+    # fix and passes after.
+    Outer:
+      type: object
+      required: [kind]
+      discriminator:
+        propertyName: kind
+      properties:
+        kind:
+          type: string
+    Middle:
+      discriminator:
+        propertyName: sub_kind
+      allOf:
+        - $ref: '#/components/schemas/Outer'
+        - type: object
+          required: [sub_kind]
+          properties:
+            sub_kind:
+              type: string
+            middle_note:
+              type: string
+    Leaf:
+      allOf:
+        - $ref: '#/components/schemas/Middle'
+        - type: object
+          required: [leaf_name]
+          properties:
+            leaf_name:
+              type: string
+
     # oneOf with two structurally distinct members (deduction-friendly).
     Shape:
       oneOf:

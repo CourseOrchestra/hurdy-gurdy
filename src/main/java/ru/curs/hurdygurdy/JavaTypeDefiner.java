@@ -401,6 +401,20 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return classBuilder.build();
     }
 
+    /**
+     * The component schemas of {@code openAPI}, or an empty map when it declares
+     * no {@code components} block (a spec with only inline/path schemas). Guards
+     * the whole-document scans ({@link #polymorphicInterfacesOf}, {@link
+     * #permittedSubtypes}, {@link #effectiveSubclassMapping}) against a null
+     * {@code getComponents()} — {@link #polymorphicInterfacesOf} now runs for
+     * every class-path DTO, so it must tolerate a component-less document.
+     */
+    private static Map<String, Schema> schemasOf(OpenAPI openAPI) {
+        return Optional.ofNullable(openAPI.getComponents())
+                .map(Components::getSchemas)
+                .orElse(Map.of());
+    }
+
     /** A record component carried into a record (own or flattened-inherited). */
     private record RecordComponent(String key, Schema<?> schema, boolean required) { }
 
@@ -486,6 +500,17 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
         List<RecordComponent> result = new ArrayList<>(inheritedComponents(schema, openAPI));
         result.addAll(ownComponents(currentSchemaOf(schema)));
+        // Strip the ref'd schema's OWN discriminator property. When that schema is
+        // itself an intermediate discriminator base (a subtype declaring its own
+        // `discriminator`), currentSchemaOf unwraps its ComposedSchema to the inline
+        // allOf member — which has a null discriminator — so ownComponents cannot skip
+        // it there. Jackson manages that property as the @JsonTypeInfo type-id on the
+        // generated base interface, so it must never be flattened into a descendant
+        // record as a data component (else it is double-emitted on the wire).
+        if (schema.getDiscriminator() != null) {
+            String disc = schema.getDiscriminator().getPropertyName();
+            result.removeIf(c -> c.key().equals(disc));
+        }
         return result;
     }
 
@@ -528,7 +553,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      */
     private List<ClassName> polymorphicInterfacesOf(String name, OpenAPI openAPI) {
         List<ClassName> result = new ArrayList<>();
-        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+        schemasOf(openAPI).forEach((schemaName, s) -> {
             for (Schema member : polymorphicMembers(s)) {
                 if (member.get$ref() != null
                         && referencedClassName(openAPI, member.get$ref()).simpleName().equals(name)) {
@@ -669,7 +694,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // No explicit mapping: derive {schemaName -> $ref} for every schema whose
         // allOf lists this base. Reuse the same discovery permittedSubtypes uses.
         Map<String, String> derived = new java.util.LinkedHashMap<>();
-        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+        schemasOf(openAPI).forEach((schemaName, s) -> {
             if (s.getAllOf() != null) {
                 for (Object aObj : s.getAllOf()) {
                     Schema<?> a = (Schema<?>) aObj;
@@ -756,7 +781,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             return result;
         }
         // discriminator: subtypes are the schemas whose allOf $refs this base
-        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+        schemasOf(openAPI).forEach((schemaName, s) -> {
             if (s.getAllOf() != null) {
                 for (Object aObj : s.getAllOf()) {
                     Schema<?> a = (Schema<?>) aObj;

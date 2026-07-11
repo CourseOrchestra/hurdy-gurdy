@@ -3,6 +3,7 @@ package ru.curs.hurdygurdy;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.io.TempDir;
@@ -135,6 +136,93 @@ class DtoRoundTripTest {
         } finally {
             TestFiles.deleteRecursively(classes);
         }
+    }
+
+    /**
+     * A two-level (nested) discriminator must not double-emit an intermediate
+     * base's own discriminator property. {@code Outer} (propertyName {@code
+     * kind}) permits {@code Middle}; {@code Middle} is ITSELF a discriminator
+     * base (propertyName {@code sub_kind}) whose concrete leaf is {@code Leaf}.
+     * In records mode {@code Middle}'s {@code sub_kind} is managed by Jackson as
+     * the {@code @JsonTypeInfo} type-id on the {@code Middle} interface, so it
+     * must NOT also be flattened into {@code record Leaf} as a data component.
+     *
+     * <p>A plain serialize&rarr;deserialize&rarr;re-serialize tree-equality check
+     * does NOT catch the bug: the flattened data component and the type-id share
+     * the key {@code sub_kind}, so the wire JSON carries {@code sub_kind} twice
+     * with the SAME pair of values on both hops, and the two trees compare equal
+     * (a JSON object keeps the last duplicate key). The runtime-visible symptom
+     * is therefore asserted directly: the discriminator key each annotated base
+     * manages must appear <em>exactly once</em> on the wire. That count is 2 for
+     * {@code Middle} before the {@code componentsOfRef} discriminator-strip fix
+     * (RED) and 1 after (GREEN). The round-trip through both {@code Outer} (which
+     * Jackson resolves two levels down transitively) and {@code Middle} is still
+     * asserted to reach {@code Leaf} and to survive tree-equality.
+     */
+    @ParameterizedTest(name = "{0} forceSnakeCase={1}")
+    @MethodSource("matrix")
+    void nestedDiscriminatorNotDoubleEmitted(JavaDtoStyle style, boolean snake) throws Exception {
+        generate(style, snake, SPEC);
+        Path classes = GeneratedCodeCompiler.compileJava(generated);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+            mapper.setTypeFactory(mapper.getTypeFactory().withClassLoader(loader));
+            Class<?> leaf = loader.loadClass(DTO_PKG + ".Leaf");
+            Object instance = buildInstance(leaf);
+
+            // Every base above Leaf that Jackson makes polymorphic (records: both
+            // Outer and Middle; class styles: only Outer — a discriminator on an
+            // allOf ComposedSchema is not carried onto the intermediate class).
+            for (String baseName : List.of("Outer", "Middle")) {
+                Class<?> base = loader.loadClass(DTO_PKG + "." + baseName);
+                JsonTypeInfo info = base.getAnnotation(JsonTypeInfo.class);
+                if (info == null) {
+                    continue;
+                }
+                String disc = info.property();
+                String json1 = mapper.writerFor(base).writeValueAsString(instance);
+                assertThat(countOccurrences(json1, "\"" + disc + "\""))
+                        .as("discriminator '%s' emitted exactly once via %s [%s snake=%s]: %s",
+                                disc, baseName, style, snake, json1)
+                        .isEqualTo(1);
+                Object back;
+                try {
+                    back = mapper.readValue(json1, base);
+                } catch (InvalidTypeIdException e) {
+                    // Two-level resolution through the OUTERMOST base only works when
+                    // the intermediate (Middle) is itself an annotated polymorphic
+                    // base, so Jackson can walk Outer -> Middle -> Leaf. Records mode
+                    // makes Middle a @JsonTypeInfo interface, so it MUST resolve; the
+                    // class styles drop the discriminator declared on an allOf
+                    // ComposedSchema, leaving Leaf unregistered under Outer (a
+                    // separate, pre-existing class-mode gap). Serialization was still
+                    // asserted single-key above; skip only the deserialize hop.
+                    if (style == JavaDtoStyle.RECORDS) {
+                        throw e;
+                    }
+                    continue;
+                }
+                assertThat(leaf.isInstance(back))
+                        .as("Leaf resolves through %s [%s snake=%s]: got %s",
+                                baseName, style, snake, back.getClass().getSimpleName())
+                        .isTrue();
+                String json2 = mapper.writerFor(base).writeValueAsString(back);
+                assertThat(mapper.readTree(json2))
+                        .as("nested-discriminator Leaf round-trips via %s [%s snake=%s]",
+                                baseName, style, snake)
+                        .isEqualTo(mapper.readTree(json1));
+            }
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
+    }
+
+    private static int countOccurrences(String haystack, String needle) {
+        int count = 0;
+        for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + needle.length())) {
+            count++;
+        }
+        return count;
     }
 
     /**
