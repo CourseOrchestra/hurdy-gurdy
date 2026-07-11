@@ -443,10 +443,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 .addStatement("if (this == o) return true")
                 .addStatement("if (o == null || getClass() != o.getClass()) return false");
         String cast = classBuilder.build().name();
-        equals.addStatement("$L that = ($L) o", cast, cast);
         if (fields.isEmpty()) {
             equals.addStatement("return true");
         } else {
+            equals.addStatement("$L that = ($L) o", cast, cast);
             String cond = fields.stream()
                     .map(f -> String.format("$T.equals(%s, that.%s)", f.name(), f.name()))
                     .collect(java.util.stream.Collectors.joining("\n    && "));
