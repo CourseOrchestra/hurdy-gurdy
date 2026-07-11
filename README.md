@@ -93,6 +93,26 @@ Files.createDirectories(resultPath)
 codegen.generate(yamlPath, resultPath)
 ```
 
+## Usage as a CLI
+
+Build the executable fat jar:
+
+    mvn -DskipTests package
+    java -jar target/hurdy-gurdy-<version>-cli.jar \
+        --spec src/main/openapi/api.yaml \
+        --root-package com.example.project \
+        --output generated-sources \
+        --framework spring --generate controller,client
+
+Options: `--language java|kotlin`, `--framework spring|quarkus`,
+`--generate` (subset of `controller,api,client`), `--response-parameter`,
+`--force-snake-case` (negate with `--no-...`). Run with `--help` for the full list.
+
+Optionally build a native binary (requires GraalVM):
+
+    mvn -Pnative -DskipTests package
+    ./target/hurdy-gurdy --spec ... --root-package ... --output ...
+
 ## Configuration parameters
 
 | Parameter name | Type | Default value | Description |
