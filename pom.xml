@@ -176,6 +176,24 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Filter only the version file so ${project.version} is interpolated;
+                 copy everything else (incl. native-image JSON) verbatim. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>hurdy-gurdy-version.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>hurdy-gurdy-version.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -237,6 +237,9 @@
   ],
   "resources": [
     {
+      "glob": "hurdy-gurdy-version.properties"
+    },
+    {
       "glob": "META-INF/services/io.swagger.v3.parser.core.extensions.SwaggerParserExtension"
     },
     {

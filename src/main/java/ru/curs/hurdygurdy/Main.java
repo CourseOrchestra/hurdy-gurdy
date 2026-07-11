@@ -2,10 +2,13 @@ package ru.curs.hurdygurdy;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.IVersionProvider;
 import picocli.CommandLine.Option;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -17,7 +20,7 @@ import java.util.concurrent.Callable;
 @Command(
         name = "hurdy-gurdy",
         mixinStandardHelpOptions = true,
-        version = "hurdy-gurdy 2.11-SNAPSHOT",
+        versionProvider = Main.VersionProvider.class,
         description = "Generate Java/Kotlin client & server code from an OpenAPI spec.")
 public final class Main implements Callable<Integer> {
 
@@ -88,5 +91,24 @@ public final class Main implements Callable<Integer> {
      */
     public static void main(String[] args) {
         System.exit(run(args));
+    }
+
+    /**
+     * Supplies the {@code --version} string from the build-filtered
+     * {@code hurdy-gurdy-version.properties} resource, so it always reflects
+     * the Maven project version instead of a hardcoded literal.
+     */
+    static final class VersionProvider implements IVersionProvider {
+        @Override
+        public String[] getVersion() throws Exception {
+            Properties props = new Properties();
+            try (InputStream in =
+                         Main.class.getResourceAsStream("/hurdy-gurdy-version.properties")) {
+                if (in != null) {
+                    props.load(in);
+                }
+            }
+            return new String[] {"hurdy-gurdy " + props.getProperty("version", "unknown")};
+        }
     }
 }
