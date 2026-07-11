@@ -73,6 +73,24 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     @Override
     public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
                                    String typeNameFallback) {
+        return defineJavaType(schema, openAPI, parent, typeNameFallback, false);
+    }
+
+    /**
+     * As {@link #defineJavaType(Schema, OpenAPI, TypeSpec.Builder, String)}, but aware of
+     * whether {@code parent} is itself being built as a Java {@code interface} (the
+     * records-mode discriminator-base path, {@link #addBaseAccessors}). A type nested
+     * directly inside an {@code interface} is implicitly {@code public static}, but
+     * JavaPoet requires those modifiers to be present explicitly on the nested
+     * {@link TypeSpec} — otherwise it refuses to emit it (see the {@code interface}
+     * {@code requires modifiers [public, static]} check). Nested inside a {@code class}
+     * or {@code record}, that requirement does not apply, so the extra {@code static}
+     * would be a needless (though harmless) explicit keyword; it is therefore added
+     * only when {@code parentIsInterface} is set, keeping class/record-nested inline
+     * enums byte-for-byte unchanged.
+     */
+    private TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
+                                    String typeNameFallback, boolean parentIsInterface) {
         //handle anyOf <something|null>
         List<Schema> anyOf = schema.getAnyOf();
         if (anyOf != null && anyOf.size() == 2) {
@@ -102,6 +120,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         //internal enum
                         String simpleName = getEnumName(schema, typeNameFallback);
                         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(Modifier.PUBLIC);
+                        if (parentIsInterface) {
+                            enumBuilder.addModifiers(Modifier.STATIC);
+                        }
                         for (Object e : schema.getEnum()) {
                             enumBuilder.addEnumConstant(e.toString());
                         }
@@ -128,7 +149,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     Schema<?> itemsSchema = schema.getItems();
                     return ParameterizedTypeName.get(ClassName.get(List.class),
                             defineJavaType(itemsSchema, openAPI, parent,
-                                    typeNameFallback == null ? null : typeNameFallback + "Item"));
+                                    typeNameFallback == null ? null : typeNameFallback + "Item",
+                                    parentIsInterface));
                 case "object":
                 default:
                     String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();
@@ -683,7 +705,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     ? CaseUtils.snakeToCamel(c.key()) : c.key();
             checkPropertyName(name, c.key());
             TypeName typeName = defineJavaType(c.schema(), openAPI, ifaceBuilder,
-                    CaseUtils.snakeToCamel(c.key(), true));
+                    CaseUtils.snakeToCamel(c.key(), true), true);
             ifaceBuilder.addMethod(MethodSpec.methodBuilder(propertyName)
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                     .returns(typeName).build());
