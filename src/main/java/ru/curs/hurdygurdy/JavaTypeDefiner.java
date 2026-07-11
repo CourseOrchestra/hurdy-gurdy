@@ -280,6 +280,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass,
                                  Set<String> inheritedKeys) {
+        if (params.getJavaDtoStyle() == JavaDtoStyle.RECORDS) {
+            return buildRecordDto(name, schema, openAPI);
+        }
         TypeSpec.Builder classBuilder;
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
             classBuilder = TypeSpec.interfaceBuilder(name);
@@ -349,6 +352,91 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             addPojoMembers(classBuilder);
         }
         return classBuilder.build();
+    }
+
+    /** A record component carried into a record (own or flattened-inherited). */
+    private record RecordComponent(String key, Schema<?> schema, boolean required) { }
+
+    private TypeSpec buildRecordDto(String name, Schema<?> schema, OpenAPI openAPI) {
+        // oneOf and allOf/discriminator handling is added in Task 5; here we
+        // build a flat record from a plain object schema.
+        List<RecordComponent> components = ownComponents(schema);
+
+        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(name)
+                .addModifiers(Modifier.PUBLIC);
+        if (params.isForceSnakeCaseForProperties()) {
+            recordBuilder.addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
+                    "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build());
+        }
+
+        MethodSpec.Builder canonical = MethodSpec.constructorBuilder();
+        List<String> requiredNames = new java.util.ArrayList<>();
+        for (RecordComponent c : components) {
+            String propertyName = params.isForceSnakeCaseForProperties()
+                    ? CaseUtils.snakeToCamel(c.key()) : c.key();
+            checkPropertyName(name, c.key());
+            TypeName typeName = defineJavaType(c.schema(), openAPI, recordBuilder,
+                    CaseUtils.snakeToCamel(c.key(), true));
+            ParameterSpec.Builder param = ParameterSpec.builder(typeName, propertyName);
+            if (typeName instanceof ClassName && "ZonedDateTime"
+                    .equals(((ClassName) typeName).simpleName())) {
+                param.addAnnotation(AnnotationSpec.builder(ClassName.get(JsonDeserialize.class))
+                                .addMember("using", "ZonedDateTimeDeserializer.class").build())
+                        .addAnnotation(AnnotationSpec.builder(ClassName.get(JsonSerialize.class))
+                                .addMember("using", "ZonedDateTimeSerializer.class").build());
+                ensureJsonZonedDateTimeDeserializer();
+            }
+            canonical.addParameter(param.build());
+            if (c.required()) {
+                requiredNames.add(propertyName);
+            }
+        }
+
+        // additionalProperties as a final Map component
+        if (schema.getAdditionalProperties() != null) {
+            Object additionalProperties = schema.getAdditionalProperties();
+            TypeName valueTypeName = (additionalProperties instanceof Schema<?>)
+                    ? defineJavaType((Schema<?>) additionalProperties, openAPI, recordBuilder, null).box()
+                    : TypeName.get(String.class);
+            ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
+                    TypeName.get(String.class), valueTypeName);
+            canonical.addParameter(ParameterSpec.builder(mapType, "additionalProperties")
+                    .addAnnotation(JsonAnySetter.class)
+                    .addAnnotation(JsonAnyGetter.class)
+                    .build());
+        }
+
+        recordBuilder.recordConstructor(canonical.build());
+
+        if (!requiredNames.isEmpty()) {
+            MethodSpec.Builder compact = MethodSpec.compactConstructorBuilder()
+                    .addModifiers(Modifier.PUBLIC);
+            for (String req : requiredNames) {
+                compact.addStatement("$T.requireNonNull($N, $S)", Objects.class, req, req);
+            }
+            recordBuilder.addMethod(compact.build());
+        }
+        return recordBuilder.build();
+    }
+
+    /** Own (non-inherited) properties of a plain object schema, in declaration order. */
+    private List<RecordComponent> ownComponents(Schema<?> schema) {
+        List<RecordComponent> result = new java.util.ArrayList<>();
+        Map<String, Schema> properties = schema.getProperties();
+        if (properties == null) {
+            return result;
+        }
+        Set<String> required = schema.getRequired() == null
+                ? Set.of() : new HashSet<>(schema.getRequired());
+        String discriminatorProperty = schema.getDiscriminator() == null
+                ? null : schema.getDiscriminator().getPropertyName();
+        for (Map.Entry<String, Schema> e : properties.entrySet()) {
+            if (e.getKey().equals(discriminatorProperty)) {
+                continue;
+            }
+            result.add(new RecordComponent(e.getKey(), e.getValue(), required.contains(e.getKey())));
+        }
+        return result;
     }
 
     /**

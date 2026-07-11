@@ -189,4 +189,15 @@ class JavaDtoStyleTest {
                 .findFirst()
                 .orElse(null);
     }
+
+    @Test
+    void recordsEmitsRecordWithRequiredNullCheck() throws IOException {
+        String src = generate(JavaDtoStyle.RECORDS, "src/test/resources/flatrecord.yaml");
+        assertThat(src).contains("public record Widget(");
+        assertThat(src).doesNotContain("lombok");
+        // required component guarded
+        assertThat(src).contains("Objects.requireNonNull(id");
+        // optional component not guarded
+        assertThat(src).doesNotContain("Objects.requireNonNull(label");
+    }
 }
