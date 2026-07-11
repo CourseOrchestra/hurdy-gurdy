@@ -1,0 +1,71 @@
+name: release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: hurdy-gurdy-linux-x64
+            bin: hurdy-gurdy
+          - os: macos-latest
+            asset: hurdy-gurdy-macos-arm64
+            bin: hurdy-gurdy
+          - os: windows-latest
+            asset: hurdy-gurdy-windows-x64.exe
+            bin: hurdy-gurdy.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: 'liberica'
+          java-version: '25'
+          github-token: ${{ github.token }}
+      - name: Build native image
+        run: mvn -B clean -Pnative -DskipTests package
+      - name: Smoke test binary
+        shell: bash
+        run: ./target/${{ matrix.bin }} --version
+      - name: Rename binary
+        shell: bash
+        run: mv target/${{ matrix.bin }} ${{ matrix.asset }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+  jar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+      - name: Build fat jar
+        run: mvn -B clean -DskipTests package
+      - name: Stage jar
+        shell: bash
+        run: |
+          mkdir -p staging
+          cp target/hurdy-gurdy-*-cli.jar staging/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-jar
+          path: staging/hurdy-gurdy-*-cli.jar
+          if-no-files-found: error
