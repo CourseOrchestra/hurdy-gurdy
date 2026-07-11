@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hurdy-Gurdy — OpenAPI codegen config generator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+<!-- highlight.js themes: auto-switch with the OS scheme to match Pico. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
+<style>
+  /* Only what Pico doesn't cover: the tab strip and the copy button overlay. */
+  .badges img { height: 20px; vertical-align: middle; margin-right: .4rem; }
+  .tabs { display: flex; gap: .25rem; margin-bottom: 0; }
+  .tab { width: auto; margin: 0; padding: .5rem 1rem;
+         border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .panel { position: relative; }
+  .panel pre { margin-top: 0; border-top-left-radius: 0; }
+  .panel pre code { padding-right: 5rem; }   /* room for the copy button */
+  .copy { position: absolute; top: .5rem; right: .5rem; width: auto; margin: 0; padding: .3rem .7rem; z-index: 1; }
+  fieldset { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<main class="container">
+  <header>
+    <hgroup>
+      <h1>Hurdy-Gurdy</h1>
+      <p>Generate client &amp; server Java/Kotlin code from an OpenAPI spec.</p>
+    </hgroup>
+    <p class="badges">
+      <a href="https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy"><img
+        src="https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy" alt="Maven Central"></a>
+      <a href="https://github.com/courseorchestra/hurdy-gurdy">GitHub</a>
+    </p>
+  </header>
+
+  <h2>Config generator</h2>
+  <p>Fill the form; copy config for your build tool.</p>
+
+  <form id="cfg">
+    <label>Root package *
+      <input type="text" id="rootPackage" value="com.example.project" required>
+    </label>
+    <label>Spec path *
+      <input type="text" id="spec" value="src/main/openapi/api.yaml" required>
+    </label>
+    <label>Output dir <small>(CLI only)</small>
+      <input type="text" id="outputDir" value="build/generated-sources">
+    </label>
+
+    <div class="grid">
+      <fieldset>
+        <legend>Language</legend>
+        <label><input type="radio" name="language" value="java" checked> Java</label>
+        <label><input type="radio" name="language" value="kotlin"> Kotlin</label>
+      </fieldset>
+      <fieldset>
+        <legend>Framework</legend>
+        <label><input type="radio" name="framework" value="spring" checked> Spring</label>
+        <label><input type="radio" name="framework" value="quarkus"> Quarkus</label>
+      </fieldset>
+      <fieldset>
+        <legend>Generate</legend>
+        <label><input type="checkbox" name="generate" value="controller" checked> controller</label>
+        <label><input type="checkbox" name="generate" value="api"> api</label>
+        <label><input type="checkbox" name="generate" value="client"> client</label>
+      </fieldset>
+    </div>
+
+    <fieldset>
+      <label><input type="checkbox" id="responseParameter" role="switch"> Response parameter</label>
+      <label><input type="checkbox" id="forceSnakeCase" role="switch" checked> Force snake_case</label>
+    </fieldset>
+  </form>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab" role="tab" data-out="maven" aria-controls="outputPanel" aria-selected="true">Maven</button>
+    <button type="button" class="tab secondary" role="tab" data-out="gradle" aria-controls="outputPanel" aria-selected="false">Gradle</button>
+    <button type="button" class="tab secondary" role="tab" data-out="cli" aria-controls="outputPanel" aria-selected="false">CLI</button>
+  </div>
+  <div class="panel">
+    <button type="button" class="copy secondary" id="copyBtn">Copy</button>
+    <pre id="outputPanel" aria-live="polite"><code id="output"></code></pre>
+  </div>
+
+  <h2>What each output is</h2>
+  <p>All three call the same generator with the same knobs. Maven writes into
+     <code>target/generated-sources</code>; Gradle into
+     <code>build/generated-sources/hurdy-gurdy/&lt;name&gt;</code>; the CLI needs an
+     explicit <code>--output</code>.</p>
+
+  <h2>Parameters</h2>
+  <table>
+    <thead><tr><th>Field</th><th>Values</th><th>Default</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Root package</td><td>string</td><td>—</td><td>Root package for generated code (<code>controller</code> and <code>dto</code> subpackages).</td></tr>
+      <tr><td>Spec path</td><td>path</td><td>—</td><td>OpenAPI spec file (YAML/JSON).</td></tr>
+      <tr><td>Language</td><td>java · kotlin</td><td>java</td><td>Target language for generated sources.</td></tr>
+      <tr><td>Framework</td><td>spring · quarkus</td><td>spring</td><td>Spring MVC vs Jakarta REST annotations.</td></tr>
+      <tr><td>Generate</td><td>controller · api · client</td><td>controller</td><td>Which interfaces to emit (any subset).</td></tr>
+      <tr><td>Response parameter</td><td>bool</td><td>false</td><td>Expose the raw HTTP response (server + client).</td></tr>
+      <tr><td>Force snake_case</td><td>bool</td><td>true</td><td>Treat DTO properties as snake_case in JSON.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Which interfaces (<code>generate</code>)</h2>
+  <table>
+    <thead><tr><th></th><th>Spring</th><th>Quarkus</th></tr></thead>
+    <tbody>
+      <tr><td>controller</td><td>Server interface to implement (<code>@GetMapping</code>…)</td><td>Jakarta REST resource (<code>@GET</code>+<code>@Path</code>…)</td></tr>
+      <tr><td>api</td><td>Pure contract (OpenFeign-ready)</td><td>Pure contract (MicroProfile REST Client)</td></tr>
+      <tr><td>client</td><td>Spring 6 HTTP Interface (<code>@GetExchange</code>…)</td><td><code>@RegisterRestClient</code> interface</td></tr>
+    </tbody>
+  </table>
+
+  <p>Deeper topics — inheritance/discriminator, <code>x-extends</code>, external
+     <code>$ref</code> — are covered in the
+     <a href="https://github.com/courseorchestra/hurdy-gurdy#readme">README</a>.</p>
+
+  <footer>
+    <small>Apache-2.0 · <a href="https://github.com/courseorchestra/hurdy-gurdy">courseorchestra/hurdy-gurdy</a></small>
+  </footer>
+</main>
+
+<script src="generator.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let current = "maven";
+
+  function readConfig() {
+    return {
+      rootPackage: $("rootPackage").value.trim(),
+      spec: $("spec").value.trim(),
+      outputDir: $("outputDir").value.trim(),
+      language: document.querySelector('input[name=language]:checked').value,
+      framework: document.querySelector('input[name=framework]:checked').value,
+      generate: [...document.querySelectorAll('input[name=generate]:checked')].map((e) => e.value),
+      responseParameter: $("responseParameter").checked,
+      forceSnakeCase: $("forceSnakeCase").checked,
+    };
+  }
+
+  const LANG = { maven: "xml", gradle: "kotlin", cli: "bash" };
+
+  function render() {
+    const c = readConfig();
+    const fn = { maven: mavenSnippet, gradle: gradleSnippet, cli: cliSnippet }[current];
+    const code = $("output");
+    const text = fn(c);
+    if (typeof hljs === "undefined") {   // highlighter CDN unreachable — degrade to plain text
+      code.className = "";
+      code.textContent = text;
+      return;
+    }
+    // hljs.highlight escapes the text it renders, so setting innerHTML is safe here.
+    code.className = "hljs";
+    code.innerHTML = hljs.highlight(text, { language: LANG[current] }).value;
+  }
+
+  document.getElementById("cfg").addEventListener("input", render);
+  document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+    current = t.dataset.out;
+    document.querySelectorAll(".tab").forEach((x) => {
+      const on = x === t;
+      x.setAttribute("aria-selected", on);
+      x.classList.toggle("secondary", !on);   // Pico: selected = accent, others = muted
+    });
+    render();
+  }));
+  $("copyBtn").addEventListener("click", () => navigator.clipboard.writeText($("output").textContent));
+
+  render();
+</script>
+</body>
+</html>
