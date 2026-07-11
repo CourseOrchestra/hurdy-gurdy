@@ -18,3 +18,35 @@ jobs:
           java-version: '25'
       - name: Build with Maven
         run: mvn -B package
+
+  gradle-plugin:
+    runs-on: ubuntu-latest
+    env:
+      # Isolated Maven repo so we never touch the shared ~/.m2 (no install antipattern)
+      CORE_REPO: ${{ github.workspace }}/.m2-core
+    steps:
+      - uses: actions/checkout@v7
+      # JDK 21: the core Maven build requires JDK 21+ (enforcer). The Gradle
+      # plugin still emits Java 17 bytecode via jvmTarget, independent of this JDK.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Build core jar
+        run: mvn -B -DskipTests package
+      # Seed the core jar+pom into the isolated repo with install:install-file —
+      # this bypasses the install lifecycle (no gpg signing, no ~/.m2 pollution).
+      # The jar name is derived (not hardcoded) so the version stays sourced
+      # solely from pom.xml; -DpomFile supplies the coordinates for placement.
+      - name: Publish core to the isolated repo
+        run: |
+          CORE_JAR=$(find target -maxdepth 1 -name 'hurdy-gurdy-*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar')
+          mvn -B install:install-file \
+            -Dfile="$CORE_JAR" \
+            -DpomFile=pom.xml \
+            -Dmaven.repo.local="$CORE_REPO"
+      - name: Build & test Gradle plugin
+        run: ./gradlew build -Dmaven.repo.local="$CORE_REPO"
+        working-directory: gradle-plugin
