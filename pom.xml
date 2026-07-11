@@ -60,6 +60,12 @@
             <version>1.13.0</version>
         </dependency>
         <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.7</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>kotlinpoet-jvm</artifactId>
             <version>2.3.0</version>
@@ -387,6 +393,16 @@
                 <configuration>
                     <release>${maven.compiler.release}</release>
                     <testRelease>21</testRelease>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>info.picocli</groupId>
+                            <artifactId>picocli-codegen</artifactId>
+                            <version>4.7.7</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <!-- "One goal to build them all": after the core/maven-plugin artifact is
