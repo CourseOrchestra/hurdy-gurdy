@@ -1,6 +1,6 @@
 package ru.curs.hurdygurdy;
 
-import com.squareup.javapoet.TypeSpec;
+import com.palantir.javapoet.TypeSpec;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

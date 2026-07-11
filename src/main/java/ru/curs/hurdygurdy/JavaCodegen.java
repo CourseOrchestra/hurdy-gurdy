@@ -1,7 +1,7 @@
 package ru.curs.hurdygurdy;
 
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.TypeSpec;
+import com.palantir.javapoet.JavaFile;
+import com.palantir.javapoet.TypeSpec;
 
 import java.io.IOException;
 import java.nio.file.Path;

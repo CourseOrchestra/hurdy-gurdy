@@ -87,9 +87,9 @@ public abstract class TypeDefiner<T> {
 
     abstract T getDTOClass(String name, Schema<?> schema, OpenAPI openAPI);
 
-    com.squareup.javapoet.TypeName defineJavaType(Schema<?> schema,
+    com.palantir.javapoet.TypeName defineJavaType(Schema<?> schema,
                                                   OpenAPI openAPI,
-                                                  com.squareup.javapoet.TypeSpec.Builder parent,
+                                                  com.palantir.javapoet.TypeSpec.Builder parent,
                                                   String typeNameFallback) {
         throw new IllegalStateException();
     }
