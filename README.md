@@ -35,6 +35,9 @@ Java or Kotlin? Spring or Quarkus? Maven, Gradle, or plain CLI?  [Fill this form
         default controller) — see "Generated interfaces" below-->
         <framework>spring</framework>
         <generate>controller,client</generate>
+        <!--Optional: Java DTO style (lombok|pojo|records, default lombok);
+        Java only — see "Java DTO styles" below-->
+        <javaDtoStyle>lombok</javaDtoStyle>
     </configuration>
     <executions>
         <execution>
@@ -131,6 +134,7 @@ Optionally build a native binary (requires GraalVM):
 |`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
 |`framework`|String (`spring`\|`quarkus`)|`spring`|Selects the web framework whose annotations are emitted on the generated interfaces. `spring` (default) emits Spring MVC annotations (`@GetMapping`, `@PathVariable`, …). `quarkus` emits Jakarta REST / Quarkus annotations (`@GET` + `@Path`, `@PathParam`, `@QueryParam`, `@HeaderParam`, `@RestForm` for multipart). Value is case-insensitive.|
 |`generate`|comma-separated subset of `controller`, `api`, `client`|`controller`|Selects which interfaces to generate — any combination in a single run, e.g. `<generate>controller,client</generate>`. See [Generated interfaces](#generated-interfaces-generate). Case-insensitive.|
+|`javaDtoStyle`|String (`lombok`\|`pojo`\|`records`)|`lombok`|Shape of the generated **Java** DTOs. `lombok` (default) emits Lombok `@Data` classes (unchanged historical behaviour, requires Lombok on the classpath). `pojo` emits plain classes with explicit getters/setters plus `equals`/`hashCode`/`toString` — no Lombok dependency. `records` emits Java records. Applies to Java only; Kotlin always generates `data class`es. See [Java DTO styles](#java-dto-styles-javadtostyle). Case-insensitive.|
 
 ## Generated interfaces (`generate`)
 
@@ -161,6 +165,62 @@ inspect status and headers), and never affects `api`. Server-only constructs
 are omitted from `api` and `client` interfaces.
 
 In code, use `GeneratorParams.rootPackage(...).generate(Role.CONTROLLER, Role.CLIENT)`.
+
+## Java DTO styles (`javaDtoStyle`)
+
+For Java output, `javaDtoStyle` selects the shape of the generated DTO classes.
+It applies to Java only — Kotlin always generates `data class`es. The choice
+never changes the JSON wire format: all three styles serialize and deserialize
+the same JSON for the same specification.
+
+| Style | What is generated | Notes |
+|---|---|---|
+| `lombok` (default) | Lombok `@Data` classes | Historical behaviour, unchanged. Requires Lombok on the classpath. |
+| `pojo` | Plain classes with explicit getters/setters plus `equals`/`hashCode`/`toString` | No Lombok dependency. Value semantics match `@Data` (own fields only). |
+| `records` | Java records | Immutable; requires Java 17+. Record-style `name()` accessors (not `getName()`). |
+
+In code:
+
+```kotlin
+import ru.curs.hurdygurdy.JavaDtoStyle
+
+val codegen = JavaCodegen(
+    GeneratorParams.rootPackage("com.example.project")
+        .javaDtoStyle(JavaDtoStyle.RECORDS)
+)
+```
+
+### How the styles model polymorphism and inheritance
+
+`lombok` and `pojo` use ordinary Java classes and behave identically in shape:
+
+- **`allOf` inheritance** → the subtype `extends` the base class.
+- **`discriminator`** → the base carries `@JsonTypeInfo(use = NAME)` +
+  `@JsonSubTypes`; subtypes `extend` it. When the schema declares no explicit
+  `discriminator.mapping`, the `@JsonSubTypes` names are derived from the subtype
+  schema names (the OpenAPI implicit convention), so deserialization works
+  without a hand-written mapping.
+- **`oneOf`** and a top-level **`anyOf`** of two or more `$ref`s → an interface
+  carrying `@JsonTypeInfo(use = DEDUCTION)` + `@JsonSubTypes`; the member classes
+  `implement` it.
+
+`records` cannot use class inheritance (a Java record is `final` and cannot
+`extend`), so is-a relationships are expressed through interfaces:
+
+- **`discriminator`, `oneOf`, top-level `anyOf`** bases become `sealed interface`s
+  that `permit` their subtypes; each concrete subtype is a `record` that
+  `implements` the base (and any interface it participates in — a type can
+  `implement` several).
+- **`allOf`-inherited properties** are **flattened** into the subtype record's
+  components (records inherit no fields). A plain `allOf` base (no
+  `discriminator`/`oneOf`) stays its own record and is still instantiable; the
+  subtype simply repeats its components — the JSON is identical.
+- **Required** components are validated in a compact constructor
+  (`Objects.requireNonNull`), so a missing required value fails fast.
+- **`additionalProperties`** become a trailing `Map` component annotated
+  `@JsonAnySetter`/`@JsonAnyGetter`.
+- A `nullable` self-reference and self-referential (recursive) schemas are
+  supported (a record may reference its own type as a component).
 
 ## Quarkus (Jakarta REST) output
 
