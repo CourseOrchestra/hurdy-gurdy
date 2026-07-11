@@ -1,0 +1,130 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/A.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = B.class, name = "b"),
+    @JsonSubTypes.Type(value = C.class, name = "c")})
+public class A {
+  private String description;
+
+  public String getDescription() {
+    return this.description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    A that = (A) o;
+    return Objects.equals(description, that.description);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(description);
+  }
+
+  @Override
+  public String toString() {
+    return "A{" + "description=" + description + "}";
+  }
+}
+---
+/com/example/dto/B.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class B extends A {
+  private String oneMore;
+
+  public String getOneMore() {
+    return this.oneMore;
+  }
+
+  public void setOneMore(String oneMore) {
+    this.oneMore = oneMore;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    B that = (B) o;
+    return Objects.equals(oneMore, that.oneMore);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(oneMore);
+  }
+
+  @Override
+  public String toString() {
+    return "B{" + "oneMore=" + oneMore + "}";
+  }
+}
+---
+/com/example/dto/C.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class C extends A {
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash();
+  }
+
+  @Override
+  public String toString() {
+    return "C{" + "}";
+  }
+}

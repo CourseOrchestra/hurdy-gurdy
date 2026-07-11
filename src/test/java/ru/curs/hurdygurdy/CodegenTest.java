@@ -209,6 +209,60 @@ class CodegenTest {
         verify(result);
     }
 
+    @Test
+    void pojoSample2() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsSample2() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void pojoInheritance() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsInheritance() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void pojoOneOf() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsOneOf() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
+        verify(result);
+    }
+
     @ParameterizedTest
     @EnumSource(JavaDtoStyle.class)
     void allStylesCompileSample2(JavaDtoStyle style) throws IOException {

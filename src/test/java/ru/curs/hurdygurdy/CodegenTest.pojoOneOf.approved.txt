@@ -1,0 +1,127 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+
+public interface Controller {
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/OneOf.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonSubTypes({
+    @JsonSubTypes.Type(Variant1.class),
+    @JsonSubTypes.Type(Variant2.class)})
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.DEDUCTION
+)
+public interface OneOf {
+}
+---
+/com/example/dto/Variant1.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Variant1 implements OneOf {
+  private Long id1;
+
+  public Long getId1() {
+    return this.id1;
+  }
+
+  public void setId1(Long id1) {
+    this.id1 = id1;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Variant1 that = (Variant1) o;
+    return Objects.equals(id1, that.id1);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id1);
+  }
+
+  @Override
+  public String toString() {
+    return "Variant1{" + "id1=" + id1 + "}";
+  }
+}
+---
+/com/example/dto/Variant2.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Variant2 implements OneOf {
+  private Long id2;
+
+  public Long getId2() {
+    return this.id2;
+  }
+
+  public void setId2(Long id2) {
+    this.id2 = id2;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Variant2 that = (Variant2) o;
+    return Objects.equals(id2, that.id2);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id2);
+  }
+
+  @Override
+  public String toString() {
+    return "Variant2{" + "id2=" + id2 + "}";
+  }
+}

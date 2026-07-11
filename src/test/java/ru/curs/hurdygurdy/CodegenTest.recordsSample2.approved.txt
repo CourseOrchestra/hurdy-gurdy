@@ -1,0 +1,274 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.PlayerActivitiesDTO;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Integer;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletRequest request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello/{id}",
+      produces = "*/*"
+  )
+  String hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz, HttpServletResponse response);
+}
+---
+/com/example/controller/PlayerController.java
+package com.example.controller;
+
+import com.example.dto.PlayersDTO;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+public interface PlayerController {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/Car.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Car(String carProperty) implements Vehicle {
+}
+---
+/com/example/dto/DepositDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Long;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record DepositDTO(PlayerDTO player, PlayerEnum playerenum, String depositId,
+    Long amountCents,
+    @JsonDeserialize(using = ZonedDateTimeDeserializer.class) @JsonSerialize(using = ZonedDateTimeSerializer.class) ZonedDateTime processedAt) {
+  public DepositDTO {
+    Objects.requireNonNull(player, "player");
+  }
+}
+---
+/com/example/dto/Parent.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Parent(Vehicle vehicle) {
+  public Parent {
+    Objects.requireNonNull(vehicle, "vehicle");
+  }
+}
+---
+/com/example/dto/PlayerActivitiesDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.time.ZonedDateTime;
+import java.util.List;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record PlayerActivitiesDTO(
+    @JsonDeserialize(using = ZonedDateTimeDeserializer.class) @JsonSerialize(using = ZonedDateTimeSerializer.class) ZonedDateTime from,
+    @JsonDeserialize(using = ZonedDateTimeDeserializer.class) @JsonSerialize(using = ZonedDateTimeSerializer.class) ZonedDateTime to,
+    List<PlayerActivityDTO> items) {
+}
+---
+/com/example/dto/PlayerActivityDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.String;
+import java.util.List;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record PlayerActivityDTO(String tag, String userId, String currency, Long betsSumCents,
+    Long wagerCents, Long additionalDeductionsSumCents, Long roundsCount, Long bonusIssuesSumCents,
+    Long chargebacksSumCents, Long chargebacksCount, Long depositsSumCents, Long depositsCount,
+    Long cashoutsSumCents, Long cashoutsCount, List<DepositDTO> deposits) {
+}
+---
+/com/example/dto/PlayerDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.String;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record PlayerDTO(String tag, String email, String userId, LocalDate dateOfBirth,
+    String firstName, String lastName, String nickname, Gender gender, String country,
+    String language,
+    @JsonDeserialize(using = ZonedDateTimeDeserializer.class) @JsonSerialize(using = ZonedDateTimeSerializer.class) ZonedDateTime signUpAt,
+    boolean duplicate) {
+  public enum Gender {
+    m,
+
+    f,
+
+    n
+  }
+}
+---
+/com/example/dto/PlayerEnum.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum PlayerEnum {
+  @JsonProperty("good")
+  GOOD,
+
+  @JsonProperty("bad")
+  BAD,
+
+  @JsonProperty("ugly")
+  UGLY
+}
+---
+/com/example/dto/PlayersDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record PlayersDTO(List<PlayerDTO> players) {
+}
+---
+/com/example/dto/Truck.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Truck(String truckProperty) implements Vehicle {
+}
+---
+/com/example/dto/Vehicle.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "vehicle_type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = Car.class, name = "CAR"),
+    @JsonSubTypes.Type(value = Truck.class, name = "TRUCK")})
+public sealed interface Vehicle permits Car, Truck {
+}
+---
+/com/example/dto/ZonedDateTimeDeserializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.DateTimeException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public ZonedDateTime deserialize(JsonParser jsonParser,
+      DeserializationContext deserializationContext) throws IOException {
+    String date = jsonParser.getText();
+    try  {
+      return ZonedDateTime.parse(date, formatter);
+    }
+    catch (DateTimeException e) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter);
+      }
+      catch (DateTimeException ignored) {
+        // do nothing, exception thrown below
+      }
+      throw new JsonParseException(jsonParser, e.getMessage());
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeSerializer extends JsonSerializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider serializers)
+      throws IOException {
+    gen.writeString(formatter.format(value));
+  }
+}

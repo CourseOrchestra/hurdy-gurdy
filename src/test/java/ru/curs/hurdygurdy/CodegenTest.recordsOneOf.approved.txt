@@ -1,0 +1,70 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+
+public interface Controller {
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/OneOf.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonSubTypes({
+    @JsonSubTypes.Type(Variant1.class),
+    @JsonSubTypes.Type(Variant2.class)})
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.DEDUCTION
+)
+public sealed interface OneOf permits Variant1, Variant2 {
+}
+---
+/com/example/dto/Variant1.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Variant1(Long id1) implements OneOf {
+  public Variant1 {
+    Objects.requireNonNull(id1, "id1");
+  }
+}
+---
+/com/example/dto/Variant2.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Variant2(Long id2) implements OneOf {
+  public Variant2 {
+    Objects.requireNonNull(id2, "id2");
+  }
+}

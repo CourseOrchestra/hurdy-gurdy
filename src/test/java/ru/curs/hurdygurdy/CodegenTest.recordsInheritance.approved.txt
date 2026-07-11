@@ -1,0 +1,49 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/A.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.lang.String;
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = B.class, name = "b"),
+    @JsonSubTypes.Type(value = C.class, name = "c")})
+public sealed interface A permits B, C {
+  String description();
+}
+---
+/com/example/dto/B.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record B(String description, String oneMore) implements A {
+}
+---
+/com/example/dto/C.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record C(String description) implements A {
+}
