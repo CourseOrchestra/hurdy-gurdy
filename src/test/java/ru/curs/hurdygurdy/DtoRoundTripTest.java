@@ -52,9 +52,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DtoRoundTripTest {
 
     private static final String SPEC = "src/test/resources/roundtrip.yaml";
+    // Companion OpenAPI 3.1.0 spec carrying the nullable-anyOf shapes (their
+    // `type: 'null'` member is 3.1-only, and swagger-parser drops allOf under
+    // 3.1, so the inheritance shapes stay in the 3.0.0 spec). Generated into the
+    // same dto package as SPEC (their shared Inner is byte-identical).
+    private static final String SPEC_31 = "src/test/resources/roundtrip31.yaml";
     private static final String DTO_PKG = "com.example.dto";
+    // ZonedDateTime* are generated Jackson (de)serializer helpers, not DTOs.
+    // AnyOfHolder is the top-level `anyOf` PROBE: the generator has no
+    // anyOf-as-polymorphism (only oneOf), so it emits an empty class/record with
+    // no properties — Jackson cannot even serialize it ("no properties
+    // discovered to create BeanSerializer") and it carries no type information to
+    // round-trip. It is excluded here on purpose; see the task report for the
+    // verbatim output and the recommendation to surface top-level anyOf as a
+    // possible new generator feature.
     private static final Set<String> SKIP_SIMPLE_NAMES =
-            Set.of("ZonedDateTimeSerializer", "ZonedDateTimeDeserializer");
+            Set.of("ZonedDateTimeSerializer", "ZonedDateTimeDeserializer", "AnyOfHolder");
 
     private static final UUID SAMPLE_UUID =
             UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -67,9 +80,21 @@ class DtoRoundTripTest {
     // were actually exercised at least once.
     private static int discriminatorPolyRoundTrips;
     private static int oneOfPolyRoundTrips;
+    // Proves the new "round-trip through EVERY polymorphic base" path fired: a
+    // class that survived the round-trip through 2+ distinct bases at least once
+    // (records-mode Cat/Dog: via Pet AND via Creature).
+    private static int multiBasePolyRoundTrips;
 
     @TempDir
     private Path generated;
+
+    private void generate(JavaDtoStyle style, boolean snake, String spec) throws Exception {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(style)
+                .forceSnakeCaseForProperties(snake))
+                .generate(Path.of(spec), generated);
+    }
 
     static Stream<Arguments> matrix() {
         List<Arguments> args = new ArrayList<>();
@@ -83,11 +108,8 @@ class DtoRoundTripTest {
     @ParameterizedTest(name = "{0} forceSnakeCase={1}")
     @MethodSource("matrix")
     void everyDtoClassRoundTrips(JavaDtoStyle style, boolean snake) throws Exception {
-        new JavaCodegen(GeneratorParams.rootPackage("com.example")
-                .generateResponseParameter(true)
-                .javaDtoStyle(style)
-                .forceSnakeCaseForProperties(snake))
-                .generate(Path.of(SPEC), generated);
+        generate(style, snake, SPEC);
+        generate(style, snake, SPEC_31);
         Path classes = GeneratedCodeCompiler.compileJava(generated);
         try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
             // JavaTimeModule: the generator emits a self-contained serializer only
@@ -115,6 +137,71 @@ class DtoRoundTripTest {
         }
     }
 
+    /**
+     * The generator's ONLY {@code anyOf} support is nullable-unwrap: a property
+     * {@code anyOf: [X, {type: 'null'}]} must generate the plain non-null element
+     * type of X, and both a populated value and an explicit {@code null} must
+     * round-trip. Proven here on {@code NullableHolder} (OpenAPI 3.1.0 spec):
+     * {@code nick} unwraps to {@link String}, {@code alt_inner} to {@code Inner},
+     * and an instance with those fields left null serializes/deserializes back to
+     * null (not to a defaulted value).
+     */
+    @ParameterizedTest(name = "{0} forceSnakeCase={1}")
+    @MethodSource("matrix")
+    void nullableAnyOfUnwrapsAndRoundTrips(JavaDtoStyle style, boolean snake) throws Exception {
+        generate(style, snake, SPEC_31);
+        Path classes = GeneratedCodeCompiler.compileJava(generated);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+            mapper.setTypeFactory(mapper.getTypeFactory().withClassLoader(loader));
+            Class<?> holder = loader.loadClass(DTO_PKG + ".NullableHolder");
+            Class<?> inner = loader.loadClass(DTO_PKG + ".Inner");
+
+            // anyOf-nullable unwrapped to the plain non-null element type.
+            assertThat(propertyType(holder, "nick"))
+                    .as("nick anyOf-nullable unwraps to String [%s snake=%s]", style, snake)
+                    .isEqualTo(String.class);
+            // Field name is camelCased only when forceSnakeCase is on; otherwise
+            // the raw snake_case key is kept as the Java identifier.
+            assertThat(propertyType(holder, snake ? "altInner" : "alt_inner"))
+                    .as("alt_inner anyOf-nullable unwraps to Inner [%s snake=%s]", style, snake)
+                    .isEqualTo(inner);
+
+            // An explicit null in a nullable-anyOf field round-trips as null.
+            String json0 = "{\"id\":\"x\"}";
+            Object back = mapper.readValue(json0, holder);
+            String json1 = mapper.writeValueAsString(back);
+            assertThat(mapper.readTree(json1).path("nick").isNull() || mapper.readTree(json1).path("nick").isMissingNode())
+                    .as("null nick stays null on the wire [%s snake=%s]: %s", style, snake, json1)
+                    .isTrue();
+            Object back2 = mapper.readValue(json1, holder);
+            String json2 = mapper.writeValueAsString(back2);
+            assertThat(mapper.readTree(json2))
+                    .as("null nullable-anyOf round-trips [%s snake=%s]", style, snake)
+                    .isEqualTo(mapper.readTree(json1));
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
+    }
+
+    /** The declared Java type of a bean field or record component named {@code name}. */
+    private static Class<?> propertyType(Class<?> clazz, String name) throws Exception {
+        if (clazz.isRecord()) {
+            for (RecordComponent c : clazz.getRecordComponents()) {
+                if (c.getName().equals(name)) {
+                    return c.getType();
+                }
+            }
+        } else {
+            for (Field f : clazz.getDeclaredFields()) {
+                if (f.getName().equals(name)) {
+                    return f.getType();
+                }
+            }
+        }
+        throw new NoSuchFieldException(clazz.getName() + "." + name);
+    }
+
     @AfterAll
     static void bothPolymorphicPathsExercised() {
         assertThat(discriminatorPolyRoundTrips)
@@ -122,6 +209,10 @@ class DtoRoundTripTest {
                 .isGreaterThan(0);
         assertThat(oneOfPolyRoundTrips)
                 .as("at least one oneOf (DEDUCTION) polymorphic round-trip")
+                .isGreaterThan(0);
+        assertThat(multiBasePolyRoundTrips)
+                .as("at least one class round-tripped through 2+ polymorphic bases "
+                        + "(records-mode Cat/Dog via Pet AND Creature)")
                 .isGreaterThan(0);
     }
 
@@ -151,24 +242,34 @@ class DtoRoundTripTest {
     private void polymorphicRoundTrip(ObjectMapper mapper, Class<?> clazz, Object instance,
                                       JavaDtoStyle style, boolean snake, List<String> failures)
             throws Exception {
-        Class<?> base = polymorphicBase(clazz);
-        if (base == null) {
-            return;
+        // A type may reach the wire through MORE THAN ONE polymorphic base: e.g.
+        // records-mode Cat is `implements Pet, Creature` (name-based discriminator
+        // AND deduction oneOf), and a multi-level subtype is reachable through
+        // each annotated ancestor. Round-trip through EVERY such base, not just
+        // the first, so "extends a class implementing an interface" (and its
+        // records analogue "implements two polymorphic interfaces") is actually
+        // exercised on the wire.
+        int basesRoundTripped = 0;
+        for (Class<?> base : polymorphicBases(clazz)) {
+            String json1 = mapper.writerFor(base).writeValueAsString(instance);
+            Object back = mapper.readValue(json1, base);
+            if (!clazz.isInstance(back)) {
+                failures.add(context(clazz, style, snake) + " polymorphic deserialize via "
+                        + base.getSimpleName() + " produced " + back.getClass().getSimpleName());
+                continue;
+            }
+            String json2 = mapper.writerFor(base).writeValueAsString(back);
+            if (!mapper.readTree(json2).equals(mapper.readTree(json1))) {
+                failures.add(context(clazz, style, snake) + " polymorphic round-trip via "
+                        + base.getSimpleName() + " mismatch:\n  json1=" + json1 + "\n  json2=" + json2);
+                continue;
+            }
+            recordPolymorphicKind(base);
+            basesRoundTripped++;
         }
-        String json1 = mapper.writerFor(base).writeValueAsString(instance);
-        Object back = mapper.readValue(json1, base);
-        if (!clazz.isInstance(back)) {
-            failures.add(context(clazz, style, snake) + " polymorphic deserialize via "
-                    + base.getSimpleName() + " produced " + back.getClass().getSimpleName());
-            return;
+        if (basesRoundTripped >= 2) {
+            multiBasePolyRoundTrips++;
         }
-        String json2 = mapper.writerFor(base).writeValueAsString(back);
-        if (!mapper.readTree(json2).equals(mapper.readTree(json1))) {
-            failures.add(context(clazz, style, snake) + " polymorphic round-trip via "
-                    + base.getSimpleName() + " mismatch:\n  json1=" + json1 + "\n  json2=" + json2);
-            return;
-        }
-        recordPolymorphicKind(base);
     }
 
     private static void recordPolymorphicKind(Class<?> base) {
@@ -180,19 +281,26 @@ class DtoRoundTripTest {
         }
     }
 
-    /** The polymorphic base a class participates in (a {@code @JsonTypeInfo} dto interface or superclass), or null. */
-    private static Class<?> polymorphicBase(Class<?> clazz) {
+    /**
+     * Every polymorphic base a class participates in: each directly-implemented
+     * {@code @JsonTypeInfo} dto interface, plus its direct superclass when that
+     * is a {@code @JsonTypeInfo} dto class. A class both {@code extends}ing a
+     * discriminator base and {@code implements}ing a oneOf interface (or a record
+     * implementing two such interfaces) yields more than one entry.
+     */
+    private static List<Class<?>> polymorphicBases(Class<?> clazz) {
+        List<Class<?>> bases = new ArrayList<>();
         for (Class<?> iface : clazz.getInterfaces()) {
             if (iface.getName().startsWith(DTO_PKG) && iface.isAnnotationPresent(JsonTypeInfo.class)) {
-                return iface;
+                bases.add(iface);
             }
         }
         Class<?> superClass = clazz.getSuperclass();
         if (superClass != null && superClass.getName().startsWith(DTO_PKG)
                 && superClass.isAnnotationPresent(JsonTypeInfo.class)) {
-            return superClass;
+            bases.add(superClass);
         }
-        return null;
+        return bases;
     }
 
     private static String context(Class<?> clazz, JavaDtoStyle style, boolean snake) {

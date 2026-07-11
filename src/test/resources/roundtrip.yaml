@@ -1,3 +1,7 @@
+# Kept at OpenAPI 3.0.0: swagger-parser stops populating allOf/ComposedSchema
+# under 3.1.0 (composed schemas come out empty — no extends/fields), which
+# breaks every inheritance shape below. The nullable-anyOf coverage that needs
+# 3.1's `type: 'null'` lives in the sibling spec roundtrip31.yaml instead.
 openapi: 3.0.0
 info: {title: roundtrip, version: "1.0"}
 paths: {}
@@ -87,6 +91,53 @@ components:
             pack_size:
               type: integer
 
+    # Mixed hierarchy: Cat/Dog are discriminator subtypes of Pet (allOf) AND
+    # members of this oneOf. In lombok/pojo this makes
+    # `class Cat extends Pet implements Creature`; in records
+    # `record Cat(...) implements Pet, Creature`.
+    Creature:
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+
+    # 3-level discriminator chain: Animal (discriminator base) -> Mammal
+    # (intermediate) -> Wolf (leaf). lombok/pojo:
+    # `class Wolf extends Mammal`, `class Mammal extends Animal`; records
+    # flattens species+legs+fur_color+pack_rank into Wolf and implements Animal.
+    Animal:
+      type: object
+      required: [species, legs]
+      discriminator:
+        propertyName: species
+        # Explicit mapping (as Pet has): a discriminator base needs it so the
+        # generator emits @JsonSubTypes and Jackson can resolve the subtype on
+        # read. A discriminator base with NO mapping emits @JsonTypeInfo(NAME)
+        # but no @JsonSubTypes, so `readValue(json, Animal.class)` fails with
+        # InvalidTypeIdException — a separate generator gap (see task report).
+        mapping:
+          mammal: '#/components/schemas/Mammal'
+      properties:
+        species:
+          type: string
+        legs:
+          type: integer
+    Mammal:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          required: [fur_color]
+          properties:
+            fur_color:
+              type: string
+    Wolf:
+      allOf:
+        - $ref: '#/components/schemas/Mammal'
+        - type: object
+          required: [pack_rank]
+          properties:
+            pack_rank:
+              type: integer
+
     # oneOf with two structurally distinct members (deduction-friendly).
     Shape:
       oneOf:
@@ -122,3 +173,11 @@ components:
           properties:
             extra_field:
               type: integer
+
+    # Top-level anyOf PROBE (NOT nullable-unwrap): the generator has no
+    # anyOf-as-polymorphism (only oneOf becomes an interface). Observed output
+    # is documented in the report; the round-trip test excludes this class.
+    AnyOfHolder:
+      anyOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'

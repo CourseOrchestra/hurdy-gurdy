@@ -131,6 +131,17 @@
             <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
+        <!-- DtoRoundTripTest registers Jackson's JavaTimeModule to (de)serialize
+             the LocalDate ("date" format) fields of generated DTOs, exactly as a
+             real Spring/Quarkus app's mapper does. Declared explicitly (rather
+             than relied on transitively via swagger-parser) so the round-trip
+             test's classpath does not silently break on a dependency bump. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.22.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>

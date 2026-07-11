@@ -231,7 +231,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (params.getJavaDtoStyle() == JavaDtoStyle.RECORDS) {
             return buildRecordDto(name, schema, openAPI);
         }
-        if (schema instanceof ComposedSchema && schema.getOneOf() == null) {
+        // A ComposedSchema with only `anyOf` (neither allOf nor oneOf) is not an
+        // inheritance relation: the generator has no top-level anyOf-as-interface
+        // support (unlike oneOf). Falling through the allOf branch would NPE on
+        // the null allOf list; instead emit a plain (empty) class so generation
+        // does not crash. See DtoRoundTripTest: AnyOfHolder is excluded from the
+        // round-trip because such a class carries no properties/polymorphism.
+        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
             Set<String> inheritedKeys = new HashSet<>();

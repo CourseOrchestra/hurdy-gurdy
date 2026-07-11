@@ -1,0 +1,38 @@
+# OpenAPI 3.1.0 companion to roundtrip.yaml, isolated here because `type: 'null'`
+# is 3.1-only syntax and swagger-parser stops resolving allOf/ComposedSchema
+# under 3.1.0 (so no inheritance shapes live here — only flat objects).
+#
+# Exercises the generator's ONLY anyOf support: nullable-unwrap. A property
+# `anyOf: [X, {type: 'null'}]` must generate the plain non-null element type of
+# X (nullable String / nullable Inner), and both a populated value and an
+# explicit null must round-trip through Jackson.
+openapi: 3.1.0
+info: {title: roundtrip31, version: "1.0"}
+paths: {}
+components:
+  schemas:
+    Inner:
+      type: object
+      required: [inner_name]
+      properties:
+        inner_name:
+          type: string
+        inner_count:
+          type: integer
+
+    NullableHolder:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        # anyOf nullable-unwrap -> nullable String
+        nick:
+          anyOf:
+            - type: string
+            - type: 'null'
+        # anyOf nullable-unwrap -> nullable Inner
+        alt_inner:
+          anyOf:
+            - $ref: '#/components/schemas/Inner'
+            - type: 'null'
