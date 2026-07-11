@@ -241,6 +241,18 @@ class KotlinTypeDefiner internal constructor(
                     currentSchema = s
                 }
             }
+            // Propagate a discriminator declared on the ComposedSchema itself onto
+            // the inline `object` part, so an intermediate discriminator base (e.g.
+            // `Middle` in a nested Outer->Middle->Leaf chain) becomes a sealed
+            // @JsonTypeInfo base whose discriminator property is managed by Jackson
+            // and excluded from the constructor — matching constructorPropertiesOf,
+            // which already strips it. Without this the inline part loses the
+            // discriminator, the generated intermediate keeps the discriminator
+            // field as a constructor parameter, and a subclass forwards the wrong
+            // argument to the super-constructor (a compile error).
+            if (schema.discriminator != null && currentSchema !== schema) {
+                currentSchema.discriminator = schema.discriminator
+            }
             getDTOClass(name, currentSchema, openAPI, baseClass, inheritedProperties)
         } else {
             getDTOClass(name, schema, openAPI, Any::class.asClassName(), emptyList())
