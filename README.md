@@ -340,6 +340,66 @@ public class Car extends Vehicle {
 }
 ```
 
+With `javaDtoStyle=pojo` the same schema produces plain classes (no Lombok) with
+explicit accessors and value methods:
+
+```java
+//Car.java
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Car extends Vehicle {
+    private String carProperty;
+
+    public String getCarProperty() {
+        return this.carProperty;
+    }
+
+    public void setCarProperty(String carProperty) {
+        this.carProperty = carProperty;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Car that = (Car) o;
+        return Objects.equals(carProperty, that.carProperty);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(carProperty);
+    }
+
+    @Override
+    public String toString() {
+        return "Car{" + "carProperty=" + carProperty + "}";
+    }
+}
+```
+
+With `javaDtoStyle=records` the discriminator base becomes a `sealed interface`
+and each subtype a `record`, with inherited properties flattened into the
+components and required ones null-checked in a compact constructor:
+
+```java
+//Vehicle.java
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "vehicle_type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = Car.class, name = "CAR"),
+    @JsonSubTypes.Type(value = Truck.class, name = "TRUCK")})
+public sealed interface Vehicle permits Car, Truck {
+}
+
+//Car.java
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Car(String carProperty) implements Vehicle {
+}
+```
+
 This will produce the following in Kotlin:
 
 ```kotlin
