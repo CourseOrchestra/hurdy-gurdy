@@ -207,9 +207,12 @@ components:
             extra_field:
               type: integer
 
-    # Top-level anyOf PROBE (NOT nullable-unwrap): the generator has no
-    # anyOf-as-polymorphism (only oneOf becomes an interface). Observed output
-    # is documented in the report; the round-trip test excludes this class.
+    # Top-level anyOf of two non-null $refs (NOT nullable-unwrap): generated as a
+    # DEDUCTION-based polymorphic interface, exactly like oneOf. Circle/Square
+    # `implements` it and round-trip polymorphically through it. Note Circle/Square
+    # are ALSO members of the `Shape` oneOf, so they implement BOTH Shape and
+    # AnyOfHolder — DEDUCTION still resolves them because radius vs side make the
+    # two subtypes structurally distinct.
     AnyOfHolder:
       anyOf:
         - $ref: '#/components/schemas/Circle'

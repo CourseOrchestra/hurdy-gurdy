@@ -61,15 +61,13 @@ class DtoRoundTripTest {
     private static final String SPEC_31 = "src/test/resources/roundtrip31.yaml";
     private static final String DTO_PKG = "com.example.dto";
     // ZonedDateTime* are generated Jackson (de)serializer helpers, not DTOs.
-    // AnyOfHolder is the top-level `anyOf` PROBE: the generator has no
-    // anyOf-as-polymorphism (only oneOf), so it emits an empty class/record with
-    // no properties — Jackson cannot even serialize it ("no properties
-    // discovered to create BeanSerializer") and it carries no type information to
-    // round-trip. It is excluded here on purpose; see the task report for the
-    // verbatim output and the recommendation to surface top-level anyOf as a
-    // possible new generator feature.
+    // AnyOfHolder (top-level `anyOf` of Circle/Square $refs) is now generated as
+    // a DEDUCTION-based polymorphic interface — like oneOf — so its members
+    // Circle/Square `implements` it and round-trip polymorphically through it.
+    // It is itself an interface (skipped by the concrete-class filter) and no
+    // longer needs an explicit exclusion.
     private static final Set<String> SKIP_SIMPLE_NAMES =
-            Set.of("ZonedDateTimeSerializer", "ZonedDateTimeDeserializer", "AnyOfHolder");
+            Set.of("ZonedDateTimeSerializer", "ZonedDateTimeDeserializer");
 
     private static final UUID SAMPLE_UUID =
             UUID.fromString("00000000-0000-0000-0000-000000000001");

@@ -94,6 +94,12 @@ class CodegenTest {
     }
 
     @Test
+    void anyOfSupport() throws IOException {
+        codegen.generate(Path.of("src/test/resources/anyofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void noOwnTypes() throws IOException {
         codegen.generate(Path.of("src/test/resources/externaltype.yaml"), result);
         // Snapshot only: this spec deliberately references external, un-generated

@@ -151,6 +151,33 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return ClassName.get(String.join(".", meta.getPackageName(), "dto"), meta.getClassName());
     }
 
+    /**
+     * The member subschemas of a polymorphic container — a {@code oneOf}, or a
+     * top-level {@code anyOf} of two-or-more non-null {@code $ref}s (treated the
+     * same way). Returns an empty list for a plain schema, a nullable
+     * {@code anyOf:[X,null]}, or a single-ref anyOf. This is the single predicate
+     * for "is this schema a DEDUCTION-based polymorphic interface".
+     */
+    private List<Schema> polymorphicMembers(Schema<?> schema) {
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            return schema.getOneOf();
+        }
+        List<Schema> anyOf = schema.getAnyOf();
+        if (anyOf != null) {
+            List<Schema> refs = anyOf.stream()
+                    .filter(s -> s.get$ref() != null)
+                    .collect(java.util.stream.Collectors.toList());
+            if (refs.size() >= 2) {
+                return refs;
+            }
+        }
+        return List.of();
+    }
+
+    private boolean isPolymorphicInterface(Schema<?> schema) {
+        return !polymorphicMembers(schema).isEmpty();
+    }
+
     private void ensureJsonZonedDateTimeDeserializer() {
         if (!hasJsonZonedDateTimeDeserializer) {
             TypeSpec typeSpec =
@@ -231,12 +258,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (params.getJavaDtoStyle() == JavaDtoStyle.RECORDS) {
             return buildRecordDto(name, schema, openAPI);
         }
-        // A ComposedSchema with only `anyOf` (neither allOf nor oneOf) is not an
-        // inheritance relation: the generator has no top-level anyOf-as-interface
-        // support (unlike oneOf). Falling through the allOf branch would NPE on
-        // the null allOf list; instead emit a plain (empty) class so generation
-        // does not crash. See DtoRoundTripTest: AnyOfHolder is excluded from the
-        // round-trip because such a class carries no properties/polymorphism.
+        // allOf inheritance. A polymorphic container (oneOf, or anyOf of two-or-more
+        // $refs) has already been routed to an interface by the class-vs-interface
+        // decision below; a non-polymorphic anyOf (scalars, a single $ref) has a null
+        // allOf and falls through to a plain (empty) class rather than NPE-ing here.
         if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
@@ -297,7 +322,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // RECORDS mode is dispatched earlier, from the 3-arg getDTOClass, so it
         // sees the full schema rather than the unwrapped own-properties member.
         TypeSpec.Builder classBuilder;
-        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+        if (isPolymorphicInterface(schema)) {
             classBuilder = TypeSpec.interfaceBuilder(name);
         } else {
             classBuilder = TypeSpec.classBuilder(name)
@@ -317,13 +342,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
-        oneOfToInterface(schema, openAPI, classBuilder);
-        // A class that is itself a oneOf member implements the generated oneOf
-        // interface, so Jackson deduction polymorphism through that interface
-        // works in class mode too (matches Kotlin's addInterfaces and the
-        // records-mode ancestorInterfaces oneOf branch).
-        if (schema.getOneOf() == null || schema.getOneOf().isEmpty()) {
-            oneOfInterfacesOf(name, openAPI).forEach(classBuilder::addSuperinterface);
+        polymorphicToInterface(schema, openAPI, classBuilder);
+        // A class that is itself a oneOf/anyOf member implements the generated
+        // polymorphic interface, so Jackson deduction polymorphism through that
+        // interface works in class mode too (matches Kotlin's addInterfaces and
+        // the records-mode ancestorInterfaces polymorphic branch).
+        if (!isPolymorphicInterface(schema)) {
+            polymorphicInterfacesOf(name, openAPI).forEach(classBuilder::addSuperinterface);
         }
 
         Map<String, Schema> schemaMap = schema.getProperties();
@@ -358,8 +383,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private record RecordComponent(String key, Schema<?> schema, boolean required) { }
 
     private TypeSpec buildRecordDto(String name, Schema<?> schema, OpenAPI openAPI) {
-        // 1) oneOf -> sealed interface (deduction-based Jackson polymorphism)
-        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+        // 1) oneOf / top-level anyOf -> sealed interface (deduction-based Jackson polymorphism)
+        if (isPolymorphicInterface(schema)) {
             return buildSealedInterface(name, schema, openAPI, false);
         }
         // 2) discriminator base -> sealed interface (name-based polymorphism)
@@ -423,7 +448,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 .map(Components::getSchemas)
                 .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
                 .orElse(null);
-        return schema != null && (schema.getDiscriminator() != null || schema.getOneOf() != null);
+        return schema != null && (schema.getDiscriminator() != null || isPolymorphicInterface(schema));
     }
 
     private List<RecordComponent> componentsOfRef(String ref, OpenAPI openAPI) {
@@ -463,31 +488,30 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 }
             }
         }
-        // oneOf membership: any schema whose oneOf lists this class
-        result.addAll(oneOfInterfacesOf(name, openAPI));
+        // oneOf/anyOf membership: any polymorphic schema that lists this class
+        result.addAll(polymorphicInterfacesOf(name, openAPI));
         return result;
     }
 
     /**
-     * The oneOf-interface {@link ClassName}s that the DTO named {@code name} is
-     * a member of: every component schema whose {@code oneOf} lists a {@code
-     * $ref} resolving to {@code name}. Shared by the class-based path ({@link
-     * #getDTOClass}, so a class {@code implements} the oneOf interface(s) it is
-     * a member of) and the records-mode {@link #ancestorInterfaces} (so a
-     * record's {@code implements}/a nested base's {@code extends} clause stays
-     * consistent with the outer interface's {@code permits} clause).
+     * The polymorphic-interface {@link ClassName}s that the DTO named {@code
+     * name} is a member of: every component schema that is a polymorphic
+     * interface (a {@code oneOf}, or a top-level {@code anyOf} of $refs) whose
+     * members list a {@code $ref} resolving to {@code name}. Shared by the
+     * class-based path ({@link #getDTOClass}, so a class {@code implements} the
+     * interface(s) it is a member of) and the records-mode {@link
+     * #ancestorInterfaces} (so a record's {@code implements}/a nested base's
+     * {@code extends} clause stays consistent with the outer interface's {@code
+     * permits} clause).
      */
-    private List<ClassName> oneOfInterfacesOf(String name, OpenAPI openAPI) {
+    private List<ClassName> polymorphicInterfacesOf(String name, OpenAPI openAPI) {
         List<ClassName> result = new ArrayList<>();
         openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
-            if (s.getOneOf() != null) {
-                for (Object memberObj : s.getOneOf()) {
-                    Schema<?> member = (Schema<?>) memberObj;
-                    if (member.get$ref() != null
-                            && referencedClassName(openAPI, member.get$ref()).simpleName().equals(name)) {
-                        result.add(ClassName.get(
-                                String.join(".", params.getRootPackage(), "dto"), schemaName));
-                    }
+            for (Schema member : polymorphicMembers(s)) {
+                if (member.get$ref() != null
+                        && referencedClassName(openAPI, member.get$ref()).simpleName().equals(name)) {
+                    result.add(ClassName.get(
+                            String.join(".", params.getRootPackage(), "dto"), schemaName));
                 }
             }
         });
@@ -637,9 +661,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return derived;
     }
 
-    /** Adds the {@code @JsonSubTypes}/{@code @JsonTypeInfo(DEDUCTION)} pair for a oneOf sealed interface. */
+    /** Adds the {@code @JsonSubTypes}/{@code @JsonTypeInfo(DEDUCTION)} pair for a oneOf/anyOf sealed interface. */
     private void addOneOfDeductionAnnotations(TypeSpec.Builder ifaceBuilder, Schema<?> schema, OpenAPI openAPI) {
-        CodeBlock collect = schema.getOneOf().stream()
+        CodeBlock collect = polymorphicMembers(schema).stream()
                 .map(Schema::get$ref).filter(Objects::nonNull)
                 .map(r -> referencedClassName(openAPI, r))
                 .map(cn -> AnnotationSpec.builder(JsonSubTypes.Type.class)
@@ -704,8 +728,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     /** Concrete DTO class names that a sealed base permits. */
     private List<ClassName> permittedSubtypes(String name, Schema<?> schema, OpenAPI openAPI) {
         List<ClassName> result = new ArrayList<>();
-        if (schema.getOneOf() != null) {
-            schema.getOneOf().stream().map(Schema::get$ref).filter(Objects::nonNull)
+        if (isPolymorphicInterface(schema)) {
+            polymorphicMembers(schema).stream().map(Schema::get$ref).filter(Objects::nonNull)
                     .map(r -> referencedClassName(openAPI, r)).forEach(result::add);
             return result;
         }
@@ -794,11 +818,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     /**
      * Whether {@code schema} should get explicit POJO accessors and value
      * methods: the style is {@link JavaDtoStyle#POJO} and this is a class
-     * (not a {@code oneOf} interface, which has no fields of its own).
+     * (not a {@code oneOf}/{@code anyOf} interface, which has no fields of its own).
      */
     private boolean isPojoClassSchema(Schema<?> schema) {
         return params.getJavaDtoStyle() == JavaDtoStyle.POJO
-                && (schema.getOneOf() == null || schema.getOneOf().isEmpty());
+                && !isPolymorphicInterface(schema);
     }
 
     /**
@@ -915,11 +939,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         classBuilder.addField(fieldBuilder.build());
     }
 
-    private void oneOfToInterface(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
-        if (schema.getOneOf() != null) {
+    private void polymorphicToInterface(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
+        if (isPolymorphicInterface(schema)) {
             var subtypesAnnotation = AnnotationSpec.builder(JsonSubTypes.class);
 
-            final CodeBlock collect = schema.getOneOf().stream()
+            final CodeBlock collect = polymorphicMembers(schema).stream()
                     .map(Schema::get$ref)
                     .filter(Objects::nonNull)
                     .map(r -> referencedClassName(openAPI, r))
