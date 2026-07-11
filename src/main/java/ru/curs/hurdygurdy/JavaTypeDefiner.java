@@ -285,8 +285,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             classBuilder = TypeSpec.interfaceBuilder(name);
         } else {
             classBuilder = TypeSpec.classBuilder(name)
-                    .superclass(baseClass)
-                    .addAnnotation(Data.class);
+                    .superclass(baseClass);
+            if (params.getJavaDtoStyle() == JavaDtoStyle.LOMBOK) {
+                classBuilder.addAnnotation(Data.class);
+            }
         }
         classBuilder.addModifiers(Modifier.PUBLIC);
         if (params.isForceSnakeCaseForProperties()) {
@@ -341,29 +343,147 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
 
         //Dictionary support
-        if (schema.getAdditionalProperties() != null) {
-            Object additionalProperties = schema.getAdditionalProperties();
-            TypeName valueTypeName;
-            if (additionalProperties instanceof Schema<?>) {
-                valueTypeName = defineJavaType((Schema<?>) additionalProperties,
-                        openAPI, classBuilder, null).box();
-            } else {
-                valueTypeName = TypeName.get(String.class);
-            }
+        addAdditionalPropertiesField(schema, openAPI, classBuilder);
 
-            ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
-                    TypeName.get(String.class), valueTypeName);
-
-            final FieldSpec fieldSpec = FieldSpec.builder(mapType,
-                            "additionalProperties", Modifier.PRIVATE
-                    ).initializer("new $T<>()", HashMap.class)
-                    .addAnnotation(JsonAnySetter.class)
-                    .addAnnotation(AnnotationSpec.builder(Getter.class
-                    ).addMember("onMethod_", "@$T", JsonAnyGetter.class).build()).build();
-
-            classBuilder.addField(fieldSpec);
+        if (isPojoClassSchema(schema)) {
+            addPojoMembers(classBuilder);
         }
         return classBuilder.build();
+    }
+
+    /**
+     * Adds the {@code additionalProperties} dictionary-support field, when the
+     * schema declares one. Under {@link JavaDtoStyle#LOMBOK} the field itself
+     * carries {@code @JsonAnySetter} and Lombok's {@code @Getter(onMethod_ =
+     * @JsonAnyGetter)}, matching historical behaviour; under {@link
+     * JavaDtoStyle#POJO} the field is left unannotated because {@link
+     * #addPojoMembers} adds an explicit {@code @JsonAnyGetter} getter and
+     * {@code @JsonAnySetter} setter for it, and annotating the field too would
+     * both leak a Lombok import into POJO output and collide with those
+     * explicit accessors.
+     */
+    private void addAdditionalPropertiesField(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
+        if (schema.getAdditionalProperties() == null) {
+            return;
+        }
+        Object additionalProperties = schema.getAdditionalProperties();
+        TypeName valueTypeName;
+        if (additionalProperties instanceof Schema<?>) {
+            valueTypeName = defineJavaType((Schema<?>) additionalProperties,
+                    openAPI, classBuilder, null).box();
+        } else {
+            valueTypeName = TypeName.get(String.class);
+        }
+
+        ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
+                TypeName.get(String.class), valueTypeName);
+
+        FieldSpec.Builder fieldSpecBuilder = FieldSpec.builder(mapType,
+                        "additionalProperties", Modifier.PRIVATE)
+                .initializer("new $T<>()", HashMap.class);
+        if (params.getJavaDtoStyle() == JavaDtoStyle.LOMBOK) {
+            fieldSpecBuilder.addAnnotation(JsonAnySetter.class)
+                    .addAnnotation(AnnotationSpec.builder(Getter.class)
+                            .addMember("onMethod_", "@$T", JsonAnyGetter.class).build());
+        }
+        classBuilder.addField(fieldSpecBuilder.build());
+    }
+
+    /**
+     * Whether {@code schema} should get explicit POJO accessors and value
+     * methods: the style is {@link JavaDtoStyle#POJO} and this is a class
+     * (not a {@code oneOf} interface, which has no fields of its own).
+     */
+    private boolean isPojoClassSchema(Schema<?> schema) {
+        return params.getJavaDtoStyle() == JavaDtoStyle.POJO
+                && (schema.getOneOf() == null || schema.getOneOf().isEmpty());
+    }
+
+    /**
+     * Emits JavaBean getters/setters plus value-semantic equals/hashCode/toString
+     * for every declared field of a POJO-style DTO, matching Lombok {@code @Data}'s
+     * default (own fields only, {@code callSuper = false}).
+     */
+    private void addPojoMembers(TypeSpec.Builder classBuilder) {
+        TypeSpec built = classBuilder.build();
+        List<FieldSpec> fields = built.fieldSpecs().stream()
+                .filter(f -> f.modifiers().contains(Modifier.PRIVATE)
+                        && !f.modifiers().contains(Modifier.STATIC))
+                .collect(java.util.stream.Collectors.toList());
+        for (FieldSpec field : fields) {
+            String capital = CaseUtils.snakeToCamel(field.name(), true);
+            boolean isAdditionalProperties = "additionalProperties".equals(field.name());
+            MethodSpec.Builder getter = MethodSpec.methodBuilder("get" + capital)
+                    .addModifiers(Modifier.PUBLIC)
+                    .returns(field.type())
+                    .addStatement("return this.$N", field.name());
+            if (isAdditionalProperties) {
+                getter.addAnnotation(JsonAnyGetter.class);
+            }
+            classBuilder.addMethod(getter.build());
+            MethodSpec.Builder setter = MethodSpec.methodBuilder("set" + capital)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addParameter(field.type(), field.name())
+                    .addStatement("this.$N = $N", field.name(), field.name());
+            if (isAdditionalProperties) {
+                setter.addAnnotation(JsonAnySetter.class);
+            }
+            classBuilder.addMethod(setter.build());
+        }
+        addValueMethods(classBuilder, fields);
+    }
+
+    private void addValueMethods(TypeSpec.Builder classBuilder, List<FieldSpec> fields) {
+        // equals
+        MethodSpec.Builder equals = MethodSpec.methodBuilder("equals")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(TypeName.BOOLEAN)
+                .addParameter(Object.class, "o")
+                .addStatement("if (this == o) return true")
+                .addStatement("if (o == null || getClass() != o.getClass()) return false");
+        String cast = classBuilder.build().name();
+        equals.addStatement("$L that = ($L) o", cast, cast);
+        if (fields.isEmpty()) {
+            equals.addStatement("return true");
+        } else {
+            String cond = fields.stream()
+                    .map(f -> String.format("$T.equals(%s, that.%s)", f.name(), f.name()))
+                    .collect(java.util.stream.Collectors.joining("\n    && "));
+            Object[] args = fields.stream().map(f -> Objects.class).toArray();
+            equals.addStatement("return " + cond, args);
+        }
+        classBuilder.addMethod(equals.build());
+        // hashCode
+        String names = fields.stream().map(FieldSpec::name)
+                .collect(java.util.stream.Collectors.joining(", "));
+        classBuilder.addMethod(MethodSpec.methodBuilder("hashCode")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(TypeName.INT)
+                .addStatement("return $T.hash($L)", Objects.class, names)
+                .build());
+        // toString
+        MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class);
+        // Built as a $S/$N-interleaved format so each field value is emitted
+        // via a real "+" concatenation at runtime, not baked into a single
+        // escaped string literal (which $S alone over the whole body would do).
+        StringBuilder format = new StringBuilder("return $S");
+        List<Object> args = new java.util.ArrayList<>();
+        args.add(cast + "{");
+        for (int i = 0; i < fields.size(); i++) {
+            FieldSpec field = fields.get(i);
+            format.append(" + $S + $N");
+            args.add((i == 0 ? "" : ", ") + field.name() + "=");
+            args.add(field.name());
+        }
+        format.append(" + $S");
+        args.add("}");
+        toString.addStatement(format.toString(), args.toArray());
+        classBuilder.addMethod(toString.build());
     }
 
     private void addPropertyField(String key, Schema<?> value, OpenAPI openAPI,
