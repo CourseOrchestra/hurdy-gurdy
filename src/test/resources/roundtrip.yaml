@@ -1,0 +1,124 @@
+openapi: 3.0.0
+info: {title: roundtrip, version: "1.0"}
+paths: {}
+components:
+  schemas:
+    # Nested object referenced through a $ref property and inside an array.
+    Inner:
+      type: object
+      required: [inner_name]
+      properties:
+        inner_name:
+          type: string
+        inner_count:
+          type: integer
+
+    # Broad scalar surface: uuid, date-time, date, enum, list, nested $ref,
+    # array of $ref, plus additionalProperties.
+    Widget:
+      type: object
+      required: [id, name]
+      additionalProperties:
+        type: string
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        birth_date:
+          type: string
+          format: date
+        rank:
+          type: integer
+          format: int64
+        ratio:
+          type: number
+          format: double
+        active:
+          type: boolean
+        status:
+          title: Status
+          type: string
+          enum: [NEW, ACTIVE, CLOSED]
+        tags:
+          type: array
+          items:
+            type: string
+        inner:
+          $ref: '#/components/schemas/Inner'
+        inners:
+          type: array
+          items:
+            $ref: '#/components/schemas/Inner'
+
+    # Discriminator base with two subtypes; the base carries a required
+    # property (name) that every subtype inherits.
+    Pet:
+      type: object
+      required: [pet_type, name]
+      discriminator:
+        propertyName: pet_type
+        mapping:
+          cat: '#/components/schemas/Cat'
+          dog: '#/components/schemas/Dog'
+      properties:
+        pet_type:
+          type: string
+        name:
+          type: string
+    Cat:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - type: object
+          required: [hunting_skill]
+          properties:
+            hunting_skill:
+              type: string
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - type: object
+          required: [pack_size]
+          properties:
+            pack_size:
+              type: integer
+
+    # oneOf with two structurally distinct members (deduction-friendly).
+    Shape:
+      oneOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'
+    Circle:
+      type: object
+      required: [radius]
+      properties:
+        radius:
+          type: number
+          format: double
+    Square:
+      type: object
+      required: [side]
+      properties:
+        side:
+          type: integer
+
+    # Plain (non-polymorphic) allOf pair: ExtendedThing inherits BaseThing's
+    # required field, no discriminator, no oneOf.
+    BaseThing:
+      type: object
+      required: [base_field]
+      properties:
+        base_field:
+          type: string
+    ExtendedThing:
+      allOf:
+        - $ref: '#/components/schemas/BaseThing'
+        - type: object
+          required: [extra_field]
+          properties:
+            extra_field:
+              type: integer

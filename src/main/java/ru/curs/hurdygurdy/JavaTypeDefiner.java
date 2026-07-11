@@ -396,6 +396,23 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return result;
     }
 
+    /**
+     * Whether a same-file {@code allOf} parent {@code $ref} is generated as an
+     * interface (a discriminator base or a {@code oneOf} container) rather than
+     * a concrete record. External-file refs are assumed to be bases (preserving
+     * the prior always-implement behaviour), since their schema is not visible.
+     */
+    private boolean refIsInterfaceBase(String ref, OpenAPI openAPI) {
+        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
+            return true;
+        }
+        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
+                .map(Components::getSchemas)
+                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
+                .orElse(null);
+        return schema != null && (schema.getDiscriminator() != null || schema.getOneOf() != null);
+    }
+
     private List<RecordComponent> componentsOfRef(String ref, OpenAPI openAPI) {
         if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
             return List.of();
@@ -423,7 +440,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         List<ClassName> result = new ArrayList<>();
         if (schema instanceof ComposedSchema && schema.getAllOf() != null) {
             for (Schema<?> s : schema.getAllOf()) {
-                if (s.get$ref() != null) {
+                // Only implement an allOf parent that is itself generated as an
+                // interface (a discriminator base or a oneOf container). A plain
+                // object parent becomes a concrete record whose fields are
+                // flattened into this record instead; `implements` against it
+                // would not compile ("interface expected").
+                if (s.get$ref() != null && refIsInterfaceBase(s.get$ref(), openAPI)) {
                     result.add(referencedClassName(openAPI, s.get$ref()));
                 }
             }
@@ -693,6 +715,14 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             fieldSpecBuilder.addAnnotation(JsonAnySetter.class)
                     .addAnnotation(AnnotationSpec.builder(Getter.class)
                             .addMember("onMethod_", "@$T", JsonAnyGetter.class).build());
+        } else if (params.getJavaDtoStyle() == JavaDtoStyle.POJO) {
+            // POJO: annotate the FIELD with @JsonAnySetter (like LOMBOK). Jackson
+            // does NOT treat a single-Map-parameter setter that also matches the
+            // setXxx bean convention as a catch-all on readValue, so the explicit
+            // setter (added by addPojoMembers) must NOT carry @JsonAnySetter or
+            // unknown properties are dropped on deserialization. @JsonAnyGetter
+            // stays on the explicit getter.
+            fieldSpecBuilder.addAnnotation(JsonAnySetter.class);
         }
         classBuilder.addField(fieldSpecBuilder.build());
     }
@@ -733,9 +763,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     .addModifiers(Modifier.PUBLIC)
                     .addParameter(field.type(), field.name())
                     .addStatement("this.$N = $N", field.name(), field.name());
-            if (isAdditionalProperties) {
-                setter.addAnnotation(JsonAnySetter.class);
-            }
+            // The additionalProperties setter is deliberately left un-annotated:
+            // @JsonAnySetter sits on the field (see addAdditionalPropertiesField)
+            // because Jackson ignores a setXxx-named single-Map @JsonAnySetter on
+            // readValue, which would drop unknown properties on deserialization.
             classBuilder.addMethod(setter.build());
         }
         addValueMethods(classBuilder, fields);

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -130,20 +131,17 @@ class JavaDtoStyleTest {
     /**
      * Confirms POJO-style {@code additionalProperties} handling:
      * {@code dictionary.yaml}'s {@code ObjectWithAFreeDict} schema declares no
-     * own properties, so its generated class has exactly one {@code
+     * own properties, so its generated class has exactly one accessor pair —
+     * a clean spot to assert both the annotation shape and a real Jackson
+     * round-trip.
      *
-     * @JsonAnyGetter}/{@code @JsonAnySetter} accessor pair and nothing else —
-     * a clean spot to assert both the annotation shape and that an unknown
-     * property set through the generated setter survives a real Jackson
-     * serialization via the generated {@code @JsonAnyGetter}.
-     *
-     * <p>The deserialization side is exercised through the generated setter
-     * directly rather than {@code ObjectMapper.readValue}: the single-Map-
-     * parameter form of {@code @JsonAnySetter} that the generator emits is
-     * not treated as a catch-all by this Jackson version when the method also
-     * matches plain JavaBean {@code setXxx} naming (verified independently
-     * against a minimal repro) — a pre-existing Jackson/codegen interaction,
-     * not something introduced by this fix, and out of this task's scope.
+     * <p>{@code @JsonAnyGetter} sits on the explicit getter, while
+     * {@code @JsonAnySetter} sits on the {@code additionalProperties} field
+     * (not the setter): Jackson does not treat a single-{@code Map} setter that
+     * also matches JavaBean {@code setXxx} naming as a catch-all on
+     * {@code readValue}, so the field placement is what makes unknown
+     * properties actually deserialize. This test exercises the full
+     * {@code writeValueAsString}/{@code readValue} round-trip to prove it.
      */
     @Test
     void pojoAdditionalPropertiesRoundTrips() throws Exception {
@@ -162,22 +160,25 @@ class JavaDtoStyleTest {
         try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
             Class<?> dictClass = loader.loadClass("com.example.dto.ObjectWithAFreeDict");
 
-            // The compiled class carries the annotations on real methods, not
-            // just in the source text.
+            // @JsonAnyGetter is on the explicit getter; @JsonAnySetter is on the
+            // field, so it is not present on any method.
             Method anyGetter = findAnnotatedMethod(dictClass, JsonAnyGetter.class);
-            Method anySetter = findAnnotatedMethod(dictClass, JsonAnySetter.class);
             assertThat(anyGetter).isNotNull();
-            assertThat(anySetter).isNotNull();
+            assertThat(findAnnotatedMethod(dictClass, JsonAnySetter.class)).isNull();
+            Field anySetterField = dictClass.getDeclaredField("additionalProperties");
+            assertThat(anySetterField.isAnnotationPresent(JsonAnySetter.class)).isTrue();
 
-            Object instance = dictClass.getDeclaredConstructor().newInstance();
-            anySetter.invoke(instance, Map.of("extra", "value"));
+            // Full Jackson round-trip: an unknown property survives both
+            // serialization (@JsonAnyGetter) and deserialization (field-level
+            // @JsonAnySetter).
+            ObjectMapper mapper = new ObjectMapper();
+            anyGetter.setAccessible(true);
+            Object back = mapper.readValue("{\"extra\":\"value\"}", dictClass);
+            assertThat(mapper.writeValueAsString(back)).contains("\"extra\":\"value\"");
 
             @SuppressWarnings("unchecked")
-            Map<String, String> additionalProperties = (Map<String, String>) anyGetter.invoke(instance);
+            Map<String, String> additionalProperties = (Map<String, String>) anyGetter.invoke(back);
             assertThat(additionalProperties).containsEntry("extra", "value");
-
-            String json = new ObjectMapper().writeValueAsString(instance);
-            assertThat(json).contains("\"extra\":\"value\"");
         } finally {
             TestFiles.deleteRecursively(classes);
         }
