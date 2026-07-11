@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.w3c.dom.Node
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -6,7 +7,25 @@ plugins {
     id("com.gradle.plugin-publish") version "1.3.1"
 }
 
+// Single source of truth for the version: the top-level <version> of the core
+// Maven build (../pom.xml). The plugin's own version and the core artifact it
+// depends on are always released in lock-step, so we derive both from there
+// rather than duplicating the value in gradle.properties.
+val hurdyGurdyVersion: String = run {
+    val pom = layout.projectDirectory.file("../pom.xml").asFile
+    val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+        .newDocumentBuilder()
+        .parse(pom)
+    val children = doc.documentElement.childNodes
+    (0 until children.length)
+        .map { children.item(it) }
+        .firstOrNull { it.nodeType == Node.ELEMENT_NODE && it.nodeName == "version" }
+        ?.textContent?.trim()
+        ?: throw GradleException("Could not find the top-level <version> in ${pom.path}")
+}
+
 group = "ru.curs"
+version = hurdyGurdyVersion
 
 // Emit Java 17 bytecode (matching the core artifact's maven.compiler.release)
 // regardless of the JDK running Gradle, so the published plugin loads on any
@@ -29,7 +48,7 @@ repositories {
 }
 
 dependencies {
-    implementation("ru.curs:hurdy-gurdy:${property("hurdyGurdyCoreVersion")}")
+    implementation("ru.curs:hurdy-gurdy:$hurdyGurdyVersion")
     testImplementation(platform("org.junit:junit-bom:5.11.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation(gradleTestKit())

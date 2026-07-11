@@ -50,6 +50,7 @@
         <checkstyle.version>13.7.0</checkstyle.version>
         <maven.enforcer.plugin.version>3.6.3</maven.enforcer.plugin.version>
         <extra.enforcer.rules.version>1.12.0</extra.enforcer.rules.version>
+        <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -388,6 +389,59 @@
                     <testRelease>21</testRelease>
                 </configuration>
             </plugin>
+            <!-- "One goal to build them all": after the core/maven-plugin artifact is
+                 installed into the local repository (the packaging's default install goal
+                 runs first within the install phase), build the standalone Gradle plugin,
+                 which resolves the core from mavenLocal. Bound to install, not package,
+                 precisely because the Gradle build needs the freshly installed artifact. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>build-gradle-plugin</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${gradlew.executable}</executable>
+                            <workingDirectory>${project.basedir}/gradle-plugin</workingDirectory>
+                            <arguments>
+                                <argument>--no-daemon</argument>
+                                <argument>publishToMavenLocal</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Select the correct Gradle wrapper launcher for the host OS. -->
+        <profile>
+            <id>gradle-windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <gradlew.executable>${project.basedir}/gradle-plugin/gradlew.bat</gradlew.executable>
+            </properties>
+        </profile>
+        <profile>
+            <id>gradle-unix</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                </os>
+            </activation>
+            <properties>
+                <gradlew.executable>${project.basedir}/gradle-plugin/gradlew</gradlew.executable>
+            </properties>
+        </profile>
+    </profiles>
 </project>

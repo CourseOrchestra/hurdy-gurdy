@@ -37,12 +37,16 @@ jobs:
         run: mvn -B -DskipTests package
       # Seed the core jar+pom into the isolated repo with install:install-file —
       # this bypasses the install lifecycle (no gpg signing, no ~/.m2 pollution).
+      # The jar name is derived (not hardcoded) so the version stays sourced
+      # solely from pom.xml; -DpomFile supplies the coordinates for placement.
       - name: Publish core to the isolated repo
-        run: >
-          mvn -B install:install-file
-          -Dfile=target/hurdy-gurdy-2.11-SNAPSHOT.jar
-          -DpomFile=pom.xml
-          -Dmaven.repo.local="$CORE_REPO"
+        run: |
+          CORE_JAR=$(find target -maxdepth 1 -name 'hurdy-gurdy-*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar')
+          mvn -B install:install-file \
+            -Dfile="$CORE_JAR" \
+            -DpomFile=pom.xml \
+            -Dmaven.repo.local="$CORE_REPO"
       - name: Build & test Gradle plugin
         run: ./gradlew build -Dmaven.repo.local="$CORE_REPO"
         working-directory: gradle-plugin
