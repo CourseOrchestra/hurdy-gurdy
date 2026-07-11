@@ -36,20 +36,10 @@
     </p>
   </header>
 
-  <h2>Config generator</h2>
+  <h2>What do you want to build?</h2>
   <p>Fill the form; copy config for your build tool.</p>
 
   <form id="cfg">
-    <label>Root package *
-      <input type="text" id="rootPackage" value="com.example.project" required>
-    </label>
-    <label>Spec path *
-      <input type="text" id="spec" value="src/main/openapi/api.yaml" required>
-    </label>
-    <label>Output dir <small>(CLI only)</small>
-      <input type="text" id="outputDir" value="build/generated-sources">
-    </label>
-
     <div class="grid">
       <fieldset>
         <legend>Language</legend>
@@ -69,9 +59,21 @@
       </fieldset>
     </div>
 
+    <div class="grid">
+    <label>Root package *
+      <input type="text" id="rootPackage" value="com.example.project" required>
+    </label>
+    <label>Spec path *
+      <input type="text" id="spec" value="src/main/openapi/api.yaml" required>
+    </label>
+    <label>Output dir <small>(CLI only)</small>
+      <input type="text" id="outputDir" value="build/generated-sources">
+    </label>
+    </div>
+
     <fieldset>
-      <label><input type="checkbox" id="responseParameter" role="switch"> Response parameter</label>
-      <label><input type="checkbox" id="forceSnakeCase" role="switch" checked> Force snake_case</label>
+      <label><input type="checkbox" id="responseParameter" role="switch"> Generate response parameter for server side</label>
+      <label><input type="checkbox" id="forceSnakeCase" role="switch" checked> Force snake_case for DTO properties</label>
     </fieldset>
   </form>
 
@@ -172,6 +174,11 @@
   $("copyBtn").addEventListener("click", () => navigator.clipboard.writeText($("output").textContent));
 
   render();
+
+  // Swap the "???" placeholder for the latest version published to Maven Central.
+  // On failure (offline, Shields.io down) the placeholder stays and we leave the
+  // already-rendered snippet untouched.
+  fetchLatestVersion().then(render).catch(() => {});
 </script>
 </body>
 </html>

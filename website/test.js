@@ -1,6 +1,12 @@
 const assert = require("assert");
 const g = require("./generator.js");
 
+// The version is fetched at page load in the browser; here we pin a concrete one
+// so the snippet assertions exercise a real version string flowing through.
+assert.strictEqual(g.VERSION, g.VERSION_FALLBACK, "version starts at the fallback placeholder");
+g.setVersion("2.10");
+assert.strictEqual(g.VERSION, "2.10", "setVersion updates the version snippets emit");
+
 const base = {
   rootPackage: "com.example.project",
   spec: "src/main/openapi/api.yaml",

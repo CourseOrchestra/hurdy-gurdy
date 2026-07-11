@@ -1,5 +1,28 @@
-// Bump this one line at release time. Drives every output's version string.
-const VERSION = "2.11";
+// The version shown in every snippet is fetched live from Maven Central at page
+// load (see fetchLatestVersion). Until that resolves — or if it fails (offline,
+// Shields down) — this placeholder renders instead, so a stale hardcoded number
+// never silently ships inside copied config.
+const VERSION_FALLBACK = "???";
+let version = VERSION_FALLBACK;
+
+// Overwrite the version used by every snippet. Called after a successful fetch.
+function setVersion(v) { version = v; }
+
+// Ask Maven Central for the latest published version, via Shields.io's JSON
+// endpoint. We can't hit Maven Central directly: neither its search API nor
+// maven-metadata.xml sends CORS headers, so the browser blocks the read. Shields
+// proxies the canonical maven-metadata.xml with `Access-Control-Allow-Origin: *`.
+// Resolves to the version on success; leaves the placeholder in place (and
+// rejects) on any failure, so the caller can just render what it has.
+async function fetchLatestVersion() {
+  const url = "https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy.json";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`shields.io responded ${res.status}`);
+  const { value } = await res.json();          // e.g. "v2.10"
+  const v = String(value).replace(/^v/, "");   // strip Shields' leading "v"
+  setVersion(v);
+  return v;
+}
 
 const GEN_ORDER = ["controller", "api", "client"];
 
@@ -31,7 +54,7 @@ function mavenSnippet(c) {
     `<plugin>`,
     `    <groupId>ru.curs</groupId>`,
     `    <artifactId>hurdy-gurdy</artifactId>`,
-    `    <version>${VERSION}</version>`,
+    `    <version>${version}</version>`,
     `    <configuration>`,
     ...lines,
     `    </configuration>`,
@@ -69,7 +92,7 @@ function gradleSnippet(c) {
   const header = imports.length ? imports.join("\n") + "\n\n" : "";
   return header + [
     `plugins {`,
-    `    id("ru.curs.hurdy-gurdy") version "${VERSION}"`,
+    `    id("ru.curs.hurdy-gurdy") version "${version}"`,
     `}`,
     ``,
     `hurdyGurdy {`,
@@ -94,10 +117,16 @@ function cliSnippet(c) {
   if (!c.forceSnakeCase) args.push(`--no-force-snake-case`);
 
   const cmd = ["hurdy-gurdy", ...args].join(" \\\n    ");
-  return cmd + `\n# or: java -jar hurdy-gurdy-${VERSION}-cli.jar (same flags)`;
+  return cmd + `\n# or: java -jar hurdy-gurdy-${version}-cli.jar (same flags)`;
 }
 
-const api = { VERSION, mavenSnippet, gradleSnippet, cliSnippet };
+const api = {
+  get VERSION() { return version; },   // live value the snippets currently emit
+  VERSION_FALLBACK,
+  setVersion,
+  fetchLatestVersion,
+  mavenSnippet, gradleSnippet, cliSnippet,
+};
 if (typeof module !== "undefined" && module.exports) {
   module.exports = api;             // Node
 } else if (typeof window !== "undefined") {
