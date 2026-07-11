@@ -111,7 +111,7 @@ class JavaDtoStyleTest {
 
             // Equal field values -> equal instances, equal hashCode.
             assertThat(a).isEqualTo(b);
-            assertThat(a.hashCode()).isEqualTo(b.hashCode());
+            assertThat(a).hasSameHashCodeAs(b);
 
             // Changing one field breaks equality.
             setDuplicate.invoke(b, true);
@@ -131,6 +131,7 @@ class JavaDtoStyleTest {
      * Confirms POJO-style {@code additionalProperties} handling:
      * {@code dictionary.yaml}'s {@code ObjectWithAFreeDict} schema declares no
      * own properties, so its generated class has exactly one {@code
+     *
      * @JsonAnyGetter}/{@code @JsonAnySetter} accessor pair and nothing else —
      * a clean spot to assert both the annotation shape and that an unknown
      * property set through the generated setter survives a real Jackson
@@ -183,7 +184,7 @@ class JavaDtoStyleTest {
     }
 
     private static Method findAnnotatedMethod(Class<?> type,
-            Class<? extends java.lang.annotation.Annotation> annotation) {
+                                              Class<? extends java.lang.annotation.Annotation> annotation) {
         return Stream.of(type.getMethods())
                 .filter(m -> m.isAnnotationPresent(annotation))
                 .findFirst()
@@ -193,11 +194,26 @@ class JavaDtoStyleTest {
     @Test
     void recordsEmitsRecordWithRequiredNullCheck() throws IOException {
         String src = generate(JavaDtoStyle.RECORDS, "src/test/resources/flatrecord.yaml");
-        assertThat(src).contains("public record Widget(");
-        assertThat(src).doesNotContain("lombok");
-        // required component guarded
-        assertThat(src).contains("Objects.requireNonNull(id");
-        // optional component not guarded
-        assertThat(src).doesNotContain("Objects.requireNonNull(label");
+        assertThat(src).contains("public record Widget(")
+                .doesNotContain("lombok")
+                // required component guarded
+                .contains("Objects.requireNonNull(id")
+                // optional component not guarded
+                .doesNotContain("Objects.requireNonNull(label");
+    }
+
+    @Test
+    void recordsModelPolymorphismWithSealedInterfaces() throws IOException {
+        String src = generate(JavaDtoStyle.RECORDS, "src/test/resources/polyrecord.yaml");
+        // discriminator base becomes a sealed interface permitting its subtypes
+        assertThat(src).containsPattern("sealed interface Animal\\b");
+        assertThat(src).contains("permits");
+        // subtype is a record implementing the base and flattening inherited "name"
+        assertThat(src).containsPattern("record Cat\\([^)]*String name[^)]*\\) implements");
+        // required flattened + own component null-checked
+        assertThat(src).contains("Objects.requireNonNull(name");
+        assertThat(src).contains("Objects.requireNonNull(huntingSkill");
+        // oneOf also a sealed interface
+        assertThat(src).containsPattern("sealed interface Shape\\b");
     }
 }

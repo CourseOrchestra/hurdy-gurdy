@@ -223,6 +223,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     @Override
     TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI) {
+        // RECORDS mode needs the full (un-flattened) schema so it can see allOf
+        // parents, oneOf and discriminator; route before the class-based path
+        // unwraps a ComposedSchema down to its own-properties member.
+        if (params.getJavaDtoStyle() == JavaDtoStyle.RECORDS) {
+            return buildRecordDto(name, schema, openAPI);
+        }
         if (schema instanceof ComposedSchema && schema.getOneOf() == null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
@@ -280,9 +286,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass,
                                  Set<String> inheritedKeys) {
-        if (params.getJavaDtoStyle() == JavaDtoStyle.RECORDS) {
-            return buildRecordDto(name, schema, openAPI);
-        }
+        // RECORDS mode is dispatched earlier, from the 3-arg getDTOClass, so it
+        // sees the full schema rather than the unwrapped own-properties member.
         TypeSpec.Builder classBuilder;
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
             classBuilder = TypeSpec.interfaceBuilder(name);
@@ -358,16 +363,116 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private record RecordComponent(String key, Schema<?> schema, boolean required) { }
 
     private TypeSpec buildRecordDto(String name, Schema<?> schema, OpenAPI openAPI) {
-        // oneOf and allOf/discriminator handling is added in Task 5; here we
-        // build a flat record from a plain object schema.
-        List<RecordComponent> components = ownComponents(schema);
+        // 1) oneOf -> sealed interface (deduction-based Jackson polymorphism)
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            return buildSealedInterface(name, schema, openAPI, false);
+        }
+        // 2) discriminator base -> sealed interface (name-based polymorphism)
+        if (schema.getDiscriminator() != null) {
+            return buildSealedInterface(name, schema, openAPI, true);
+        }
+        // 3) concrete schema -> record (flatten allOf-inherited components)
+        List<RecordComponent> inherited = inheritedComponents(schema, openAPI);
+        List<ClassName> implemented = recordSuperinterfaces(name, schema, openAPI);
+        return buildConcreteRecord(name, currentSchemaOf(schema), openAPI, inherited, implemented);
+    }
 
-        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(name)
-                .addModifiers(Modifier.PUBLIC);
+    /** The non-$ref member schema of an allOf (its own properties), else the schema itself. */
+    private Schema<?> currentSchemaOf(Schema<?> schema) {
+        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
+            Schema<?> current = schema;
+            for (Schema<?> s : schema.getAllOf()) {
+                if (s.get$ref() == null) {
+                    current = s;
+                }
+            }
+            return current;
+        }
+        return schema;
+    }
+
+    /**
+     * All components a schema inherits through its allOf $ref ancestors, first
+     * (most-base) declaration wins, discriminator property excluded. Same-file
+     * refs only (mirrors inheritedPropertyKeys).
+     */
+    private List<RecordComponent> inheritedComponents(Schema<?> schema, OpenAPI openAPI) {
+        List<RecordComponent> result = new java.util.ArrayList<>();
+        if (!(schema instanceof ComposedSchema) || schema.getOneOf() != null || schema.getAllOf() == null) {
+            return result;
+        }
+        Set<String> seen = new HashSet<>();
+        for (Schema<?> s : schema.getAllOf()) {
+            if (s.get$ref() != null) {
+                for (RecordComponent c : componentsOfRef(s.get$ref(), openAPI)) {
+                    if (seen.add(c.key())) {
+                        result.add(c);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<RecordComponent> componentsOfRef(String ref, OpenAPI openAPI) {
+        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
+            return List.of();
+        }
+        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
+                .map(c -> c.getSchemas())
+                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
+                .orElse(null);
+        if (schema == null) {
+            return List.of();
+        }
+        List<RecordComponent> result = new java.util.ArrayList<>(inheritedComponents(schema, openAPI));
+        result.addAll(ownComponents(currentSchemaOf(schema)));
+        return result;
+    }
+
+    /** Interfaces a record implements: its allOf $ref parents and any oneOf it is a member of. */
+    private List<ClassName> recordSuperinterfaces(String name, Schema<?> schema, OpenAPI openAPI) {
+        List<ClassName> result = new java.util.ArrayList<>();
+        if (schema instanceof ComposedSchema && schema.getAllOf() != null) {
+            for (Schema<?> s : schema.getAllOf()) {
+                if (s.get$ref() != null) {
+                    result.add(referencedClassName(openAPI, s.get$ref()));
+                }
+            }
+        }
+        // oneOf membership: any schema whose oneOf lists this class
+        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+            if (s.getOneOf() != null) {
+                for (Object memberObj : s.getOneOf()) {
+                    Schema<?> member = (Schema<?>) memberObj;
+                    if (member.get$ref() != null
+                            && referencedClassName(openAPI, member.get$ref()).simpleName().equals(name)) {
+                        result.add(ClassName.get(
+                                String.join(".", params.getRootPackage(), "dto"), schemaName));
+                    }
+                }
+            }
+        });
+        return result;
+    }
+
+    private TypeSpec buildConcreteRecord(String name, Schema<?> ownSchema, OpenAPI openAPI,
+                                         List<RecordComponent> inherited, List<ClassName> implemented) {
+        List<RecordComponent> components = new java.util.ArrayList<>(inherited);
+        Set<String> inheritedKeys = new HashSet<>();
+        inherited.forEach(c -> inheritedKeys.add(c.key()));
+        for (RecordComponent c : ownComponents(ownSchema)) {
+            if (!inheritedKeys.contains(c.key())) {
+                components.add(c);
+            }
+        }
+
+        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(name).addModifiers(Modifier.PUBLIC);
         if (params.isForceSnakeCaseForProperties()) {
             recordBuilder.addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
                     "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build());
         }
+        implemented.forEach(recordBuilder::addSuperinterface);
 
         MethodSpec.Builder canonical = MethodSpec.constructorBuilder();
         List<String> requiredNames = new java.util.ArrayList<>();
@@ -378,8 +483,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             TypeName typeName = defineJavaType(c.schema(), openAPI, recordBuilder,
                     CaseUtils.snakeToCamel(c.key(), true));
             ParameterSpec.Builder param = ParameterSpec.builder(typeName, propertyName);
-            if (typeName instanceof ClassName && "ZonedDateTime"
-                    .equals(((ClassName) typeName).simpleName())) {
+            if (typeName instanceof ClassName && "ZonedDateTime".equals(((ClassName) typeName).simpleName())) {
                 param.addAnnotation(AnnotationSpec.builder(ClassName.get(JsonDeserialize.class))
                                 .addMember("using", "ZonedDateTimeDeserializer.class").build())
                         .addAnnotation(AnnotationSpec.builder(ClassName.get(JsonSerialize.class))
@@ -391,32 +495,114 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 requiredNames.add(propertyName);
             }
         }
-
-        // additionalProperties as a final Map component
-        if (schema.getAdditionalProperties() != null) {
-            Object additionalProperties = schema.getAdditionalProperties();
-            TypeName valueTypeName = (additionalProperties instanceof Schema<?>)
-                    ? defineJavaType((Schema<?>) additionalProperties, openAPI, recordBuilder, null).box()
-                    : TypeName.get(String.class);
-            ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
-                    TypeName.get(String.class), valueTypeName);
-            canonical.addParameter(ParameterSpec.builder(mapType, "additionalProperties")
-                    .addAnnotation(JsonAnySetter.class)
-                    .addAnnotation(JsonAnyGetter.class)
-                    .build());
-        }
-
+        addAdditionalPropertiesComponent(ownSchema, openAPI, recordBuilder, canonical);
         recordBuilder.recordConstructor(canonical.build());
-
         if (!requiredNames.isEmpty()) {
-            MethodSpec.Builder compact = MethodSpec.compactConstructorBuilder()
-                    .addModifiers(Modifier.PUBLIC);
+            MethodSpec.Builder compact = MethodSpec.compactConstructorBuilder().addModifiers(Modifier.PUBLIC);
             for (String req : requiredNames) {
                 compact.addStatement("$T.requireNonNull($N, $S)", Objects.class, req, req);
             }
             recordBuilder.addMethod(compact.build());
         }
         return recordBuilder.build();
+    }
+
+    private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,
+                                                  TypeSpec.Builder recordBuilder, MethodSpec.Builder canonical) {
+        if (schema.getAdditionalProperties() == null) {
+            return;
+        }
+        Object additionalProperties = schema.getAdditionalProperties();
+        TypeName valueTypeName = (additionalProperties instanceof Schema<?>)
+                ? defineJavaType((Schema<?>) additionalProperties, openAPI, recordBuilder, null).box()
+                : TypeName.get(String.class);
+        ParameterizedTypeName mapType = ParameterizedTypeName.get(ClassName.get(Map.class),
+                TypeName.get(String.class), valueTypeName);
+        canonical.addParameter(ParameterSpec.builder(mapType, "additionalProperties")
+                .addAnnotation(JsonAnySetter.class)
+                .addAnnotation(JsonAnyGetter.class)
+                .build());
+    }
+
+    private TypeSpec buildSealedInterface(String name, Schema<?> schema, OpenAPI openAPI, boolean discriminator) {
+        TypeSpec.Builder ifaceBuilder = TypeSpec.interfaceBuilder(name)
+                .addModifiers(Modifier.PUBLIC, Modifier.SEALED);
+
+        // Jackson polymorphism annotations (mirror the class-based path)
+        if (discriminator) {
+            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonTypeInfo.class)
+                    .addMember("use", "$T.$L", JsonTypeInfo.Id.class, JsonTypeInfo.Id.NAME.name())
+                    .addMember("include", "$T.$L", JsonTypeInfo.As.class, JsonTypeInfo.As.PROPERTY.name())
+                    .addMember("property", "$S", schema.getDiscriminator().getPropertyName())
+                    .build());
+            var subclassMapping = getSubclassMapping(schema);
+            if (!subclassMapping.isEmpty()) {
+                CodeBlock collect = subclassMapping.entrySet().stream()
+                        .map(e -> AnnotationSpec.builder(JsonSubTypes.Type.class)
+                                .addMember("value", "$T.class", referencedClassName(openAPI, e.getValue()))
+                                .addMember("name", "$S", e.getKey()).build())
+                        .map(a -> CodeBlock.of("$L", a))
+                        .collect(CodeBlock.joining(",\n", "{\n", "}"));
+                ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
+                        .addMember("value", "$L", collect).build());
+            }
+        } else {
+            // oneOf: DEDUCTION
+            CodeBlock collect = schema.getOneOf().stream()
+                    .map(Schema::get$ref).filter(Objects::nonNull)
+                    .map(r -> referencedClassName(openAPI, r))
+                    .map(cn -> AnnotationSpec.builder(JsonSubTypes.Type.class)
+                            .addMember("value", "$T.class", cn).build())
+                    .map(a -> CodeBlock.of("$L", a))
+                    .collect(CodeBlock.joining(",\n", "{\n", "}"));
+            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonSubTypes.class)
+                    .addMember("value", "$L", collect).build());
+            ifaceBuilder.addAnnotation(AnnotationSpec.builder(JsonTypeInfo.class)
+                    .addMember("use", "$T.DEDUCTION", JsonTypeInfo.Id.class).build());
+        }
+
+        // permits + accessor methods
+        for (ClassName permitted : permittedSubtypes(name, schema, openAPI)) {
+            ifaceBuilder.addPermittedSubclass(permitted);
+        }
+        if (discriminator) {
+            // declare accessors for the base's own (non-discriminator) properties
+            for (RecordComponent c : ownComponents(schema)) {
+                String propertyName = params.isForceSnakeCaseForProperties()
+                        ? CaseUtils.snakeToCamel(c.key()) : c.key();
+                checkPropertyName(name, c.key());
+                TypeName typeName = defineJavaType(c.schema(), openAPI, ifaceBuilder,
+                        CaseUtils.snakeToCamel(c.key(), true));
+                ifaceBuilder.addMethod(MethodSpec.methodBuilder(propertyName)
+                        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                        .returns(typeName).build());
+            }
+        }
+        return ifaceBuilder.build();
+    }
+
+    /** Concrete DTO class names that a sealed base permits. */
+    private List<ClassName> permittedSubtypes(String name, Schema<?> schema, OpenAPI openAPI) {
+        List<ClassName> result = new java.util.ArrayList<>();
+        if (schema.getOneOf() != null) {
+            schema.getOneOf().stream().map(Schema::get$ref).filter(Objects::nonNull)
+                    .map(r -> referencedClassName(openAPI, r)).forEach(result::add);
+            return result;
+        }
+        // discriminator: subtypes are the schemas whose allOf $refs this base
+        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+            if (s.getAllOf() != null) {
+                for (Object aObj : s.getAllOf()) {
+                    Schema<?> a = (Schema<?>) aObj;
+                    if (a.get$ref() != null
+                            && referencedClassName(openAPI, a.get$ref()).simpleName().equals(name)) {
+                        result.add(ClassName.get(
+                                String.join(".", params.getRootPackage(), "dto"), schemaName));
+                    }
+                }
+            }
+        });
+        return result;
     }
 
     /** Own (non-inherited) properties of a plain object schema, in declaration order. */
