@@ -69,3 +69,37 @@ jobs:
           name: cli-jar
           path: staging/hurdy-gurdy-*-cli.jar
           if-no-files-found: error
+
+  publish:
+    needs: [native, jar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: List downloaded assets
+        run: ls -R artifacts
+      - name: Reset rolling snapshot release
+        if: github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release delete snapshot --cleanup-tag --yes || true
+      - name: Publish rolling snapshot
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: snapshot
+          name: Snapshot (latest master)
+          prerelease: true
+          body: "Rolling build from master @ ${{ github.sha }}"
+          files: artifacts/*
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          prerelease: false
+          files: artifacts/*
