@@ -36,3 +36,27 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Inner'
             - type: 'null'
+
+    # Self-referential (cyclic) tree schema: an Element references itself, both
+    # as a nullable single self-reference (`next`, terminating a chain) and as a
+    # list of self-references (`children`, a tree/forest). Exercises the
+    # generator's self-`$ref` resolution (a `$ref` to the declaring schema stays
+    # a ClassName, not inlined -> `record Element(String, Element, List<Element>)`)
+    # and the round-trip test's reflective factory (which must detect the cycle
+    # to avoid infinite recursion).
+    Element:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+        # nullable self-reference (element | null) — terminates a chain
+        next:
+          anyOf:
+            - $ref: '#/components/schemas/Element'
+            - type: 'null'
+        # list of self-references — a tree/forest of children
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Element'

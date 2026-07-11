@@ -1,6 +1,7 @@
 package ru.curs.hurdygurdy;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.AfterAll;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -184,6 +186,92 @@ class DtoRoundTripTest {
         }
     }
 
+    /**
+     * A genuinely multi-level, hand-built recursive {@code Element} tree
+     * round-trips (not just the auto-terminated depth-1 instance the generic
+     * loop builds). Proves the self-{@code $ref} schema both generates a Java
+     * type that can nest itself AND that a real
+     * {@code root -> next: leaf, children: [child]} structure survives
+     * serialize &rarr; deserialize &rarr; re-serialize with nested {@code label}
+     * values intact, across the whole style &times; snake matrix.
+     */
+    @ParameterizedTest(name = "{0} forceSnakeCase={1}")
+    @MethodSource("matrix")
+    void recursiveElementTreeRoundTrips(JavaDtoStyle style, boolean snake) throws Exception {
+        generate(style, snake, SPEC_31);
+        Path classes = GeneratedCodeCompiler.compileJava(generated);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+            mapper.setTypeFactory(mapper.getTypeFactory().withClassLoader(loader));
+            Class<?> element = loader.loadClass(DTO_PKG + ".Element");
+
+            // root -> next: leaf(next=null, children=[])
+            //      -> children: [ child(next=null, children=[]) ]
+            Object leaf = newElement(element, "leaf", null, List.of());
+            Object child = newElement(element, "child", null, List.of());
+            Object root = newElement(element, "root", leaf, List.of(child));
+
+            String json1 = mapper.writeValueAsString(root);
+            Object back = mapper.readValue(json1, element);
+            String json2 = mapper.writeValueAsString(back);
+            assertThat(mapper.readTree(json2))
+                    .as("recursive Element tree round-trips [%s snake=%s]", style, snake)
+                    .isEqualTo(mapper.readTree(json1));
+
+            // Nested labels survive the deserialize -> re-serialize hop, proving
+            // the multi-level structure (not just the top level) round-trips.
+            JsonNode tree = mapper.readTree(json2);
+            assertThat(tree.path("label").asText())
+                    .as("root label [%s snake=%s]", style, snake).isEqualTo("root");
+            assertThat(tree.path("next").path("label").asText())
+                    .as("next.label [%s snake=%s]", style, snake).isEqualTo("leaf");
+            assertThat(tree.path("children").path(0).path("label").asText())
+                    .as("children[0].label [%s snake=%s]", style, snake).isEqualTo("child");
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
+    }
+
+    /**
+     * Hand-builds an {@code Element} across all three DTO styles: a record via
+     * its canonical constructor (matching components by name), a bean via its
+     * no-arg constructor and field injection.
+     */
+    private static Object newElement(Class<?> element, String label, Object next, Object children)
+            throws Exception {
+        if (element.isRecord()) {
+            RecordComponent[] comps = element.getRecordComponents();
+            Class<?>[] types = new Class<?>[comps.length];
+            Object[] args = new Object[comps.length];
+            for (int i = 0; i < comps.length; i++) {
+                types[i] = comps[i].getType();
+                args[i] = switch (comps[i].getName()) {
+                    case "label" -> label;
+                    case "next" -> next;
+                    case "children" -> children;
+                    default -> null;
+                };
+            }
+            Constructor<?> ctor = element.getDeclaredConstructor(types);
+            ctor.setAccessible(true);
+            return ctor.newInstance(args);
+        }
+        Constructor<?> ctor = element.getDeclaredConstructor();
+        ctor.setAccessible(true);
+        Object instance = ctor.newInstance();
+        setField(element, instance, "label", label);
+        setField(element, instance, "next", next);
+        setField(element, instance, "children", children);
+        return instance;
+    }
+
+    private static void setField(Class<?> clazz, Object instance, String name, Object value)
+            throws Exception {
+        Field field = clazz.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(instance, value);
+    }
+
     /** The declared Java type of a bean field or record component named {@code name}. */
     private static Class<?> propertyType(Class<?> clazz, String name) throws Exception {
         if (clazz.isRecord()) {
@@ -332,26 +420,44 @@ class DtoRoundTripTest {
     }
 
     private Object buildInstance(Class<?> clazz) throws Exception {
-        if (clazz.isRecord()) {
-            return buildRecord(clazz);
-        }
-        return buildBean(clazz);
+        return buildInstance(clazz, new HashSet<>());
     }
 
-    private Object buildRecord(Class<?> clazz) throws Exception {
+    /**
+     * Builds a populated instance of {@code clazz}, tracking on {@code onPath}
+     * the DTO classes currently under construction on this recursion path so a
+     * self-referential schema (e.g. {@code Element}) terminates instead of
+     * recursing forever. {@code clazz} is on the path only while its own
+     * fields/components are being built (added on entry, removed on exit), so a
+     * type reachable through two independent branches is still built in full —
+     * this is an on-path cycle check, not a global visited set.
+     */
+    private Object buildInstance(Class<?> clazz, Set<Class<?>> onPath) throws Exception {
+        onPath.add(clazz);
+        try {
+            if (clazz.isRecord()) {
+                return buildRecord(clazz, onPath);
+            }
+            return buildBean(clazz, onPath);
+        } finally {
+            onPath.remove(clazz);
+        }
+    }
+
+    private Object buildRecord(Class<?> clazz, Set<Class<?>> onPath) throws Exception {
         RecordComponent[] components = clazz.getRecordComponents();
         Class<?>[] paramTypes = new Class<?>[components.length];
         Object[] args = new Object[components.length];
         for (int i = 0; i < components.length; i++) {
             paramTypes[i] = components[i].getType();
-            args[i] = sample(components[i].getGenericType());
+            args[i] = sample(components[i].getGenericType(), onPath);
         }
         Constructor<?> ctor = clazz.getDeclaredConstructor(paramTypes);
         ctor.setAccessible(true);
         return ctor.newInstance(args);
     }
 
-    private Object buildBean(Class<?> clazz) throws Exception {
+    private Object buildBean(Class<?> clazz, Set<Class<?>> onPath) throws Exception {
         Constructor<?> ctor = clazz.getDeclaredConstructor();
         ctor.setAccessible(true);
         Object instance = ctor.newInstance();
@@ -361,26 +467,36 @@ class DtoRoundTripTest {
                     continue;
                 }
                 field.setAccessible(true);
-                field.set(instance, sample(field.getGenericType()));
+                field.set(instance, sample(field.getGenericType(), onPath));
             }
         }
         return instance;
     }
 
-    private Object sample(Type type) throws Exception {
+    private Object sample(Type type, Set<Class<?>> onPath) throws Exception {
         if (type instanceof ParameterizedType pt) {
             Class<?> raw = (Class<?>) pt.getRawType();
             if (List.class.isAssignableFrom(raw)) {
-                return List.of(sample(pt.getActualTypeArguments()[0]));
+                Type elem = pt.getActualTypeArguments()[0];
+                // A List<self> already on the recursion path terminates as an
+                // empty list (guarantees termination for a `List<Element>`).
+                if (elem instanceof Class<?> ec && onPath.contains(ec)) {
+                    return List.of();
+                }
+                return List.of(sample(elem, onPath));
             }
             if (Map.class.isAssignableFrom(raw)) {
-                return Map.of("extra", sample(pt.getActualTypeArguments()[1]));
+                Type valueType = pt.getActualTypeArguments()[1];
+                if (valueType instanceof Class<?> vc && onPath.contains(vc)) {
+                    return Map.of();
+                }
+                return Map.of("extra", sample(valueType, onPath));
             }
         }
-        return sampleClass((Class<?>) type);
+        return sampleClass((Class<?>) type, onPath);
     }
 
-    private Object sampleClass(Class<?> type) throws Exception {
+    private Object sampleClass(Class<?> type, Set<Class<?>> onPath) throws Exception {
         if (type == String.class) {
             return "s";
         }
@@ -412,7 +528,13 @@ class DtoRoundTripTest {
             return type.getEnumConstants()[0];
         }
         if (type.getName().startsWith(DTO_PKG)) {
-            return buildInstance(type);
+            // Cycle guard: a self-reference whose class is already under
+            // construction on this path (a nullable `next: Element`) terminates
+            // as null instead of recursing forever.
+            if (onPath.contains(type)) {
+                return null;
+            }
+            return buildInstance(type, onPath);
         }
         throw new IllegalStateException("No sample value for type " + type.getName());
     }
