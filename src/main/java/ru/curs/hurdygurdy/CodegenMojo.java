@@ -24,6 +24,9 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "framework", defaultValue = "spring")
     String framework;
 
+    @Parameter(property = "javaDtoStyle", defaultValue = "lombok")
+    String javaDtoStyle;
+
     @Parameter(property = "generate", defaultValue = "controller")
     String generate;
 
@@ -61,6 +64,7 @@ public class CodegenMojo extends AbstractMojo {
                         .generateResponseParameter(generateResponseParameter)
                         .forceSnakeCaseForProperties(forceSnakeCaseForProperties)
                         .framework(Framework.of(framework))
+                        .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                         .generate(roles);
         Codegen<?> codegen =
                 "java".equalsIgnoreCase(language)

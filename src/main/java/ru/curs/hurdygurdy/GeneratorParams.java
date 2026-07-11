@@ -10,6 +10,7 @@ public final class GeneratorParams {
     private boolean generateResponseParameter = false;
     private boolean forceSnakeCaseForProperties = true;
     private Framework framework = Framework.SPRING;
+    private JavaDtoStyle javaDtoStyle = JavaDtoStyle.LOMBOK;
     private final EnumSet<Role> generate = EnumSet.of(Role.CONTROLLER);
 
     private GeneratorParams(String rootPackage) {
@@ -78,6 +79,11 @@ public final class GeneratorParams {
         return this;
     }
 
+    public GeneratorParams javaDtoStyle(JavaDtoStyle value) {
+        this.javaDtoStyle = value;
+        return this;
+    }
+
     public String getRootPackage() {
         return rootPackage;
     }
@@ -96,6 +102,10 @@ public final class GeneratorParams {
 
     public Framework getFramework() {
         return framework;
+    }
+
+    public JavaDtoStyle getJavaDtoStyle() {
+        return javaDtoStyle;
     }
 
     public static GeneratorParams rootPackage(String rootPackage) {
