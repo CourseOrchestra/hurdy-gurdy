@@ -42,7 +42,7 @@ jobs:
       - name: Publish core to the isolated repo
         run: |
           CORE_JAR=$(find target -maxdepth 1 -name 'hurdy-gurdy-*.jar' \
-            ! -name '*-sources.jar' ! -name '*-javadoc.jar')
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-cli.jar')
           mvn -B install:install-file \
             -Dfile="$CORE_JAR" \
             -DpomFile=pom.xml \
