@@ -313,7 +313,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         }
 
         //This class is a superclass
-        addDiscriminatorAnnotations(classBuilder, schema, openAPI);
+        addDiscriminatorAnnotations(name, classBuilder, schema, openAPI);
 
         //This class extends interfaces
         getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
@@ -582,11 +582,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * declares an explicit subtype mapping. Extracted so both paths emit a
      * byte-for-byte identical block.
      */
-    private void addDiscriminatorAnnotations(TypeSpec.Builder builder, Schema<?> schema, OpenAPI openAPI) {
+    private void addDiscriminatorAnnotations(String name, TypeSpec.Builder builder,
+                                             Schema<?> schema, OpenAPI openAPI) {
         if (schema.getDiscriminator() != null) {
             builder.addAnnotation(discriminatorTypeInfo(schema));
         }
-        var subclassMapping = getSubclassMapping(schema);
+        var subclassMapping = effectiveSubclassMapping(name, schema, openAPI);
         if (!subclassMapping.isEmpty()) {
             CodeBlock collect = subclassMapping.entrySet().stream()
                     .map(e ->
@@ -599,6 +600,41 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     .addMember("value", "$L", collect)
                     .build());
         }
+    }
+
+    /**
+     * The discriminator subtype mapping to emit as {@code @JsonSubTypes}. Uses the
+     * explicit {@code discriminator.mapping} when present; otherwise derives it from
+     * every schema whose {@code allOf} references this base, keyed by the OpenAPI
+     * implicit convention that the discriminator value is the subtype's schema name.
+     *
+     * <p>Java-only (does not touch the shared {@link #getSubclassMapping}, which
+     * Kotlin uses). The identical Kotlin discriminator-without-mapping gap is a
+     * deferred follow-up.
+     */
+    private Map<String, String> effectiveSubclassMapping(String baseName, Schema<?> schema, OpenAPI openAPI) {
+        Map<String, String> explicit = getSubclassMapping(schema);
+        if (!explicit.isEmpty() || schema.getDiscriminator() == null) {
+            // Explicit mapping wins; and a schema that is NOT itself a discriminator
+            // base (e.g. an intermediate allOf child) must emit no @JsonSubTypes,
+            // even though other schemas allOf-reference it.
+            return explicit;
+        }
+        // No explicit mapping: derive {schemaName -> $ref} for every schema whose
+        // allOf lists this base. Reuse the same discovery permittedSubtypes uses.
+        Map<String, String> derived = new java.util.LinkedHashMap<>();
+        openAPI.getComponents().getSchemas().forEach((schemaName, s) -> {
+            if (s.getAllOf() != null) {
+                for (Object aObj : s.getAllOf()) {
+                    Schema<?> a = (Schema<?>) aObj;
+                    if (a.get$ref() != null
+                            && referencedClassName(openAPI, a.get$ref()).simpleName().equals(baseName)) {
+                        derived.put(schemaName, "#/components/schemas/" + schemaName);
+                    }
+                }
+            }
+        });
+        return derived;
     }
 
     /** Adds the {@code @JsonSubTypes}/{@code @JsonTypeInfo(DEDUCTION)} pair for a oneOf sealed interface. */
@@ -642,7 +678,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
         // Jackson polymorphism annotations (mirror the class-based path)
         if (discriminator) {
-            addDiscriminatorAnnotations(ifaceBuilder, schema, openAPI);
+            addDiscriminatorAnnotations(name, ifaceBuilder, schema, openAPI);
         } else {
             addOneOfDeductionAnnotations(ifaceBuilder, schema, openAPI);
         }

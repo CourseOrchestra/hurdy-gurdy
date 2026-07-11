@@ -138,6 +138,39 @@ components:
             pack_rank:
               type: integer
 
+    # Discriminator base declared WITHOUT an explicit `mapping`. The generator
+    # must auto-derive @JsonSubTypes from the schemas that allOf-reference this
+    # base (implicit OpenAPI convention: discriminator value == subtype schema
+    # name), so `readValue(json, Vehicle.class)` resolves CarVehicle/BikeVehicle
+    # on read. Without that derivation Jackson emits @JsonTypeInfo(NAME) but no
+    # @JsonSubTypes and the polymorphic-through-base deserialize fails with
+    # InvalidTypeIdException.
+    Vehicle:
+      type: object
+      required: [vehicle_type, wheels]
+      discriminator:
+        propertyName: vehicle_type
+      properties:
+        vehicle_type:
+          type: string
+        wheels:
+          type: integer
+    CarVehicle:
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          required: [doors]
+          properties:
+            doors:
+              type: integer
+    BikeVehicle:
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          properties:
+            has_bell:
+              type: boolean
+
     # oneOf with two structurally distinct members (deduction-friendly).
     Shape:
       oneOf:
