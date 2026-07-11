@@ -54,16 +54,19 @@ public final class Main implements Callable<Integer> {
                     + "(default: ${DEFAULT-VALUE}).")
     private boolean responseParameter;
 
-    @Option(names = "--force-snake-case", negatable = true, defaultValue = "true",
-            description = "Force snake_case for properties (default: ${DEFAULT-VALUE}).")
-    private boolean forceSnakeCase;
+    // picocli negatable semantics assign `negated ? defaultValue : !defaultValue`,
+    // so defaultValue="true" inverts the flag (--no-force-snake-case would enable it).
+    // Use a nullable Boolean with no default instead: null means "on".
+    @Option(names = "--force-snake-case", negatable = true,
+            description = "Force snake_case for properties (default: true).")
+    private Boolean forceSnakeCase;
 
     @Override
     public Integer call() throws Exception {
         Set<Role> roles = Role.parse(generate);
         GeneratorParams params = GeneratorParams.rootPackage(rootPackage)
                 .generateResponseParameter(responseParameter)
-                .forceSnakeCaseForProperties(forceSnakeCase)
+                .forceSnakeCaseForProperties(forceSnakeCase == null || forceSnakeCase)
                 .framework(Framework.of(framework))
                 .generate(roles);
         Codegen<?> codegen = "java".equalsIgnoreCase(language)
