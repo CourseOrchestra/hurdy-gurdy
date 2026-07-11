@@ -213,8 +213,23 @@ class KotlinTypeDefiner internal constructor(
     /** A constructor property carried over from a base class (an allOf parent). */
     private data class InheritedProperty(val key: String, val schema: Schema<*>, val required: Boolean)
 
+    /**
+     * The member subschemas of a polymorphic container — a `oneOf`, or a top-level
+     * `anyOf` of two-or-more non-null `$ref`s (treated the same way). Returns an
+     * empty list for a plain schema, a nullable `anyOf:[X,null]`, or a single-ref
+     * anyOf. Single predicate for "is this schema a DEDUCTION-based polymorphic
+     * interface".
+     */
+    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> {
+        if (!schema.oneOf.isNullOrEmpty()) return schema.oneOf
+        val refs = schema.anyOf?.filter { it.`$ref` != null } ?: emptyList()
+        return if (refs.size >= 2) refs else emptyList()
+    }
+
+    private fun isPolymorphicInterface(schema: Schema<*>): Boolean = polymorphicMembers(schema).isNotEmpty()
+
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
-        return if (schema is ComposedSchema && schema.oneOf == null) {
+        return if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
             var inheritedProperties: List<InheritedProperty> = emptyList()
@@ -301,18 +316,18 @@ class KotlinTypeDefiner internal constructor(
         val classBuilder =
             (if (schema.properties.isNullOrEmpty() &&
                 schema.additionalProperties == null &&
-                schema.oneOf.isNullOrEmpty() &&
+                !isPolymorphicInterface(schema) &&
                 !isParent &&
                 inheritedProperties.isEmpty()
             )
                 TypeSpec.objectBuilder(name).superclass(baseClass)
-            else if (!schema.oneOf.isNullOrEmpty())
+            else if (isPolymorphicInterface(schema))
                 TypeSpec.interfaceBuilder(name)
             else
                 TypeSpec.classBuilder(name).superclass(baseClass))
 
         addInterfaces(openAPI, name, classBuilder)
-        oneOfToInterface(schema, openAPI, classBuilder)
+        polymorphicToInterface(schema, openAPI, classBuilder)
 
         if (params.isForceSnakeCaseForProperties) {
             classBuilder.addAnnotation(
@@ -369,7 +384,7 @@ class KotlinTypeDefiner internal constructor(
 
         if ((!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
                     || inheritedProperties.isNotEmpty())
-            && schema.oneOf == null
+            && !isPolymorphicInterface(schema)
         ) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
@@ -558,10 +573,10 @@ class KotlinTypeDefiner internal constructor(
     }
 
 
-    private fun oneOfToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
-        if (schema.oneOf != null) {
+    private fun polymorphicToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
+        if (isPolymorphicInterface(schema)) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
-            schema.oneOf.asSequence()
+            polymorphicMembers(schema).asSequence()
                 .map { it.`$ref` }
                 .filterNotNull()
                 .map { referencedTypeName(it, openAPI) }
@@ -587,13 +602,13 @@ class KotlinTypeDefiner internal constructor(
     private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
         openAPI.components.schemas.forEach { schemaName, schema ->
             if (schema is ComposedSchema) {
-                if (schema.oneOf != null) {
+                if (isPolymorphicInterface(schema)) {
                     val interfaceName = ClassName(
                         java.lang.String.join(".", params.rootPackage, "dto"),
                         schemaName
                     ).copy(nullable = false)
 
-                    for (s in schema.oneOf) {
+                    for (s in polymorphicMembers(schema)) {
                         if (s.`$ref` != null) {
                             val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
                             val className = (typeName as ClassName).simpleName

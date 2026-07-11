@@ -680,8 +680,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * implicit convention that the discriminator value is the subtype's schema name.
      *
      * <p>Java-only (does not touch the shared {@link #getSubclassMapping}, which
-     * Kotlin uses). The identical Kotlin discriminator-without-mapping gap is a
-     * deferred follow-up.
+     * Kotlin uses). Kotlin has its own equivalent
+     * {@code effectiveSubclassMapping} for the discriminator-without-mapping case,
+     * and its own polymorphic-anyOf handling, so both former Kotlin gaps are now
+     * closed.
      */
     private Map<String, String> effectiveSubclassMapping(String baseName, Schema<?> schema, OpenAPI openAPI) {
         Map<String, String> explicit = getSubclassMapping(schema);
