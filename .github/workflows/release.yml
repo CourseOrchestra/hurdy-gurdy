@@ -55,8 +55,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '25'
+          distribution: 'liberica'
+          java-version: '21'
       - name: Build fat jar
         run: mvn -B clean -DskipTests package
       - name: Stage jar
