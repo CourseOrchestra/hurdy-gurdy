@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="Hurdy-Gurdy" width="220"></p>
+
 [![Actions Status: build](https://github.com/courseorchestra/hurdy-gurdy/workflows/build/badge.svg)](https://github.com/courseorchestra/hurdy-gurdy/actions?query=workflow%3A"build")
 
 [![Maven Central](https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy)](https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy)
