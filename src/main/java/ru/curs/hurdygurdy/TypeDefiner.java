@@ -48,8 +48,8 @@ public abstract class TypeDefiner<T> {
         List<String> extendsList = new ArrayList<>();
         Optional.ofNullable(schema.getExtensions()).map(e -> e.get("x-extends"))
                 .ifPresent(e -> {
-                            if (e instanceof String) {
-                                extendsList.add((String) e);
+                            if (e instanceof String s) {
+                                extendsList.add(s);
                             } else if (e instanceof List) {
                                 extendsList.addAll((List<String>) e);
                             }

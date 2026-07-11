@@ -312,7 +312,7 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.modifiers.remove(KModifier.DATA)
         }
 
-        val subclassMapping = getSubclassMapping(schema)
+        val subclassMapping = getSubclassMapping(schema).toMap()
         if (subclassMapping.isNotEmpty()) {
             val mappings =
                 subclassMapping
@@ -355,7 +355,7 @@ class KotlinTypeDefiner internal constructor(
                 classBuilder.addSuperclassConstructorParameter("%N", propertyName)
             }
 
-            val inheritedKeys = inheritedProperties.mapTo(mutableSetOf()) { it.key }
+            val inheritedKeys = inheritedProperties.mapTo(mutableSetOf()) { it.key }.toSet()
             if (schemaMap != null) for ((key, value) in schemaMap) {
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
@@ -473,25 +473,35 @@ class KotlinTypeDefiner internal constructor(
             value.default
         } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
         if (default != null) {
-            if (value.type == "array") {
-                //Empty list as default
-                paramSpec.defaultValue("listOf()")
-            } else if (typeName.copy(nullable = false) == String::class.asTypeName()) {
-                //Default string value
-                paramSpec.defaultValue("%S", default.toString())
-            } else if (value.`$ref` != null && isEnum(
+            when {
+                value.type == "array" -> {
+                    //Empty list as default
+                    paramSpec.defaultValue("listOf()")
+                }
+
+                typeName.copy(nullable = false) == String::class.asTypeName() -> {
+                    //Default string value
+                    paramSpec.defaultValue("%S", default.toString())
+                }
+
+                value.`$ref` != null && isEnum(
                     openAPI,
                     extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
                 )
-            ) {
-                //Default enum value
-                paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
-            } else if (value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*"))) {
-                //"Empty object" default value
-                paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
-            } else {
-                //Everything else (e.g., numbers)
-                paramSpec.defaultValue("%L", default.toString())
+                    -> {
+                    //Default enum value
+                    paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
+                }
+
+                value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*")) -> {
+                    //"Empty object" default value
+                    paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
+                }
+
+                else -> {
+                    //Everything else (e.g., numbers)
+                    paramSpec.defaultValue("%L", default.toString())
+                }
             }
         } else if (!required) {
             paramSpec.defaultValue("null")

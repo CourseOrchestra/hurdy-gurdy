@@ -170,7 +170,7 @@ class KotlinAPIExtractor(
                         ).build()
                 )
             }
-        JavaAPIExtractor.getParameterStream(stringPathItemEntry.value, operationEntry.value)
+        getParameterStream(stringPathItemEntry.value, operationEntry.value)
             .filter { parameter: Parameter ->
                 "header".equals(
                     parameter.getIn(),
@@ -412,7 +412,7 @@ class KotlinAPIExtractor(
                     is String -> it.toBoolean()
                     else -> false
                 }
-            }.orElse(false)
+            }.orElse(false)!!
 
     private fun getQuarkusMethodAnnotations(
         operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
@@ -503,9 +503,9 @@ class KotlinAPIExtractor(
             return sequenceOf()
         } else {
             val entry = mediaTypeEntry.get()
-            if ("multipart/form-data".equals(entry.key, ignoreCase = true)) {
+            return if ("multipart/form-data".equals(entry.key, ignoreCase = true)) {
                 //Multipart
-                return entry.value.schema?.properties?.asSequence().orEmpty()
+                entry.value.schema?.properties?.asSequence().orEmpty()
                     .map { (name, schema) ->
                         RequestPartParams(
                             name = name,
@@ -521,7 +521,7 @@ class KotlinAPIExtractor(
 
             } else {
                 //Single-part
-                return Optional.ofNullable(entry.value.schema).stream().asSequence()
+                Optional.ofNullable(entry.value.schema).stream().asSequence()
                     .map { typeDefiner.defineKotlinType(it, openAPI, parent, null, null) }
                     .map {
                         RequestPartParams(
