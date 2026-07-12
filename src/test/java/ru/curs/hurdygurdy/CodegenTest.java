@@ -1,6 +1,6 @@
 package ru.curs.hurdygurdy;
 
-import com.squareup.javapoet.TypeSpec;
+import com.palantir.javapoet.TypeSpec;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -90,6 +90,12 @@ class CodegenTest {
     @Test
     void oneOfSupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void anyOfSupport() throws IOException {
+        codegen.generate(Path.of("src/test/resources/anyofsupport.yaml"), result);
         verify(result);
     }
 
@@ -201,6 +207,114 @@ class CodegenTest {
         // inherited by children, including an otherwise-empty leaf (`C`).
         codegen.generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
         verify(result);
+    }
+
+    @Test
+    void pojoSample2() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsSample2() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/sample2.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void pojoInheritance() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsInheritance() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void pojoOneOf() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void recordsOneOf() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/oneofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileSample2(JavaDtoStyle style) throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true).javaDtoStyle(style))
+                .generate(Path.of("src/test/resources/sample2.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileInheritance(JavaDtoStyle style) throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true).javaDtoStyle(style))
+                .generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileDictionary(JavaDtoStyle style) throws IOException {
+        // dictionarySupport.yaml does not exist in this repo; the real spec
+        // exercising dictionary/additionalProperties support is dictionary.yaml.
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true).javaDtoStyle(style))
+                .generate(Path.of("src/test/resources/dictionary.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileDeepInheritance(JavaDtoStyle style) throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true).javaDtoStyle(style))
+                .generate(Path.of("src/test/resources/deep_inheritance.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void youtrackCompilesInAllStyles(JavaDtoStyle style) throws IOException {
+        // Real-world stress: deep allOf chains, redeclared/narrowed inherited
+        // properties, illegal identifiers, camelCase props (snake-case check off).
+        // Compile-only: no snapshot for 200+ files. Every role is covered so the
+        // whole generation surface is exercised on a real spec in each DTO style.
+        new JavaCodegen(GeneratorParams.rootPackage("org.youtrack")
+                .generateResponseParameter(true)
+                .forceSnakeCaseForProperties(false)
+                .javaDtoStyle(style)
+                .generate(EnumSet.allOf(Role.class)))
+                .generate(Path.of("src/test/resources/youtrack_openapi.json"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
     }
 
     @ParameterizedTest

@@ -16,6 +16,7 @@ import ru.curs.hurdygurdy.Codegen
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.GeneratorParams
 import ru.curs.hurdygurdy.JavaCodegen
+import ru.curs.hurdygurdy.JavaDtoStyle
 import ru.curs.hurdygurdy.KotlinCodegen
 import ru.curs.hurdygurdy.Role
 import java.nio.file.Files
@@ -30,6 +31,7 @@ abstract class GenerateTask : DefaultTask() {
     @get:Input abstract val rootPackage: Property<String>
     @get:Input abstract val framework: Property<Framework>
     @get:Input abstract val language: Property<Language>
+    @get:Input abstract val javaDtoStyle: Property<JavaDtoStyle>
     @get:Input abstract val generate: SetProperty<Role>
     @get:Input abstract val generateResponseParameter: Property<Boolean>
     @get:Input abstract val forceSnakeCaseForProperties: Property<Boolean>
@@ -46,6 +48,7 @@ abstract class GenerateTask : DefaultTask() {
             .generateResponseParameter(generateResponseParameter.get())
             .forceSnakeCaseForProperties(forceSnakeCaseForProperties.get())
             .framework(framework.get())
+            .javaDtoStyle(javaDtoStyle.get())
             .generate(generate.get())
 
         val codegen: Codegen<*> = when (language.get()) {

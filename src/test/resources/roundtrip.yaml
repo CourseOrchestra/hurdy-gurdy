@@ -1,0 +1,258 @@
+# Kept at OpenAPI 3.0.0: swagger-parser stops populating allOf/ComposedSchema
+# under 3.1.0 (composed schemas come out empty — no extends/fields), which
+# breaks every inheritance shape below. The nullable-anyOf coverage that needs
+# 3.1's `type: 'null'` lives in the sibling spec roundtrip31.yaml instead.
+openapi: 3.0.0
+info: {title: roundtrip, version: "1.0"}
+paths: {}
+components:
+  schemas:
+    # Nested object referenced through a $ref property and inside an array.
+    Inner:
+      type: object
+      required: [inner_name]
+      properties:
+        inner_name:
+          type: string
+        inner_count:
+          type: integer
+
+    # Broad scalar surface: uuid, date-time, date, enum, list, nested $ref,
+    # array of $ref, plus additionalProperties.
+    Widget:
+      type: object
+      required: [id, name]
+      additionalProperties:
+        type: string
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        birth_date:
+          type: string
+          format: date
+        rank:
+          type: integer
+          format: int64
+        ratio:
+          type: number
+          format: double
+        active:
+          type: boolean
+        status:
+          title: Status
+          type: string
+          enum: [NEW, ACTIVE, CLOSED]
+        tags:
+          type: array
+          items:
+            type: string
+        inner:
+          $ref: '#/components/schemas/Inner'
+        inners:
+          type: array
+          items:
+            $ref: '#/components/schemas/Inner'
+
+    # Discriminator base with two subtypes; the base carries a required
+    # property (name) that every subtype inherits.
+    Pet:
+      type: object
+      required: [pet_type, name]
+      discriminator:
+        propertyName: pet_type
+        mapping:
+          cat: '#/components/schemas/Cat'
+          dog: '#/components/schemas/Dog'
+      properties:
+        pet_type:
+          type: string
+        name:
+          type: string
+    Cat:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - type: object
+          required: [hunting_skill]
+          properties:
+            hunting_skill:
+              type: string
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - type: object
+          required: [pack_size]
+          properties:
+            pack_size:
+              type: integer
+
+    # Mixed hierarchy: Cat/Dog are discriminator subtypes of Pet (allOf) AND
+    # members of this oneOf. In lombok/pojo this makes
+    # `class Cat extends Pet implements Creature`; in records
+    # `record Cat(...) implements Pet, Creature`.
+    Creature:
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+
+    # 3-level discriminator chain: Animal (discriminator base) -> Mammal
+    # (intermediate) -> Wolf (leaf). lombok/pojo:
+    # `class Wolf extends Mammal`, `class Mammal extends Animal`; records
+    # flattens species+legs+fur_color+pack_rank into Wolf and implements Animal.
+    Animal:
+      type: object
+      required: [species, legs]
+      discriminator:
+        propertyName: species
+        # Explicit mapping (as Pet has): a discriminator base needs it so the
+        # generator emits @JsonSubTypes and Jackson can resolve the subtype on
+        # read. A discriminator base with NO mapping emits @JsonTypeInfo(NAME)
+        # but no @JsonSubTypes, so `readValue(json, Animal.class)` fails with
+        # InvalidTypeIdException — a separate generator gap (see task report).
+        mapping:
+          mammal: '#/components/schemas/Mammal'
+      properties:
+        species:
+          type: string
+        legs:
+          type: integer
+    Mammal:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          required: [fur_color]
+          properties:
+            fur_color:
+              type: string
+    Wolf:
+      allOf:
+        - $ref: '#/components/schemas/Mammal'
+        - type: object
+          required: [pack_rank]
+          properties:
+            pack_rank:
+              type: integer
+
+    # Discriminator base declared WITHOUT an explicit `mapping`. The generator
+    # must auto-derive @JsonSubTypes from the schemas that allOf-reference this
+    # base (implicit OpenAPI convention: discriminator value == subtype schema
+    # name), so `readValue(json, Vehicle.class)` resolves CarVehicle/BikeVehicle
+    # on read. Without that derivation Jackson emits @JsonTypeInfo(NAME) but no
+    # @JsonSubTypes and the polymorphic-through-base deserialize fails with
+    # InvalidTypeIdException.
+    Vehicle:
+      type: object
+      required: [vehicle_type, wheels]
+      discriminator:
+        propertyName: vehicle_type
+      properties:
+        vehicle_type:
+          type: string
+        wheels:
+          type: integer
+    CarVehicle:
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          required: [doors]
+          properties:
+            doors:
+              type: integer
+    BikeVehicle:
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          properties:
+            has_bell:
+              type: boolean
+
+    # Two-level (nested) discriminator: Outer is a discriminator base
+    # (propertyName kind); its subtype Middle is ITSELF a discriminator base
+    # (propertyName sub_kind) declared on the allOf ComposedSchema; Leaf is the
+    # concrete leaf. In records mode Middle is a sealed interface `extends Outer`
+    # and Leaf `implements Middle`. Middle's OWN discriminator (sub_kind) must
+    # NOT be flattened into `record Leaf` as a data component — Jackson manages
+    # it as the @JsonTypeInfo type-id, so a data component would double-emit it.
+    # This shape is what makes that double-emit runtime-visible (round-trip Leaf
+    # through Middle): it fails before the componentsOfRef discriminator-strip
+    # fix and passes after.
+    Outer:
+      type: object
+      required: [kind]
+      discriminator:
+        propertyName: kind
+      properties:
+        kind:
+          type: string
+    Middle:
+      discriminator:
+        propertyName: sub_kind
+      allOf:
+        - $ref: '#/components/schemas/Outer'
+        - type: object
+          required: [sub_kind]
+          properties:
+            sub_kind:
+              type: string
+            middle_note:
+              type: string
+    Leaf:
+      allOf:
+        - $ref: '#/components/schemas/Middle'
+        - type: object
+          required: [leaf_name]
+          properties:
+            leaf_name:
+              type: string
+
+    # oneOf with two structurally distinct members (deduction-friendly).
+    Shape:
+      oneOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'
+    Circle:
+      type: object
+      required: [radius]
+      properties:
+        radius:
+          type: number
+          format: double
+    Square:
+      type: object
+      required: [side]
+      properties:
+        side:
+          type: integer
+
+    # Plain (non-polymorphic) allOf pair: ExtendedThing inherits BaseThing's
+    # required field, no discriminator, no oneOf.
+    BaseThing:
+      type: object
+      required: [base_field]
+      properties:
+        base_field:
+          type: string
+    ExtendedThing:
+      allOf:
+        - $ref: '#/components/schemas/BaseThing'
+        - type: object
+          required: [extra_field]
+          properties:
+            extra_field:
+              type: integer
+
+    # Top-level anyOf of two non-null $refs (NOT nullable-unwrap): generated as a
+    # DEDUCTION-based polymorphic interface, exactly like oneOf. Circle/Square
+    # `implements` it and round-trip polymorphically through it. Note Circle/Square
+    # are ALSO members of the `Shape` oneOf, so they implement BOTH Shape and
+    # AnyOfHolder — DEDUCTION still resolves them because radius vs side make the
+    # two subtypes structurally distinct.
+    AnyOfHolder:
+      anyOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'

@@ -62,6 +62,34 @@ class MainTest {
     }
 
     @Test
+    void javaDtoStyleRecordsEmitsJavaRecords() throws IOException {
+        int exit = Main.run(
+                "--spec", "src/test/resources/sample2.yaml",
+                "--root-package", "com.example",
+                "--java-dto-style", "records",
+                "--output", out.toString());
+
+        assertThat(exit).isEqualTo(0);
+        boolean anyRecord;
+        try (Stream<Path> walk = Files.walk(out)) {
+            anyRecord = walk
+                    .filter(p -> p.toString().endsWith(".java"))
+                    .anyMatch(p -> readString(p).contains("public record "));
+        }
+        assertThat(anyRecord)
+                .as("--java-dto-style records emits at least one Java record")
+                .isTrue();
+    }
+
+    private static String readString(Path p) {
+        try {
+            return Files.readString(p);
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
+    @Test
     void missingRequiredOptionFailsWithNonZeroExit() {
         int exit = Main.run(
                 "--spec", "src/test/resources/commonparam.yaml",

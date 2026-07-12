@@ -29,17 +29,14 @@ package com.example.dto;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonSubTypes({
     @JsonSubTypes.Type(Variant1.class),
     @JsonSubTypes.Type(Variant2.class)})
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.DEDUCTION
 )
-public interface OneOf {
+public sealed interface OneOf permits Variant1, Variant2 {
 }
 ---
 /com/example/dto/Variant1.java
@@ -48,12 +45,13 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.Long;
-import lombok.Data;
+import java.util.Objects;
 
-@Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant1 implements OneOf {
-  private Long id1;
+public record Variant1(Long id1) implements OneOf {
+  public Variant1 {
+    Objects.requireNonNull(id1, "id1");
+  }
 }
 ---
 /com/example/dto/Variant2.java
@@ -62,10 +60,11 @@ package com.example.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.Long;
-import lombok.Data;
+import java.util.Objects;
 
-@Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant2 implements OneOf {
-  private Long id2;
+public record Variant2(Long id2) implements OneOf {
+  public Variant2 {
+    Objects.requireNonNull(id2, "id2");
+  }
 }

@@ -119,6 +119,12 @@ class KCodegenTest {
     }
 
     @Test
+    void anyOfSupport() throws IOException {
+        codegen.generate(Path.of("src/test/resources/anyofsupport.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void noOwnTypes() throws IOException {
         codegen.generate(Path.of("src/test/resources/externaltype.yaml"), result);
         // Snapshot only: this spec deliberately references external, un-generated
@@ -178,6 +184,16 @@ class KCodegenTest {
         // fix `C` was generated as an `object` and `description` was not overridden,
         // producing non-compiling code.
         codegen.generate(Path.of("src/test/resources/pr233_inheritance.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void mappingLessDiscriminator() throws IOException {
+        // polyrecord.yaml's `Animal` is a discriminator base WITHOUT an explicit
+        // `discriminator.mapping`. The generator must derive @JsonSubTypes from the
+        // schemas whose allOf references Animal (Cat, Dog), so Jackson can resolve
+        // the subtype name on deserialize. See effectiveSubclassMapping.
+        codegen.generate(Path.of("src/test/resources/polyrecord.yaml"), result);
         verify(result);
     }
 

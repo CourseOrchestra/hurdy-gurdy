@@ -1,12 +1,12 @@
 package ru.curs.hurdygurdy;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.ParameterSpec;
+import com.palantir.javapoet.ParameterizedTypeName;
+import com.palantir.javapoet.TypeName;
+import com.palantir.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -346,12 +346,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
                 .addMember("value", "$S", path);
         getSuccessfulReply(operationEntry.getValue())
-                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .flatMap(APIExtractor::getMediaType)
                 .map(Map.Entry::getKey)
                 .ifPresent(mt -> builder.addMember("accept", "$S", mt));
         Optional.ofNullable(operationEntry.getValue().getRequestBody())
                 .map(RequestBody::getContent)
-                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .flatMap(APIExtractor::getMediaType)
                 .map(Map.Entry::getKey)
                 .filter(s -> !s.isBlank() && !s.equals("application/json"))
                 .ifPresent(mt -> builder.addMember("contentType", "$S", mt));
@@ -362,8 +362,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         return Optional.ofNullable(operation.getExtensions())
                 .map(m -> m.get("x-include-request"))
                 .map(v -> {
-                    if (v instanceof Boolean) return (Boolean) v;
-                    if (v instanceof String) return Boolean.parseBoolean((String) v);
+                    if (v instanceof Boolean b) return b;
+                    if (v instanceof String s) return Boolean.parseBoolean(s);
                     return false;
                 }).orElse(false);
     }
@@ -401,7 +401,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                                       TypeSpec.Builder parent, boolean quarkus) {
         final Optional<Map.Entry<String, MediaType>> mediaTypeEntry =
                 Optional.ofNullable(content)
-                        .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType);
+                        .flatMap(APIExtractor::getMediaType);
         if (mediaTypeEntry.isEmpty()) {
             return Stream.of();
         } else {
@@ -454,13 +454,13 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         result.add(AnnotationSpec.builder(verb).build());
         result.add(AnnotationSpec.builder(JAXRS_PATH).addMember("value", "$S", path).build());
         getSuccessfulReply(operationEntry.getValue())
-                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .flatMap(APIExtractor::getMediaType)
                 .map(Map.Entry::getKey)
                 .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_PRODUCES)
                         .addMember("value", "$S", mt).build()));
         Optional.ofNullable(operationEntry.getValue().getRequestBody())
                 .map(RequestBody::getContent)
-                .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                .flatMap(APIExtractor::getMediaType)
                 .map(Map.Entry::getKey)
                 .filter(s -> !s.isBlank())
                 .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_CONSUMES)
@@ -482,12 +482,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
                     .addMember("value", "$S", path);
             getSuccessfulReply(operationEntry.getValue())
-                    .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                    .flatMap(APIExtractor::getMediaType)
                     .map(Map.Entry::getKey)
                     .ifPresent(mt -> builder.addMember("produces", "$S", mt));
             Optional.ofNullable(operationEntry.getValue().getRequestBody())
                     .map(RequestBody::getContent)
-                    .<Map.Entry<String, MediaType>>flatMap(APIExtractor::getMediaType)
+                    .flatMap(APIExtractor::getMediaType)
                     .map(Map.Entry::getKey)
                     .filter(s -> !s.isBlank() && !s.equals("application/json"))
                     .ifPresent(mt -> builder.addMember("consumes", "$S", mt));

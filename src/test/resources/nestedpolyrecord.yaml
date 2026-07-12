@@ -1,0 +1,67 @@
+openapi: 3.0.0
+info: {title: nestedpolyrecord, version: "1.0"}
+paths: {}
+components:
+  schemas:
+    # --- Scenario A: a oneOf whose members are themselves discriminator bases.
+    # Creature permits Animal, Reptile; Animal/Reptile must therefore also
+    # `extends Creature` (permits == implements) or javac rejects the sealed
+    # permits clause.
+    Animal:
+      type: object
+      required: [kind, name]
+      discriminator:
+        propertyName: kind
+      properties:
+        kind: {type: string}
+        name: {type: string}
+    Cat:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          required: [hunting_skill]
+          properties:
+            hunting_skill: {type: string}
+    Reptile:
+      type: object
+      required: [kind, scaled]
+      discriminator:
+        propertyName: kind
+      properties:
+        kind: {type: string}
+        scaled: {type: boolean}
+    Iguana:
+      allOf:
+        - $ref: '#/components/schemas/Reptile'
+        - type: object
+          properties:
+            length_cm: {type: integer}
+    Creature:
+      oneOf:
+        - $ref: '#/components/schemas/Animal'
+        - $ref: '#/components/schemas/Reptile'
+    # --- Scenario B: an allOf-child that is itself a discriminator base.
+    # Vehicle permits Car; Car is itself a sealed base (permits Sedan) and must
+    # `extends Vehicle`.
+    Vehicle:
+      type: object
+      required: [category]
+      discriminator:
+        propertyName: category
+      properties:
+        category: {type: string}
+    Car:
+      discriminator:
+        propertyName: body
+      allOf:
+        - $ref: '#/components/schemas/Vehicle'
+        - type: object
+          required: [body]
+          properties:
+            body: {type: string}
+    Sedan:
+      allOf:
+        - $ref: '#/components/schemas/Car'
+        - type: object
+          properties:
+            doors: {type: integer}

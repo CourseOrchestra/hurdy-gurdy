@@ -1,0 +1,888 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.PlayerActivitiesDTO;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Integer;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @PostMapping("/api/v1/activity")
+  void syncPlayerActivities(@RequestBody PlayerActivitiesDTO request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello",
+      produces = "*/*"
+  )
+  String hello(HttpServletRequest request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/hello/{id}",
+      produces = "*/*"
+  )
+  String hello(@PathVariable(name = "id") int id,
+      @RequestParam(required = false, name = "foo") String foo,
+      @RequestParam(required = true, name = "bar") Integer bar,
+      @RequestHeader(required = true, name = "baz") String baz, HttpServletResponse response);
+}
+---
+/com/example/controller/PlayerController.java
+package com.example.controller;
+
+import com.example.dto.PlayersDTO;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+public interface PlayerController {
+  @PostMapping("/api/v1/players")
+  void syncPlayers(@RequestBody PlayersDTO request, HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/Car.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Car extends Vehicle {
+  private String carProperty;
+
+  public String getCarProperty() {
+    return this.carProperty;
+  }
+
+  public void setCarProperty(String carProperty) {
+    this.carProperty = carProperty;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    Car that = (Car) o;
+    return Objects.equals(carProperty, that.carProperty);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), carProperty);
+  }
+
+  @Override
+  public String toString() {
+    return "Car{" + "carProperty=" + carProperty + "}";
+  }
+}
+---
+/com/example/dto/DepositDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Long;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class DepositDTO {
+  private PlayerDTO player;
+
+  private PlayerEnum playerenum;
+
+  private String depositId;
+
+  private Long amountCents;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime processedAt;
+
+  public PlayerDTO getPlayer() {
+    return this.player;
+  }
+
+  public void setPlayer(PlayerDTO player) {
+    this.player = player;
+  }
+
+  public PlayerEnum getPlayerenum() {
+    return this.playerenum;
+  }
+
+  public void setPlayerenum(PlayerEnum playerenum) {
+    this.playerenum = playerenum;
+  }
+
+  public String getDepositId() {
+    return this.depositId;
+  }
+
+  public void setDepositId(String depositId) {
+    this.depositId = depositId;
+  }
+
+  public Long getAmountCents() {
+    return this.amountCents;
+  }
+
+  public void setAmountCents(Long amountCents) {
+    this.amountCents = amountCents;
+  }
+
+  public ZonedDateTime getProcessedAt() {
+    return this.processedAt;
+  }
+
+  public void setProcessedAt(ZonedDateTime processedAt) {
+    this.processedAt = processedAt;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    DepositDTO that = (DepositDTO) o;
+    return Objects.equals(player, that.player)
+            && Objects.equals(playerenum, that.playerenum)
+            && Objects.equals(depositId, that.depositId)
+            && Objects.equals(amountCents, that.amountCents)
+            && Objects.equals(processedAt, that.processedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(player, playerenum, depositId, amountCents, processedAt);
+  }
+
+  @Override
+  public String toString() {
+    return "DepositDTO{" + "player=" + player + ", playerenum=" + playerenum + ", depositId=" + depositId + ", amountCents=" + amountCents + ", processedAt=" + processedAt + "}";
+  }
+}
+---
+/com/example/dto/Parent.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Parent {
+  private Vehicle vehicle;
+
+  public Vehicle getVehicle() {
+    return this.vehicle;
+  }
+
+  public void setVehicle(Vehicle vehicle) {
+    this.vehicle = vehicle;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Parent that = (Parent) o;
+    return Objects.equals(vehicle, that.vehicle);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(vehicle);
+  }
+
+  @Override
+  public String toString() {
+    return "Parent{" + "vehicle=" + vehicle + "}";
+  }
+}
+---
+/com/example/dto/PlayerActivitiesDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerActivitiesDTO {
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime from;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime to;
+
+  private List<PlayerActivityDTO> items;
+
+  public ZonedDateTime getFrom() {
+    return this.from;
+  }
+
+  public void setFrom(ZonedDateTime from) {
+    this.from = from;
+  }
+
+  public ZonedDateTime getTo() {
+    return this.to;
+  }
+
+  public void setTo(ZonedDateTime to) {
+    this.to = to;
+  }
+
+  public List<PlayerActivityDTO> getItems() {
+    return this.items;
+  }
+
+  public void setItems(List<PlayerActivityDTO> items) {
+    this.items = items;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PlayerActivitiesDTO that = (PlayerActivitiesDTO) o;
+    return Objects.equals(from, that.from)
+            && Objects.equals(to, that.to)
+            && Objects.equals(items, that.items);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(from, to, items);
+  }
+
+  @Override
+  public String toString() {
+    return "PlayerActivitiesDTO{" + "from=" + from + ", to=" + to + ", items=" + items + "}";
+  }
+}
+---
+/com/example/dto/PlayerActivityDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Long;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.List;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerActivityDTO {
+  private String tag;
+
+  private String userId;
+
+  private String currency;
+
+  private Long betsSumCents;
+
+  private Long wagerCents;
+
+  private Long additionalDeductionsSumCents;
+
+  private Long roundsCount;
+
+  private Long bonusIssuesSumCents;
+
+  private Long chargebacksSumCents;
+
+  private Long chargebacksCount;
+
+  private Long depositsSumCents;
+
+  private Long depositsCount;
+
+  private Long cashoutsSumCents;
+
+  private Long cashoutsCount;
+
+  private List<DepositDTO> deposits;
+
+  public String getTag() {
+    return this.tag;
+  }
+
+  public void setTag(String tag) {
+    this.tag = tag;
+  }
+
+  public String getUserId() {
+    return this.userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public String getCurrency() {
+    return this.currency;
+  }
+
+  public void setCurrency(String currency) {
+    this.currency = currency;
+  }
+
+  public Long getBetsSumCents() {
+    return this.betsSumCents;
+  }
+
+  public void setBetsSumCents(Long betsSumCents) {
+    this.betsSumCents = betsSumCents;
+  }
+
+  public Long getWagerCents() {
+    return this.wagerCents;
+  }
+
+  public void setWagerCents(Long wagerCents) {
+    this.wagerCents = wagerCents;
+  }
+
+  public Long getAdditionalDeductionsSumCents() {
+    return this.additionalDeductionsSumCents;
+  }
+
+  public void setAdditionalDeductionsSumCents(Long additionalDeductionsSumCents) {
+    this.additionalDeductionsSumCents = additionalDeductionsSumCents;
+  }
+
+  public Long getRoundsCount() {
+    return this.roundsCount;
+  }
+
+  public void setRoundsCount(Long roundsCount) {
+    this.roundsCount = roundsCount;
+  }
+
+  public Long getBonusIssuesSumCents() {
+    return this.bonusIssuesSumCents;
+  }
+
+  public void setBonusIssuesSumCents(Long bonusIssuesSumCents) {
+    this.bonusIssuesSumCents = bonusIssuesSumCents;
+  }
+
+  public Long getChargebacksSumCents() {
+    return this.chargebacksSumCents;
+  }
+
+  public void setChargebacksSumCents(Long chargebacksSumCents) {
+    this.chargebacksSumCents = chargebacksSumCents;
+  }
+
+  public Long getChargebacksCount() {
+    return this.chargebacksCount;
+  }
+
+  public void setChargebacksCount(Long chargebacksCount) {
+    this.chargebacksCount = chargebacksCount;
+  }
+
+  public Long getDepositsSumCents() {
+    return this.depositsSumCents;
+  }
+
+  public void setDepositsSumCents(Long depositsSumCents) {
+    this.depositsSumCents = depositsSumCents;
+  }
+
+  public Long getDepositsCount() {
+    return this.depositsCount;
+  }
+
+  public void setDepositsCount(Long depositsCount) {
+    this.depositsCount = depositsCount;
+  }
+
+  public Long getCashoutsSumCents() {
+    return this.cashoutsSumCents;
+  }
+
+  public void setCashoutsSumCents(Long cashoutsSumCents) {
+    this.cashoutsSumCents = cashoutsSumCents;
+  }
+
+  public Long getCashoutsCount() {
+    return this.cashoutsCount;
+  }
+
+  public void setCashoutsCount(Long cashoutsCount) {
+    this.cashoutsCount = cashoutsCount;
+  }
+
+  public List<DepositDTO> getDeposits() {
+    return this.deposits;
+  }
+
+  public void setDeposits(List<DepositDTO> deposits) {
+    this.deposits = deposits;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PlayerActivityDTO that = (PlayerActivityDTO) o;
+    return Objects.equals(tag, that.tag)
+            && Objects.equals(userId, that.userId)
+            && Objects.equals(currency, that.currency)
+            && Objects.equals(betsSumCents, that.betsSumCents)
+            && Objects.equals(wagerCents, that.wagerCents)
+            && Objects.equals(additionalDeductionsSumCents, that.additionalDeductionsSumCents)
+            && Objects.equals(roundsCount, that.roundsCount)
+            && Objects.equals(bonusIssuesSumCents, that.bonusIssuesSumCents)
+            && Objects.equals(chargebacksSumCents, that.chargebacksSumCents)
+            && Objects.equals(chargebacksCount, that.chargebacksCount)
+            && Objects.equals(depositsSumCents, that.depositsSumCents)
+            && Objects.equals(depositsCount, that.depositsCount)
+            && Objects.equals(cashoutsSumCents, that.cashoutsSumCents)
+            && Objects.equals(cashoutsCount, that.cashoutsCount)
+            && Objects.equals(deposits, that.deposits);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(tag, userId, currency, betsSumCents, wagerCents, additionalDeductionsSumCents, roundsCount, bonusIssuesSumCents, chargebacksSumCents, chargebacksCount, depositsSumCents, depositsCount, cashoutsSumCents, cashoutsCount, deposits);
+  }
+
+  @Override
+  public String toString() {
+    return "PlayerActivityDTO{" + "tag=" + tag + ", userId=" + userId + ", currency=" + currency + ", betsSumCents=" + betsSumCents + ", wagerCents=" + wagerCents + ", additionalDeductionsSumCents=" + additionalDeductionsSumCents + ", roundsCount=" + roundsCount + ", bonusIssuesSumCents=" + bonusIssuesSumCents + ", chargebacksSumCents=" + chargebacksSumCents + ", chargebacksCount=" + chargebacksCount + ", depositsSumCents=" + depositsSumCents + ", depositsCount=" + depositsCount + ", cashoutsSumCents=" + cashoutsSumCents + ", cashoutsCount=" + cashoutsCount + ", deposits=" + deposits + "}";
+  }
+}
+---
+/com/example/dto/PlayerDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayerDTO {
+  private String tag;
+
+  private String email;
+
+  private String userId;
+
+  private LocalDate dateOfBirth;
+
+  private String firstName;
+
+  private String lastName;
+
+  private String nickname;
+
+  private Gender gender;
+
+  private String country;
+
+  private String language;
+
+  @JsonDeserialize(
+      using = ZonedDateTimeDeserializer.class
+  )
+  @JsonSerialize(
+      using = ZonedDateTimeSerializer.class
+  )
+  private ZonedDateTime signUpAt;
+
+  private boolean duplicate;
+
+  public String getTag() {
+    return this.tag;
+  }
+
+  public void setTag(String tag) {
+    this.tag = tag;
+  }
+
+  public String getEmail() {
+    return this.email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public String getUserId() {
+    return this.userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public LocalDate getDateOfBirth() {
+    return this.dateOfBirth;
+  }
+
+  public void setDateOfBirth(LocalDate dateOfBirth) {
+    this.dateOfBirth = dateOfBirth;
+  }
+
+  public String getFirstName() {
+    return this.firstName;
+  }
+
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
+  }
+
+  public String getLastName() {
+    return this.lastName;
+  }
+
+  public void setLastName(String lastName) {
+    this.lastName = lastName;
+  }
+
+  public String getNickname() {
+    return this.nickname;
+  }
+
+  public void setNickname(String nickname) {
+    this.nickname = nickname;
+  }
+
+  public Gender getGender() {
+    return this.gender;
+  }
+
+  public void setGender(Gender gender) {
+    this.gender = gender;
+  }
+
+  public String getCountry() {
+    return this.country;
+  }
+
+  public void setCountry(String country) {
+    this.country = country;
+  }
+
+  public String getLanguage() {
+    return this.language;
+  }
+
+  public void setLanguage(String language) {
+    this.language = language;
+  }
+
+  public ZonedDateTime getSignUpAt() {
+    return this.signUpAt;
+  }
+
+  public void setSignUpAt(ZonedDateTime signUpAt) {
+    this.signUpAt = signUpAt;
+  }
+
+  public boolean getDuplicate() {
+    return this.duplicate;
+  }
+
+  public void setDuplicate(boolean duplicate) {
+    this.duplicate = duplicate;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PlayerDTO that = (PlayerDTO) o;
+    return Objects.equals(tag, that.tag)
+            && Objects.equals(email, that.email)
+            && Objects.equals(userId, that.userId)
+            && Objects.equals(dateOfBirth, that.dateOfBirth)
+            && Objects.equals(firstName, that.firstName)
+            && Objects.equals(lastName, that.lastName)
+            && Objects.equals(nickname, that.nickname)
+            && Objects.equals(gender, that.gender)
+            && Objects.equals(country, that.country)
+            && Objects.equals(language, that.language)
+            && Objects.equals(signUpAt, that.signUpAt)
+            && Objects.equals(duplicate, that.duplicate);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(tag, email, userId, dateOfBirth, firstName, lastName, nickname, gender, country, language, signUpAt, duplicate);
+  }
+
+  @Override
+  public String toString() {
+    return "PlayerDTO{" + "tag=" + tag + ", email=" + email + ", userId=" + userId + ", dateOfBirth=" + dateOfBirth + ", firstName=" + firstName + ", lastName=" + lastName + ", nickname=" + nickname + ", gender=" + gender + ", country=" + country + ", language=" + language + ", signUpAt=" + signUpAt + ", duplicate=" + duplicate + "}";
+  }
+
+  public enum Gender {
+    m,
+
+    f,
+
+    n
+  }
+}
+---
+/com/example/dto/PlayerEnum.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum PlayerEnum {
+  @JsonProperty("good")
+  GOOD,
+
+  @JsonProperty("bad")
+  BAD,
+
+  @JsonProperty("ugly")
+  UGLY
+}
+---
+/com/example/dto/PlayersDTO.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.List;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class PlayersDTO {
+  private List<PlayerDTO> players;
+
+  public List<PlayerDTO> getPlayers() {
+    return this.players;
+  }
+
+  public void setPlayers(List<PlayerDTO> players) {
+    this.players = players;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PlayersDTO that = (PlayersDTO) o;
+    return Objects.equals(players, that.players);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(players);
+  }
+
+  @Override
+  public String toString() {
+    return "PlayersDTO{" + "players=" + players + "}";
+  }
+}
+---
+/com/example/dto/Truck.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Truck extends Vehicle {
+  private String truckProperty;
+
+  public String getTruckProperty() {
+    return this.truckProperty;
+  }
+
+  public void setTruckProperty(String truckProperty) {
+    this.truckProperty = truckProperty;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    Truck that = (Truck) o;
+    return Objects.equals(truckProperty, that.truckProperty);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), truckProperty);
+  }
+
+  @Override
+  public String toString() {
+    return "Truck{" + "truckProperty=" + truckProperty + "}";
+  }
+}
+---
+/com/example/dto/Vehicle.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
+import java.util.Objects;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "vehicle_type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = Car.class, name = "CAR"),
+    @JsonSubTypes.Type(value = Truck.class, name = "TRUCK")})
+public class Vehicle {
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash();
+  }
+
+  @Override
+  public String toString() {
+    return "Vehicle{" + "}";
+  }
+}
+---
+/com/example/dto/ZonedDateTimeDeserializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.DateTimeException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeDeserializer extends JsonDeserializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public ZonedDateTime deserialize(JsonParser jsonParser,
+      DeserializationContext deserializationContext) throws IOException {
+    String date = jsonParser.getText();
+    try  {
+      return ZonedDateTime.parse(date, formatter);
+    }
+    catch (DateTimeException e) {
+      try  {
+        return ZonedDateTime.parse(date + "Z", formatter);
+      }
+      catch (DateTimeException ignored) {
+        // do nothing, exception thrown below
+      }
+      throw new JsonParseException(jsonParser, e.getMessage());
+    }
+  }
+}
+---
+/com/example/dto/ZonedDateTimeSerializer.java
+package com.example.dto;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.lang.Override;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ZonedDateTimeSerializer extends JsonSerializer<ZonedDateTime> {
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+  @Override
+  public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider serializers)
+      throws IOException {
+    gen.writeString(formatter.format(value));
+  }
+}

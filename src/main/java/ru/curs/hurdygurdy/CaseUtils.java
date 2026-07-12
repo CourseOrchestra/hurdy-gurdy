@@ -193,7 +193,7 @@ public final class CaseUtils {
         }
 
         // Guard: empty input or only delimiters
-        if (result.length() == 0) {
+        if (result.isEmpty()) {
             return "__";
         }
 
@@ -243,7 +243,7 @@ public final class CaseUtils {
         }
 
         // Guard: no legal characters at all
-        if (result.length() == 0) {
+        if (result.isEmpty()) {
             return "__";
         }
         return result.toString();

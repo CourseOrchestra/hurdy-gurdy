@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GeneratorParamsTest {
 
@@ -73,5 +74,25 @@ class GeneratorParamsTest {
                 .containsExactly(Role.CONTROLLER, Role.API, Role.CLIENT);
         assertThat(Role.parse(null)).containsExactly(Role.CONTROLLER);
         assertThat(Role.parse("  ")).containsExactly(Role.CONTROLLER);
+    }
+
+    @Test
+    void javaDtoStyleDefaultsToLombok() {
+        assertEquals(JavaDtoStyle.LOMBOK,
+                GeneratorParams.rootPackage("com.example").getJavaDtoStyle());
+    }
+
+    @Test
+    void javaDtoStyleBuilderOverrides() {
+        assertEquals(JavaDtoStyle.RECORDS,
+                GeneratorParams.rootPackage("com.example")
+                        .javaDtoStyle(JavaDtoStyle.RECORDS).getJavaDtoStyle());
+    }
+
+    @Test
+    void javaDtoStyleOfParsesCaseInsensitivelyAndDefaults() {
+        assertEquals(JavaDtoStyle.POJO, JavaDtoStyle.of("PoJo"));
+        assertEquals(JavaDtoStyle.LOMBOK, JavaDtoStyle.of(null));
+        assertEquals(JavaDtoStyle.LOMBOK, JavaDtoStyle.of("  "));
     }
 }

@@ -39,6 +39,10 @@ const xmlEscape = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 // Quote a shell arg only when it contains whitespace (keeps clean paths unquoted).
 const shArg = (s) => (/\s/.test(s) ? `"${s}"` : s);
 
+// The Java DTO style is Java-only (Kotlin always emits data classes) and lombok
+// is the default, so it's emitted only for a non-default Java style.
+const useDtoStyle = (c) => c.language === "java" && c.dtoStyle && c.dtoStyle !== "lombok";
+
 function mavenSnippet(c) {
   const gen = normGenerate(c.generate);
   const lines = [
@@ -50,6 +54,7 @@ function mavenSnippet(c) {
   if (!isDefaultGenerate(gen)) lines.push(`        <generate>${gen.join(",")}</generate>`);
   if (c.responseParameter) lines.push(`        <generateResponseParameter>true</generateResponseParameter>`);
   if (!c.forceSnakeCase) lines.push(`        <forceSnakeCaseForProperties>false</forceSnakeCaseForProperties>`);
+  if (useDtoStyle(c)) lines.push(`        <javaDtoStyle>${c.dtoStyle}</javaDtoStyle>`);
   return [
     `<plugin>`,
     `    <groupId>ru.curs</groupId>`,
@@ -70,11 +75,13 @@ function gradleSnippet(c) {
   const useFramework = c.framework !== "spring";
   const useLanguage = c.language !== "java";
   const useGenerate = !isDefaultGenerate(gen);
+  const useStyle = useDtoStyle(c);
 
   const imports = [];
   if (useFramework) imports.push(`import ru.curs.hurdygurdy.Framework`);
   if (useGenerate) imports.push(`import ru.curs.hurdygurdy.Role`);
   if (useLanguage) imports.push(`import ru.curs.hurdygurdy.gradle.Language`);
+  if (useStyle) imports.push(`import ru.curs.hurdygurdy.JavaDtoStyle`);
 
   const body = [
     `        spec = file("${c.spec}")`,
@@ -88,6 +95,7 @@ function gradleSnippet(c) {
   }
   if (c.responseParameter) body.push(`        generateResponseParameter = true`);
   if (!c.forceSnakeCase) body.push(`        forceSnakeCaseForProperties = false`);
+  if (useStyle) body.push(`        javaDtoStyle = JavaDtoStyle.${c.dtoStyle.toUpperCase()}`);
 
   const header = imports.length ? imports.join("\n") + "\n\n" : "";
   return header + [
@@ -115,6 +123,7 @@ function cliSnippet(c) {
   if (!isDefaultGenerate(gen)) args.push(`--generate ${gen.join(",")}`);
   if (c.responseParameter) args.push(`--response-parameter`);
   if (!c.forceSnakeCase) args.push(`--no-force-snake-case`);
+  if (useDtoStyle(c)) args.push(`--java-dto-style ${c.dtoStyle}`);
 
   const cmd = ["hurdy-gurdy", ...args].join(" \\\n    ");
   return cmd + `\n# or: java -jar hurdy-gurdy-${version}-cli.jar (same flags)`;

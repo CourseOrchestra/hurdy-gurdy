@@ -1,0 +1,76 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Animal.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+@JsonTypeInfo(
+  use = JsonTypeInfo.Id.NAME,
+  include = JsonTypeInfo.As.PROPERTY,
+  property = "pet_type",
+)
+@JsonSubTypes(
+  JsonSubTypes.Type(value = Cat::class, name = "Cat"),
+  JsonSubTypes.Type(value = Dog::class, name = "Dog"),
+)
+public sealed class Animal(
+  public open val name: String,
+)
+---
+/com/example/dto/Cat.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Cat(
+  override val name: String,
+  public val huntingSkill: String,
+) : Animal(name),
+    Shape
+---
+/com/example/dto/Dog.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Dog(
+  override val name: String,
+  public val packSize: Int? = null,
+) : Animal(name),
+    Shape
+---
+/com/example/dto/Shape.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonSubTypes
+import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonSubTypes(
+  JsonSubTypes.Type(Cat::class),
+  JsonSubTypes.Type(Dog::class),
+)
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public sealed interface Shape

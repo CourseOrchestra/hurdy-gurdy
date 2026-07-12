@@ -24,7 +24,7 @@ public interface Controller {
 ---
 /com/example/dto
 ---
-/com/example/dto/OneOf.java
+/com/example/dto/AnyOf.java
 package com.example.dto;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.DEDUCTION
 )
-public interface OneOf {
+public interface AnyOf {
 }
 ---
 /com/example/dto/Variant1.java
@@ -52,7 +52,7 @@ import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant1 implements OneOf {
+public class Variant1 implements AnyOf {
   private Long id1;
 }
 ---
@@ -66,6 +66,6 @@ import lombok.Data;
 
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Variant2 implements OneOf {
+public class Variant2 implements AnyOf {
   private Long id2;
 }

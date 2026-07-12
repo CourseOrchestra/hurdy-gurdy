@@ -6,6 +6,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.tasks.SourceSetContainer
 import ru.curs.hurdygurdy.Framework
+import ru.curs.hurdygurdy.JavaDtoStyle
 import ru.curs.hurdygurdy.Role
 
 class HurdyGurdyPlugin : Plugin<Project> {
@@ -16,6 +17,7 @@ class HurdyGurdyPlugin : Plugin<Project> {
         specs.all { spec ->
             spec.framework.convention(Framework.SPRING)
             spec.language.convention(Language.JAVA)
+            spec.javaDtoStyle.convention(JavaDtoStyle.LOMBOK)
             spec.generate.convention(setOf(Role.CONTROLLER))
             spec.generateResponseParameter.convention(false)
             spec.forceSnakeCaseForProperties.convention(true)
@@ -31,6 +33,7 @@ class HurdyGurdyPlugin : Plugin<Project> {
                 task.rootPackage.set(spec.rootPackage)
                 task.framework.set(spec.framework)
                 task.language.set(spec.language)
+                task.javaDtoStyle.set(spec.javaDtoStyle)
                 task.generate.set(spec.generate)
                 task.generateResponseParameter.set(spec.generateResponseParameter)
                 task.forceSnakeCaseForProperties.set(spec.forceSnakeCaseForProperties)

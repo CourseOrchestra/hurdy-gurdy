@@ -14,8 +14,12 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AllMatchConfig extends MatchConfig {
   private String comment;
@@ -29,8 +33,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ColumnNameMatchConfig extends MatchConfig {
   private List<String> columns;
@@ -45,8 +53,12 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ComplexFilterMatchConfig extends MatchConfig {
   private String filter;
@@ -62,8 +74,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class FullyQualifiedColumnNameMatchConfig extends MatchConfig {
   private List<String> names;
@@ -107,8 +123,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SqlTypeMatchConfig extends MatchConfig {
   private List<String> types;
@@ -124,8 +144,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.lang.String;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(
+    callSuper = true
+)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class TableNameMatchConfig extends MatchConfig {
   private List<String> tables;

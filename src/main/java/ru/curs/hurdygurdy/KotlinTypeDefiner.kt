@@ -170,6 +170,39 @@ class KotlinTypeDefiner internal constructor(
             .copy(nullable = nullableOverride ?: meta.isNullable)
     }
 
+    /**
+     * The subtype mapping used to emit `@JsonSubTypes` for a discriminator base.
+     *
+     * Prefers the explicit `discriminator.mapping`; when the base declares a
+     * discriminator but no explicit mapping, derives
+     * `{schemaName -> "#/components/schemas/" + schemaName}` for every component
+     * schema whose `allOf` references this base, following the implicit convention
+     * that the discriminator value is the subtype's schema name.
+     *
+     * The `schema.discriminator == null` guard is essential: a plain allOf
+     * intermediate that other schemas reference must emit no `@JsonSubTypes`.
+     * Kotlin-only; does not touch the shared [getSubclassMapping] used by Java.
+     */
+    private fun effectiveSubclassMapping(
+        name: String, schema: Schema<*>, openAPI: OpenAPI
+    ): Map<String, String> {
+        val explicit = getSubclassMapping(schema).toMap()
+        if (explicit.isNotEmpty() || schema.discriminator == null) {
+            return explicit
+        }
+        val derived = LinkedHashMap<String, String>()
+        openAPI.components?.schemas?.forEach { (schemaName, s) ->
+            s.allOf?.forEach { a ->
+                if (a.`$ref` != null
+                    && (referencedTypeName(a.`$ref`, openAPI).copy(nullable = false) as ClassName).simpleName == name
+                ) {
+                    derived[schemaName] = "#/components/schemas/$schemaName"
+                }
+            }
+        }
+        return derived
+    }
+
 
     override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
@@ -180,8 +213,23 @@ class KotlinTypeDefiner internal constructor(
     /** A constructor property carried over from a base class (an allOf parent). */
     private data class InheritedProperty(val key: String, val schema: Schema<*>, val required: Boolean)
 
+    /**
+     * The member subschemas of a polymorphic container — a `oneOf`, or a top-level
+     * `anyOf` of two-or-more non-null `$ref`s (treated the same way). Returns an
+     * empty list for a plain schema, a nullable `anyOf:[X,null]`, or a single-ref
+     * anyOf. Single predicate for "is this schema a DEDUCTION-based polymorphic
+     * interface".
+     */
+    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> {
+        if (!schema.oneOf.isNullOrEmpty()) return schema.oneOf
+        val refs = schema.anyOf?.filter { it.`$ref` != null } ?: emptyList()
+        return if (refs.size >= 2) refs else emptyList()
+    }
+
+    private fun isPolymorphicInterface(schema: Schema<*>): Boolean = polymorphicMembers(schema).isNotEmpty()
+
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
-        return if (schema is ComposedSchema && schema.oneOf == null) {
+        return if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
             var inheritedProperties: List<InheritedProperty> = emptyList()
@@ -192,6 +240,18 @@ class KotlinTypeDefiner internal constructor(
                 } else {
                     currentSchema = s
                 }
+            }
+            // Propagate a discriminator declared on the ComposedSchema itself onto
+            // the inline `object` part, so an intermediate discriminator base (e.g.
+            // `Middle` in a nested Outer->Middle->Leaf chain) becomes a sealed
+            // @JsonTypeInfo base whose discriminator property is managed by Jackson
+            // and excluded from the constructor — matching constructorPropertiesOf,
+            // which already strips it. Without this the inline part loses the
+            // discriminator, the generated intermediate keeps the discriminator
+            // field as a constructor parameter, and a subclass forwards the wrong
+            // argument to the super-constructor (a compile error).
+            if (schema.discriminator != null && currentSchema !== schema) {
+                currentSchema.discriminator = schema.discriminator
             }
             getDTOClass(name, currentSchema, openAPI, baseClass, inheritedProperties)
         } else {
@@ -268,18 +328,18 @@ class KotlinTypeDefiner internal constructor(
         val classBuilder =
             (if (schema.properties.isNullOrEmpty() &&
                 schema.additionalProperties == null &&
-                schema.oneOf.isNullOrEmpty() &&
+                !isPolymorphicInterface(schema) &&
                 !isParent &&
                 inheritedProperties.isEmpty()
             )
                 TypeSpec.objectBuilder(name).superclass(baseClass)
-            else if (!schema.oneOf.isNullOrEmpty())
+            else if (isPolymorphicInterface(schema))
                 TypeSpec.interfaceBuilder(name)
             else
                 TypeSpec.classBuilder(name).superclass(baseClass))
 
         addInterfaces(openAPI, name, classBuilder)
-        oneOfToInterface(schema, openAPI, classBuilder)
+        polymorphicToInterface(schema, openAPI, classBuilder)
 
         if (params.isForceSnakeCaseForProperties) {
             classBuilder.addAnnotation(
@@ -312,7 +372,7 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.modifiers.remove(KModifier.DATA)
         }
 
-        val subclassMapping = getSubclassMapping(schema)
+        val subclassMapping = effectiveSubclassMapping(name, schema, openAPI)
         if (subclassMapping.isNotEmpty()) {
             val mappings =
                 subclassMapping
@@ -336,7 +396,7 @@ class KotlinTypeDefiner internal constructor(
 
         if ((!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
                     || inheritedProperties.isNotEmpty())
-            && schema.oneOf == null
+            && !isPolymorphicInterface(schema)
         ) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
@@ -355,7 +415,7 @@ class KotlinTypeDefiner internal constructor(
                 classBuilder.addSuperclassConstructorParameter("%N", propertyName)
             }
 
-            val inheritedKeys = inheritedProperties.mapTo(mutableSetOf()) { it.key }
+            val inheritedKeys = inheritedProperties.mapTo(mutableSetOf()) { it.key }.toSet()
             if (schemaMap != null) for ((key, value) in schemaMap) {
                 if (schema.discriminator != null && key == schema.discriminator.propertyName) {
                     //Skip the descriminator property
@@ -473,25 +533,35 @@ class KotlinTypeDefiner internal constructor(
             value.default
         } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
         if (default != null) {
-            if (value.type == "array") {
-                //Empty list as default
-                paramSpec.defaultValue("listOf()")
-            } else if (typeName.copy(nullable = false) == String::class.asTypeName()) {
-                //Default string value
-                paramSpec.defaultValue("%S", default.toString())
-            } else if (value.`$ref` != null && isEnum(
+            when {
+                value.type == "array" -> {
+                    //Empty list as default
+                    paramSpec.defaultValue("listOf()")
+                }
+
+                typeName.copy(nullable = false) == String::class.asTypeName() -> {
+                    //Default string value
+                    paramSpec.defaultValue("%S", default.toString())
+                }
+
+                value.`$ref` != null && isEnum(
                     openAPI,
                     extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
                 )
-            ) {
-                //Default enum value
-                paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
-            } else if (value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*"))) {
-                //"Empty object" default value
-                paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
-            } else {
-                //Everything else (e.g., numbers)
-                paramSpec.defaultValue("%L", default.toString())
+                    -> {
+                    //Default enum value
+                    paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
+                }
+
+                value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*")) -> {
+                    //"Empty object" default value
+                    paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
+                }
+
+                else -> {
+                    //Everything else (e.g., numbers)
+                    paramSpec.defaultValue("%L", default.toString())
+                }
             }
         } else if (!required) {
             paramSpec.defaultValue("null")
@@ -515,10 +585,10 @@ class KotlinTypeDefiner internal constructor(
     }
 
 
-    private fun oneOfToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
-        if (schema.oneOf != null) {
+    private fun polymorphicToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
+        if (isPolymorphicInterface(schema)) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
-            schema.oneOf.asSequence()
+            polymorphicMembers(schema).asSequence()
                 .map { it.`$ref` }
                 .filterNotNull()
                 .map { referencedTypeName(it, openAPI) }
@@ -544,13 +614,13 @@ class KotlinTypeDefiner internal constructor(
     private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
         openAPI.components.schemas.forEach { schemaName, schema ->
             if (schema is ComposedSchema) {
-                if (schema.oneOf != null) {
+                if (isPolymorphicInterface(schema)) {
                     val interfaceName = ClassName(
                         java.lang.String.join(".", params.rootPackage, "dto"),
                         schemaName
                     ).copy(nullable = false)
 
-                    for (s in schema.oneOf) {
+                    for (s in polymorphicMembers(schema)) {
                         if (s.`$ref` != null) {
                             val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
                             val className = (typeName as ClassName).simpleName

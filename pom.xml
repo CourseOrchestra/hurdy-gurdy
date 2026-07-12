@@ -55,9 +55,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.squareup</groupId>
+            <groupId>com.palantir.javapoet</groupId>
             <artifactId>javapoet</artifactId>
-            <version>1.13.0</version>
+            <version>0.17.0</version>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>
@@ -129,6 +129,38 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>3.27.7</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- DtoEqualsContractTest exercises the equals/hashCode contract of every
+             generated DTO with EqualsVerifier. The `-nodep` variant bundles its own
+             (shaded) ByteBuddy/Objenesis so verifying classes loaded by the test's
+             child URLClassLoader does not clash with any transitive ByteBuddy on the
+             build classpath. -->
+        <dependency>
+            <groupId>nl.jqno.equalsverifier</groupId>
+            <artifactId>equalsverifier-nodep</artifactId>
+            <version>4.5</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- DtoRoundTripTest registers Jackson's JavaTimeModule to (de)serialize
+             the LocalDate ("date" format) fields of generated DTOs, exactly as a
+             real Spring/Quarkus app's mapper does. Declared explicitly (rather
+             than relied on transitively via swagger-parser) so the round-trip
+             test's classpath does not silently break on a dependency bump. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.22.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- KotlinRoundTripTest deserializes generated Kotlin data classes, which
+             bind through their primary constructor: Jackson needs the Kotlin module
+             to discover constructor parameter names and honour default values.
+             Version pinned to the same Jackson train as jsr310 above. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+            <version>2.22.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
