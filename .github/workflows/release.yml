@@ -47,7 +47,7 @@ jobs:
       - name: Rename binary
         shell: bash
         run: mv target/${{ matrix.bin }} ${{ matrix.asset }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
@@ -72,7 +72,7 @@ jobs:
         run: |
           mkdir -p staging
           cp target/hurdy-gurdy-*-cli.jar staging/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cli-jar
           path: staging/hurdy-gurdy-*-cli.jar
