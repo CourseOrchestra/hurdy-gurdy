@@ -46,6 +46,16 @@ class CodegenMojoTest {
         }
     }
 
+    private boolean markerExists(Path buildDir) throws Exception {
+        Path dir = buildDir.resolve("hurdy-gurdy");
+        if (!Files.exists(dir)) {
+            return false;
+        }
+        try (Stream<Path> s = Files.walk(dir)) {
+            return s.anyMatch(p -> p.toString().endsWith(".hash"));
+        }
+    }
+
     @Test
     void generatesIntoConfiguredOutputDirectory(@TempDir Path tmp) throws Exception {
         Path out = tmp.resolve("gen");
@@ -54,5 +64,49 @@ class CodegenMojoTest {
         mojo.execute();
 
         assertThat(javaFileCount(out)).isGreaterThan(0);
+        assertThat(markerExists(tmp)).isTrue();
+    }
+
+    @Test
+    void secondRunSkipsWhenUnchanged(@TempDir Path tmp) throws Exception {
+        Path out = tmp.resolve("gen");
+        CodegenMojo mojo = newMojo(tmp, out);
+        mojo.execute();
+        Path generated = firstJavaFile(out);
+        Files.delete(generated);
+
+        mojo.execute(); // unchanged fingerprint -> skip, does not regenerate
+
+        assertThat(generated).doesNotExist();
+        assertThat(markerExists(tmp)).isTrue();
+    }
+
+    @Test
+    void markerLivesUnderBuildDirNotOutputDir(@TempDir Path tmp) throws Exception {
+        Path out = tmp.resolve("src-main-java"); // output is a "source tree"
+        CodegenMojo mojo = newMojo(tmp, out);
+
+        mojo.execute();
+
+        // marker is under the build dir, and NOT polluting the output/source tree
+        assertThat(markerExists(tmp)).isTrue();
+        try (Stream<Path> s = Files.walk(out)) {
+            assertThat(s.noneMatch(p -> p.toString().endsWith(".hash"))).isTrue();
+        }
+    }
+
+    @Test
+    void changingConfigTriggersRegeneration(@TempDir Path tmp) throws Exception {
+        Path out = tmp.resolve("gen");
+        CodegenMojo mojo = newMojo(tmp, out);
+        mojo.execute();
+        Path generated = firstJavaFile(out);
+        Files.delete(generated);
+
+        mojo.generateResponseParameter = true; // config change -> new fingerprint
+        mojo.execute();
+
+        assertThat(javaFileCount(out)).isGreaterThan(0);
+        assertThat(generated).exists();
     }
 }
