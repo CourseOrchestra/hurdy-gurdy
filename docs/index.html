@@ -20,19 +20,27 @@
   .panel pre code { padding-right: 5rem; }   /* room for the copy button */
   .copy { position: absolute; top: .5rem; right: .5rem; width: auto; margin: 0; padding: .3rem .7rem; z-index: 1; }
   fieldset { margin-bottom: 0; }
+  /* Logo sits top-left, matching the title block's height without adding vertical space. */
+  .brand { display: flex; align-items: center; gap: 1rem; }
+  .brand hgroup { margin-bottom: 0; }
+  .brand .logo { height: 3.5rem; width: auto; }
 </style>
 </head>
 <body>
 <main class="container">
   <header>
-    <hgroup>
-      <h1>Hurdy-Gurdy</h1>
-      <p>Generate client &amp; server Java/Kotlin code from an OpenAPI spec.</p>
-    </hgroup>
+    <div class="brand">
+      <img class="logo" src="logo.png" alt="Hurdy-Gurdy logo">
+      <hgroup>
+        <h1>Hurdy-Gurdy</h1>
+        <p>Generate client &amp; server Java/Kotlin code from an OpenAPI spec.</p>
+      </hgroup>
+    </div>
     <p class="badges">
       <a href="https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy"><img
         src="https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy" alt="Maven Central"></a>
-      <a href="https://github.com/courseorchestra/hurdy-gurdy">GitHub</a>
+      <a href="https://github.com/courseorchestra/hurdy-gurdy"><img
+        src="https://img.shields.io/badge/GitHub-courseorchestra%2Fhurdy--gurdy-181717?logo=github" alt="GitHub repository"></a>
     </p>
   </header>
 
