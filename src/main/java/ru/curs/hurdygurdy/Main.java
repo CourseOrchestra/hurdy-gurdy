@@ -61,6 +61,11 @@ public final class Main implements Callable<Integer> {
             description = "Force snake_case for properties (default: true).")
     private Boolean forceSnakeCase;
 
+    @Option(names = "--java-dto-style", defaultValue = "lombok",
+            description = "Java DTO style: lombok, pojo or records "
+                    + "(default: ${DEFAULT-VALUE}; ignored for Kotlin).")
+    private String javaDtoStyle;
+
     @Override
     public Integer call() throws Exception {
         Set<Role> roles = Role.parse(generate);
@@ -68,6 +73,7 @@ public final class Main implements Callable<Integer> {
                 .generateResponseParameter(responseParameter)
                 .forceSnakeCaseForProperties(forceSnakeCase == null || forceSnakeCase)
                 .framework(Framework.of(framework))
+                .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                 .generate(roles);
         Codegen<?> codegen = "java".equalsIgnoreCase(language)
                 ? new JavaCodegen(params)

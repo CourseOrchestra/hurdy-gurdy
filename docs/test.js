@@ -109,4 +109,34 @@ const base = {
   assert.ok(out.includes(`--spec "src/open api/api.yaml"`), "cli quotes spec with space");
   assert.ok(out.includes("--output build/generated-sources"), "cli leaves space-free output unquoted");
 }
+// --- Java DTO style: lombok (default) omitted everywhere ---
+{
+  const cfg = { ...base, dtoStyle: "lombok" };
+  assert.ok(!g.mavenSnippet(cfg).includes("javaDtoStyle"), "maven omits default lombok style");
+  assert.ok(!g.gradleSnippet(cfg).includes("JavaDtoStyle"), "gradle omits default lombok style");
+  assert.ok(!g.cliSnippet(cfg).includes("--java-dto-style"), "cli omits default lombok style");
+}
+// --- Java DTO style: records emitted in all three tools ---
+{
+  const cfg = { ...base, dtoStyle: "records" };
+  assert.ok(g.mavenSnippet(cfg).includes("<javaDtoStyle>records</javaDtoStyle>"), "maven records style");
+  const gr = g.gradleSnippet(cfg);
+  assert.ok(gr.includes("import ru.curs.hurdygurdy.JavaDtoStyle"), "gradle imports JavaDtoStyle");
+  assert.ok(gr.includes("javaDtoStyle = JavaDtoStyle.RECORDS"), "gradle records enum");
+  assert.ok(g.cliSnippet(cfg).includes("--java-dto-style records"), "cli records style");
+}
+// --- Java DTO style: pojo (lowercase in maven/cli, enum-cased in gradle) ---
+{
+  const cfg = { ...base, dtoStyle: "pojo" };
+  assert.ok(g.mavenSnippet(cfg).includes("<javaDtoStyle>pojo</javaDtoStyle>"), "maven pojo style");
+  assert.ok(g.gradleSnippet(cfg).includes("javaDtoStyle = JavaDtoStyle.POJO"), "gradle pojo enum");
+  assert.ok(g.cliSnippet(cfg).includes("--java-dto-style pojo"), "cli pojo style");
+}
+// --- DTO style is Java-only: never emitted for Kotlin, even when non-default ---
+{
+  const cfg = { ...base, language: "kotlin", dtoStyle: "records" };
+  assert.ok(!g.mavenSnippet(cfg).includes("javaDtoStyle"), "maven omits style for kotlin");
+  assert.ok(!g.gradleSnippet(cfg).includes("JavaDtoStyle"), "gradle omits style for kotlin");
+  assert.ok(!g.cliSnippet(cfg).includes("--java-dto-style"), "cli omits style for kotlin");
+}
 console.log("all generator tests passed");

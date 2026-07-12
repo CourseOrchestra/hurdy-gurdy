@@ -65,6 +65,13 @@
         <label><input type="checkbox" name="generate" value="api"> api</label>
         <label><input type="checkbox" name="generate" value="client"> client</label>
       </fieldset>
+      <!-- Java-only: Kotlin always emits data classes. Shown/hidden by render(). -->
+      <fieldset id="dtoStyleField">
+        <legend>Java DTO style</legend>
+        <label><input type="radio" name="dtoStyle" value="lombok" checked> Lombok <code>@Data</code></label>
+        <label><input type="radio" name="dtoStyle" value="pojo"> POJO</label>
+        <label><input type="radio" name="dtoStyle" value="records"> record</label>
+      </fieldset>
     </div>
 
     <div class="grid">
@@ -110,6 +117,7 @@
       <tr><td>Language</td><td>java · kotlin</td><td>java</td><td>Target language for generated sources.</td></tr>
       <tr><td>Framework</td><td>spring · quarkus</td><td>spring</td><td>Spring MVC vs Jakarta REST annotations.</td></tr>
       <tr><td>Generate</td><td>controller · api · client</td><td>controller</td><td>Which interfaces to emit (any subset).</td></tr>
+      <tr><td>Java DTO style</td><td>lombok · pojo · records</td><td>lombok</td><td>Shape of generated Java DTOs (Java only; Kotlin always uses data classes).</td></tr>
       <tr><td>Response parameter</td><td>bool</td><td>false</td><td>Expose the raw HTTP response (server + client).</td></tr>
       <tr><td>Force snake_case</td><td>bool</td><td>true</td><td>Treat DTO properties as snake_case in JSON.</td></tr>
     </tbody>
@@ -149,6 +157,7 @@
       generate: [...document.querySelectorAll('input[name=generate]:checked')].map((e) => e.value),
       responseParameter: $("responseParameter").checked,
       forceSnakeCase: $("forceSnakeCase").checked,
+      dtoStyle: document.querySelector('input[name=dtoStyle]:checked').value,
     };
   }
 
@@ -156,6 +165,9 @@
 
   function render() {
     const c = readConfig();
+    // The Java DTO style is meaningless for Kotlin (always data classes), so the
+    // control is only shown when Java is selected.
+    $("dtoStyleField").hidden = c.language !== "java";
     const fn = { maven: mavenSnippet, gradle: gradleSnippet, cli: cliSnippet }[current];
     const code = $("output");
     const text = fn(c);
