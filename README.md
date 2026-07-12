@@ -62,7 +62,10 @@ configuration are unchanged since the last run (tracked by a marker under
 `target/hurdy-gurdy/`, so it is wiped by `mvn clean` and never pollutes your
 source tree even when `outputDirectory` points into `src/main/java`). It
 tracks only the top spec file — if you edit an externally `$ref`ed file, run
-`mvn clean` to force regeneration.
+`mvn clean` to force regeneration. Likewise, if you point `outputDirectory`
+into your source tree (e.g. `src/main/java`) and manually delete the generated
+sources, run `mvn clean` too: the marker lives under `target/` and would
+otherwise skip regeneration and leave the sources missing.
 
 Generating Kotlin (`<language>kotlin</language>`) requires the
 `kotlin-maven-plugin` to be configured in the same project; otherwise the goal
