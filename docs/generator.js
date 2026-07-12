@@ -55,7 +55,13 @@ function mavenSnippet(c) {
   if (c.responseParameter) lines.push(`        <generateResponseParameter>true</generateResponseParameter>`);
   if (!c.forceSnakeCase) lines.push(`        <forceSnakeCaseForProperties>false</forceSnakeCaseForProperties>`);
   if (useDtoStyle(c)) lines.push(`        <javaDtoStyle>${c.dtoStyle}</javaDtoStyle>`);
-  return [
+  // Kotlin output only compiles if the project also runs the kotlin-maven-plugin;
+  // the goal fails fast otherwise. The form emits only the hurdy-gurdy plugin, so
+  // flag the extra requirement rather than silently producing an un-buildable pom.
+  const kotlinNote = c.language !== "java"
+    ? "<!-- Kotlin output requires the kotlin-maven-plugin to be configured in this\n     project (in <build><plugins>), otherwise the build fails. -->\n"
+    : "";
+  return kotlinNote + [
     `<plugin>`,
     `    <groupId>ru.curs</groupId>`,
     `    <artifactId>hurdy-gurdy</artifactId>`,

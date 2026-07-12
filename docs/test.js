@@ -32,6 +32,7 @@ const base = {
   assert.ok(!out.includes("<generate>"), "maven omits default generate");
   assert.ok(!out.includes("generateResponseParameter"), "maven omits default responseParameter");
   assert.ok(!out.includes("forceSnakeCaseForProperties"), "maven omits default forceSnakeCase");
+  assert.ok(!out.includes("kotlin-maven-plugin"), "maven java omits the kotlin-maven-plugin note");
 }
 // --- Maven non-defaults ---
 {
@@ -42,6 +43,7 @@ const base = {
   assert.ok(out.includes("<generate>controller,client</generate>"), "maven generate emitted");
   assert.ok(out.includes("<generateResponseParameter>true</generateResponseParameter>"), "maven resp param");
   assert.ok(out.includes("<forceSnakeCaseForProperties>false</forceSnakeCaseForProperties>"), "maven snake");
+  assert.ok(out.includes("kotlin-maven-plugin"), "maven kotlin snippet notes the kotlin-maven-plugin requirement");
 }
 // --- Gradle defaults ---
 {
