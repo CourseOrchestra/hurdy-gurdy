@@ -8,7 +8,12 @@
 
 Generates client and server side Java/Kotlin code based on OpenAPI spec, using [swagger-parser](https://github.com/swagger-api/swagger-parser), [JavaPoet](https://github.com/square/javapoet) and [KotlinPoet](https://github.com/square/kotlinpoet).
 
-## Usage example (as Maven plugin)
+## Usage examples
+
+Java or Kotlin? Spring or Quarkus? Maven, Gradle, or plain CLI?  [Fill this form](https://courseorchestra.github.io/hurdy-gurdy/) and copy the config for your build tool.
+
+### Maven plugin
+
 ```xml
 <plugin>
     <groupId>ru.curs</groupId>
@@ -39,7 +44,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 </plugin>
 ```
 
-## Usage example (as Gradle plugin)
+### Gradle plugin
 
 ```kotlin
 import ru.curs.hurdygurdy.Framework
@@ -71,7 +76,7 @@ generation and dependent compilation `UP-TO-DATE`.
 
 For Kotlin output, set `language = Language.KOTLIN` and apply the Kotlin JVM plugin.
 
-## Usage example (in Kotlin code, e.g. Gradle's buildSrc)
+### Direct API usage from Kotlin code
 
 ```kotlin
 import ru.curs.hurdygurdy.Framework
@@ -93,7 +98,7 @@ Files.createDirectories(resultPath)
 codegen.generate(yamlPath, resultPath)
 ```
 
-## Usage as a CLI
+### CLI
 
 Build the executable fat jar:
 
@@ -112,6 +117,7 @@ Optionally build a native binary (requires GraalVM):
 
     mvn -Pnative -DskipTests package
     ./target/hurdy-gurdy --spec ... --root-package ... --output ...
+
 
 ## Configuration parameters
 
