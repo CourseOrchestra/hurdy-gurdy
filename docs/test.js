@@ -48,12 +48,17 @@ const base = {
   const out = g.gradleSnippet(base);
   assert.ok(out.includes(`id("ru.curs.hurdy-gurdy") version "${g.VERSION}"`), "gradle plugin id+version");
   assert.ok(out.includes("hurdyGurdy {"), "gradle extension block");
-  assert.ok(out.includes("api {"), "gradle named block");
+  assert.ok(out.includes(`"api" {`), "gradle named block");
   assert.ok(out.includes(`spec = file("src/main/openapi/api.yaml")`), "gradle spec");
   assert.ok(out.includes(`rootPackage = "com.example.project"`), "gradle rootPackage");
   assert.ok(!out.includes("Framework"), "gradle omits default framework + import");
   assert.ok(!out.includes("Role"), "gradle omits default generate + import");
   assert.ok(!out.includes("Language"), "gradle omits default language + import");
+}
+// --- Gradle spec block named after the OpenAPI file ---
+{
+  assert.ok(g.gradleSnippet({ ...base, spec: "openapi/petstore.yaml" }).includes(`"petstore" {`), "gradle block from filename");
+  assert.ok(g.gradleSnippet({ ...base, spec: "billing.yml?ref=main" }).includes(`"billing" {`), "gradle block strips query+ext");
 }
 // --- Gradle non-defaults ---
 {
