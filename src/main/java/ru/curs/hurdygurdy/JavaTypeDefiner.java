@@ -30,6 +30,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -343,6 +344,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                  Set<String> inheritedKeys) {
         // RECORDS mode is dispatched earlier, from the 3-arg getDTOClass, so it
         // sees the full schema rather than the unwrapped own-properties member.
+        // A non-Object baseClass means this is an allOf-inheritance subtype, whose
+        // equals/hashCode must fold in the parent's fields (callSuper = true).
+        boolean hasParent = !ClassName.get(Object.class).equals(baseClass);
         TypeSpec.Builder classBuilder;
         if (isPolymorphicInterface(schema)) {
             classBuilder = TypeSpec.interfaceBuilder(name);
@@ -351,6 +355,15 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     .superclass(baseClass);
             if (params.getJavaDtoStyle() == JavaDtoStyle.LOMBOK) {
                 classBuilder.addAnnotation(Data.class);
+                // @Data's implicit @EqualsAndHashCode is callSuper = false, so a
+                // subtype would silently drop inherited fields from equals/hashCode
+                // (two subtypes differing only in an inherited field would compare
+                // equal). Base/standalone classes (superclass Object) keep plain
+                // @Data — callSuper there would wrongly mix in Object's identity.
+                if (hasParent) {
+                    classBuilder.addAnnotation(AnnotationSpec.builder(EqualsAndHashCode.class)
+                            .addMember("callSuper", "$L", true).build());
+                }
             }
         }
         classBuilder.addModifiers(Modifier.PUBLIC);
@@ -396,7 +409,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         addAdditionalPropertiesField(schema, openAPI, classBuilder);
 
         if (isPojoClassSchema(schema)) {
-            addPojoMembers(classBuilder);
+            addPojoMembers(classBuilder, hasParent);
         }
         return classBuilder.build();
     }
@@ -876,10 +889,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /**
      * Emits JavaBean getters/setters plus value-semantic equals/hashCode/toString
-     * for every declared field of a POJO-style DTO, matching Lombok {@code @Data}'s
-     * default (own fields only, {@code callSuper = false}).
+     * for every declared field of a POJO-style DTO. {@code equals}/{@code hashCode}
+     * chain {@code super} when the class extends a generated parent
+     * ({@code hasParent}), so inherited fields participate; {@code toString} covers
+     * own fields only (matching Lombok {@code @Data}'s toString default).
      */
-    private void addPojoMembers(TypeSpec.Builder classBuilder) {
+    private void addPojoMembers(TypeSpec.Builder classBuilder, boolean hasParent) {
         TypeSpec built = classBuilder.build();
         List<FieldSpec> fields = built.fieldSpecs().stream()
                 .filter(f -> f.modifiers().contains(Modifier.PRIVATE)
@@ -906,10 +921,10 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             // readValue, which would drop unknown properties on deserialization.
             classBuilder.addMethod(setter.build());
         }
-        addValueMethods(classBuilder, fields);
+        addValueMethods(classBuilder, fields, hasParent);
     }
 
-    private void addValueMethods(TypeSpec.Builder classBuilder, List<FieldSpec> fields) {
+    private void addValueMethods(TypeSpec.Builder classBuilder, List<FieldSpec> fields, boolean hasParent) {
         // equals
         MethodSpec.Builder equals = MethodSpec.methodBuilder("equals")
                 .addAnnotation(Override.class)
@@ -919,6 +934,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 .addStatement("if (this == o) return true")
                 .addStatement("if (o == null || getClass() != o.getClass()) return false");
         String cast = classBuilder.build().name();
+        // Fold in the parent's fields: the getClass() check above guarantees o is
+        // the same concrete type, so super's own getClass() check passes too.
+        if (hasParent) {
+            equals.addStatement("if (!super.equals(o)) return false");
+        }
         if (fields.isEmpty()) {
             equals.addStatement("return true");
         } else {
@@ -930,9 +950,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             equals.addStatement("return " + cond, args);
         }
         classBuilder.addMethod(equals.build());
-        // hashCode
+        // hashCode: seed with super.hashCode() so inherited fields contribute.
         String names = fields.stream().map(FieldSpec::name)
                 .collect(java.util.stream.Collectors.joining(", "));
+        if (hasParent) {
+            names = names.isEmpty() ? "super.hashCode()" : "super.hashCode(), " + names;
+        }
         classBuilder.addMethod(MethodSpec.methodBuilder("hashCode")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)

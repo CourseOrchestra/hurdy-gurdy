@@ -83,13 +83,14 @@ public class Car extends Vehicle {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
     Car that = (Car) o;
     return Objects.equals(carProperty, that.carProperty);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(carProperty);
+    return Objects.hash(super.hashCode(), carProperty);
   }
 
   @Override
@@ -774,13 +775,14 @@ public class Truck extends Vehicle {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
     Truck that = (Truck) o;
     return Objects.equals(truckProperty, that.truckProperty);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(truckProperty);
+    return Objects.hash(super.hashCode(), truckProperty);
   }
 
   @Override

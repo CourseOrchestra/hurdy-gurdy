@@ -131,6 +131,17 @@
             <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
+        <!-- DtoEqualsContractTest exercises the equals/hashCode contract of every
+             generated DTO with EqualsVerifier. The `-nodep` variant bundles its own
+             (shaded) ByteBuddy/Objenesis so verifying classes loaded by the test's
+             child URLClassLoader does not clash with any transitive ByteBuddy on the
+             build classpath. -->
+        <dependency>
+            <groupId>nl.jqno.equalsverifier</groupId>
+            <artifactId>equalsverifier-nodep</artifactId>
+            <version>4.5</version>
+            <scope>test</scope>
+        </dependency>
         <!-- DtoRoundTripTest registers Jackson's JavaTimeModule to (de)serialize
              the LocalDate ("date" format) fields of generated DTOs, exactly as a
              real Spring/Quarkus app's mapper does. Declared explicitly (rather

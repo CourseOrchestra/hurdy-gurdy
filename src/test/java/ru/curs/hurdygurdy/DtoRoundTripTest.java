@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -136,6 +138,106 @@ class DtoRoundTripTest {
         } finally {
             TestFiles.deleteRecursively(classes);
         }
+    }
+
+    /**
+     * Every instantiable DTO the generator emits must honour the
+     * {@code equals}/{@code hashCode} contract, checked by {@link EqualsVerifier}
+     * across the whole {@link JavaDtoStyle} &times; {@code forceSnakeCase} matrix.
+     *
+     * <p>Three warnings are suppressed because they describe intentional
+     * properties of the generated shape (or a limitation of the check itself),
+     * not contract violations:
+     * <ul>
+     *   <li>{@link Warning#NONFINAL_FIELDS} — LOMBOK/POJO DTOs are mutable
+     *       JavaBeans (they expose setters); records are unaffected.</li>
+     *   <li>{@link Warning#STRICT_INHERITANCE} — DTO base classes (e.g.
+     *       {@code Pet}, {@code Animal}) are non-final and meant to be subclassed;
+     *       records/sealed interfaces are unaffected.</li>
+     *   <li>{@link Warning#NULL_FIELDS} — a record's required components are
+     *       {@code Objects.requireNonNull}-validated in its compact constructor,
+     *       so EqualsVerifier's default null-probing cannot even instantiate them;
+     *       the generated {@code equals} is null-safe ({@code Objects.equals})
+     *       regardless.</li>
+     * </ul>
+     * The self-referential {@code Element} additionally needs explicit prefab
+     * values (EqualsVerifier cannot synthesise a value for a recursive type).
+     *
+     * <p>Everything else is left strict on purpose, so a genuine defect (such as
+     * a subclass whose {@code equals} ignores inherited fields) still fails.
+     * Failures are aggregated per class so one run reports every offending DTO.
+     */
+    @ParameterizedTest(name = "{0} forceSnakeCase={1}")
+    @MethodSource("matrix")
+    void everyDtoClassSatisfiesEqualsContract(JavaDtoStyle style, boolean snake) throws Exception {
+        generate(style, snake, SPEC);
+        generate(style, snake, SPEC_31);
+        Path classes = GeneratedCodeCompiler.compileJava(generated);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            List<String> failures = new ArrayList<>();
+            int verified = 0;
+            for (Class<?> clazz : concreteDtoClasses(loader)) {
+                verified++;
+                try {
+                    verifyEqualsContract(clazz);
+                } catch (AssertionError | RuntimeException e) {
+                    failures.add(context(clazz, style, snake) + " -> " + headline(e));
+                }
+            }
+            assertThat(failures)
+                    .as("EqualsVerifier failures for %s snake=%s", style, snake)
+                    .isEmpty();
+            assertThat(verified)
+                    .as("at least one concrete DTO verified for %s snake=%s", style, snake)
+                    .isGreaterThan(0);
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
+    }
+
+    /**
+     * Verifies the equals/hashCode contract of one DTO with the intentional-shape
+     * suppressions, feeding the self-referential {@code Element} the two distinct,
+     * non-recursive prefab instances EqualsVerifier needs for a recursive type.
+     */
+    private static <T> void verifyEqualsContract(Class<T> clazz) throws Exception {
+        var api = EqualsVerifier.forClass(clazz)
+                .suppress(Warning.NONFINAL_FIELDS, Warning.STRICT_INHERITANCE, Warning.NULL_FIELDS);
+        if ("Element".equals(clazz.getSimpleName())) {
+            @SuppressWarnings("unchecked")
+            T red = (T) newElement(clazz, "a", null, List.of());
+            @SuppressWarnings("unchecked")
+            T blue = (T) newElement(clazz, "b", null, List.of());
+            api.withPrefabValues(clazz, red, blue).verify();
+        } else {
+            api.verify();
+        }
+    }
+
+    /**
+     * The first {@code -> } headline line of an {@link EqualsVerifier} failure
+     * message (the concise statement of what is wrong), so an aggregated failure
+     * list stays readable; falls back to the first non-blank line.
+     */
+    private static String headline(Throwable e) {
+        String msg = e.getMessage();
+        if (msg == null) {
+            return e.toString();
+        }
+        String firstNonBlank = null;
+        for (String line : msg.split("\\R")) {
+            String trimmed = line.strip();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (firstNonBlank == null) {
+                firstNonBlank = trimmed;
+            }
+            if (trimmed.startsWith("->")) {
+                return trimmed.substring(2).strip();
+            }
+        }
+        return firstNonBlank == null ? msg : firstNonBlank;
     }
 
     /**

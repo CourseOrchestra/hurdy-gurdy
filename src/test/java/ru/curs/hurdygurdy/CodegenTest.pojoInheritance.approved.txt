@@ -84,13 +84,14 @@ public class B extends A {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
     B that = (B) o;
     return Objects.equals(oneMore, that.oneMore);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(oneMore);
+    return Objects.hash(super.hashCode(), oneMore);
   }
 
   @Override
@@ -115,12 +116,13 @@ public class C extends A {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
     return true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash();
+    return Objects.hash(super.hashCode());
   }
 
   @Override

@@ -8,7 +8,7 @@
 
 # Hurdy-Gurdy
 
-Generates client and server side Java/Kotlin code based on OpenAPI spec, using [swagger-parser](https://github.com/swagger-api/swagger-parser), [JavaPoet](https://github.com/square/javapoet) and [KotlinPoet](https://github.com/square/kotlinpoet).
+Generates client and server side Java/Kotlin code based on OpenAPI spec, using [swagger-parser](https://github.com/swagger-api/swagger-parser), [JavaPoet](https://github.com/palantir/javapoet) and [KotlinPoet](https://github.com/square/kotlinpoet).
 
 ## Usage examples
 
@@ -134,7 +134,7 @@ Optionally build a native binary (requires GraalVM):
 |`forceSnakeCaseForProperties`|boolean|true|By default, hurdy-gurdy expects all the properties of DTO classes to be defined in _snake_case_ in the specification. It converts these names to _camelCase_ for generated classes and sets Jackson's `SnakeCaseStrategy` so that they will still be _snake_case_ in JSON representation. If you don't want this (e. g. if you want your properties to be defined in _camelCase_ everywhere) you can turn off this function via this parameter. 
 |`framework`|String (`spring`\|`quarkus`)|`spring`|Selects the web framework whose annotations are emitted on the generated interfaces. `spring` (default) emits Spring MVC annotations (`@GetMapping`, `@PathVariable`, …). `quarkus` emits Jakarta REST / Quarkus annotations (`@GET` + `@Path`, `@PathParam`, `@QueryParam`, `@HeaderParam`, `@RestForm` for multipart). Value is case-insensitive.|
 |`generate`|comma-separated subset of `controller`, `api`, `client`|`controller`|Selects which interfaces to generate — any combination in a single run, e.g. `<generate>controller,client</generate>`. See [Generated interfaces](#generated-interfaces-generate). Case-insensitive.|
-|`javaDtoStyle`|String (`lombok`\|`pojo`\|`records`)|`lombok`|Shape of the generated **Java** DTOs. `lombok` (default) emits Lombok `@Data` classes (unchanged historical behaviour, requires Lombok on the classpath). `pojo` emits plain classes with explicit getters/setters plus `equals`/`hashCode`/`toString` — no Lombok dependency. `records` emits Java records. Applies to Java only; Kotlin always generates `data class`es. See [Java DTO styles](#java-dto-styles-javadtostyle). Case-insensitive.|
+|`javaDtoStyle`|String (`lombok`\|`pojo`\|`records`)|`lombok`|Shape of the generated **Java** DTOs. `lombok` (default) emits Lombok `@Data` classes (requires Lombok on the classpath). `pojo` emits plain classes with explicit getters/setters plus `equals`/`hashCode`/`toString` — no Lombok dependency. `records` emits Java records. Applies to Java only; Kotlin always generates `data class`es. See [Java DTO styles](#java-dto-styles-javadtostyle). Case-insensitive.|
 
 ## Generated interfaces (`generate`)
 
@@ -175,7 +175,7 @@ the same JSON for the same specification.
 
 | Style | What is generated | Notes |
 |---|---|---|
-| `lombok` (default) | Lombok `@Data` classes | Historical behaviour, unchanged. Requires Lombok on the classpath. |
+| `lombok` (default) | Lombok `@Data` classes | Requires Lombok on the classpath. |
 | `pojo` | Plain classes with explicit getters/setters plus `equals`/`hashCode`/`toString` | No Lombok dependency. Value semantics match `@Data` (own fields only). |
 | `records` | Java records | Immutable; requires Java 17+. Record-style `name()` accessors (not `getName()`). |
 
@@ -334,11 +334,16 @@ public class Vehicle {
 
 //Car.java
 @Data
+@EqualsAndHashCode(callSuper = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Car extends Vehicle {
     private String carProperty;
 }
 ```
+
+The `@EqualsAndHashCode(callSuper = true)` is emitted on subtypes only (a class that
+`extends` a generated parent), so inherited fields participate in `equals`/`hashCode`;
+base and standalone classes keep a plain `@Data`.
 
 With `javaDtoStyle=pojo` the same schema produces plain classes (no Lombok) with
 explicit accessors and value methods:
@@ -361,13 +366,14 @@ public class Car extends Vehicle {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
         Car that = (Car) o;
         return Objects.equals(carProperty, that.carProperty);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(carProperty);
+        return Objects.hash(super.hashCode(), carProperty);
     }
 
     @Override
