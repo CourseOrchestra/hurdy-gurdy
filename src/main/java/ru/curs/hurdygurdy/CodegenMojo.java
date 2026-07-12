@@ -52,6 +52,11 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     MavenProject project;
 
+    @Parameter(
+            defaultValue = "${project.build.directory}/generated-sources/openapi",
+            property = "outputDirectory")
+    File outputDirectory;
+
     @Override
     public void execute() throws MojoExecutionException {
         Set<Role> roles = Role.parse(generate);
@@ -71,22 +76,12 @@ public class CodegenMojo extends AbstractMojo {
                         ? new JavaCodegen(params)
                         : new KotlinCodegen(params);
         try {
-            Path targetPath = getTargetPath();
+            Path targetPath = outputDirectory.toPath();
+            Files.createDirectories(targetPath);
             codegen.generate(Path.of(spec), targetPath);
             project.addCompileSourceRoot(targetPath.toString());
         } catch (IOException e) {
             throw new MojoExecutionException("Generation failed", e);
         }
-
-
-    }
-
-    private Path getTargetPath() throws IOException {
-        Path result = Path.of(project.getBuild().getDirectory()
-                + File.separator + "generated-sources" + File.separator + "openapi");
-        if (!Files.exists(result)) {
-            Files.createDirectories(result);
-        }
-        return result;
     }
 }
