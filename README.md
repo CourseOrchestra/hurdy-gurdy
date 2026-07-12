@@ -12,7 +12,12 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 
 ## Usage examples
 
-Java or Kotlin? Spring or Quarkus? Maven, Gradle, or plain CLI?  [Fill this form](https://courseorchestra.github.io/hurdy-gurdy/) and copy the config for your build tool.
+* Java or Kotlin? 
+* Spring or Quarkus? 
+* Maven, Gradle, or plain CLI?  
+* Lombok, POJO or Java records for DTOs?
+
+[Fill this form](https://courseorchestra.github.io/hurdy-gurdy/) and copy the config for your build tool.
 
 ### Maven plugin
 
