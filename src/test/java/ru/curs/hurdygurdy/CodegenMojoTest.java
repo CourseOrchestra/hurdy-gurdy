@@ -109,4 +109,31 @@ class CodegenMojoTest {
         assertThat(javaFileCount(out)).isGreaterThan(0);
         assertThat(generated).exists();
     }
+
+    @Test
+    void kotlinWithoutKotlinMavenPluginFails(@TempDir Path tmp) {
+        CodegenMojo mojo = newMojo(tmp, tmp.resolve("gen"));
+        mojo.language = "kotlin";
+
+        assertThatThrownBy(mojo::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("kotlin-maven-plugin");
+    }
+
+    @Test
+    void kotlinWithKotlinMavenPluginProceeds(@TempDir Path tmp) throws Exception {
+        Path out = tmp.resolve("gen");
+        CodegenMojo mojo = newMojo(tmp, out);
+        mojo.language = "kotlin";
+        Plugin kotlin = new Plugin();
+        kotlin.setGroupId("org.jetbrains.kotlin");
+        kotlin.setArtifactId("kotlin-maven-plugin");
+        mojo.project.getBuild().getPlugins().add(kotlin);
+
+        mojo.execute();
+
+        try (Stream<Path> s = Files.walk(out)) {
+            assertThat(s.filter(p -> p.toString().endsWith(".kt")).count()).isGreaterThan(0);
+        }
+    }
 }

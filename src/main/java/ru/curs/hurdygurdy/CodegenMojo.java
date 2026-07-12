@@ -1,5 +1,6 @@
 package ru.curs.hurdygurdy;
 
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -65,6 +66,12 @@ public class CodegenMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        if ("kotlin".equalsIgnoreCase(language) && !hasKotlinMavenPlugin()) {
+            throw new MojoExecutionException(
+                    "language is set to 'kotlin' but the kotlin-maven-plugin "
+                    + "(org.jetbrains.kotlin:kotlin-maven-plugin) is not configured in this "
+                    + "project; the generated Kotlin sources would never be compiled");
+        }
         Set<Role> roles = Role.parse(generate);
         if (generateApiInterface) {
             getLog().warn("generateApiInterface is deprecated; use <generate>controller,api</generate> instead");
@@ -128,6 +135,16 @@ public class CodegenMojo extends AbstractMojo {
                 outputDirectory.toString());
         md.update(config.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(md.digest());
+    }
+
+    private boolean hasKotlinMavenPlugin() {
+        for (Plugin plugin : project.getBuildPlugins()) {
+            if ("org.jetbrains.kotlin".equals(plugin.getGroupId())
+                    && "kotlin-maven-plugin".equals(plugin.getArtifactId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String sha256Hex(byte[] bytes) {
