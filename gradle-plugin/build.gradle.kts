@@ -5,6 +5,7 @@ plugins {
     kotlin("jvm") version "2.4.0"
     `java-gradle-plugin`
     id("com.gradle.plugin-publish") version "1.3.1"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 // Single source of truth for the version: the top-level <version> of the core
@@ -71,4 +72,21 @@ gradlePlugin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+detekt {
+    // Start from detekt's recommended defaults and layer this repo's overrides
+    // (config/detekt/detekt.yml) on top, so the build fails on new findings
+    // without us having to restate the entire default ruleset.
+    buildUponDefaultConfig = true
+    config.setFrom(files("config/detekt/detekt.yml"))
+}
+
+// Route `check` through the type-resolution-aware detekt tasks (detektMain /
+// detektTest) rather than only the plain `detekt` task the plugin wires in by
+// default: they enable the rules that need a compiled classpath, so `check`
+// runs the fuller analysis. This is why they require the core ru.curs:hurdy-gurdy
+// artifact to be resolvable (mavenLocal), same as compilation.
+tasks.named("check") {
+    dependsOn(tasks.named("detektMain"), tasks.named("detektTest"))
 }

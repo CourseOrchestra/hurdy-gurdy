@@ -1,0 +1,3 @@
+# Detekt overrides for the Gradle plugin build. Layered on top of detekt's
+# default ruleset (buildUponDefaultConfig = true in build.gradle.kts); only
+# deviations from the defaults are listed here.
