@@ -142,16 +142,17 @@
             <version>4.5</version>
             <scope>test</scope>
         </dependency>
-        <!-- DtoRoundTripTest registers Jackson's JavaTimeModule to (de)serialize
-             the LocalDate ("date" format) fields of generated DTOs, exactly as a
-             real Spring/Quarkus app's mapper does. Declared explicitly (rather
-             than relied on transitively via swagger-parser) so the round-trip
-             test's classpath does not silently break on a dependency bump. -->
+        <!-- Required at RUNTIME: swagger-parser's ObjectMapperFactory.createJson()
+             registers Jackson's JavaTimeModule, so the class must be on the runtime
+             (and native-image) classpath, not just in tests. Pinned explicitly so the
+             version does not silently drift on a dependency bump. Must stay compile
+             scope: as test scope it was stripped from the CLI jar and native image,
+             causing NoClassDefFoundError/NoSuchMethodError at parse time (#TBD).
+             Also used by DtoRoundTripTest to (de)serialize LocalDate DTO fields. -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.22.1</version>
-            <scope>test</scope>
         </dependency>
         <!-- KotlinRoundTripTest deserializes generated Kotlin data classes, which
              bind through their primary constructor: Jackson needs the Kotlin module
