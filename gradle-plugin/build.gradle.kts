@@ -4,7 +4,7 @@ import org.w3c.dom.Node
 plugins {
     kotlin("jvm") version "2.4.0"
     `java-gradle-plugin`
-    id("com.gradle.plugin-publish") version "1.3.1"
+    id("com.gradle.plugin-publish") version "2.1.1"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
