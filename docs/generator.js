@@ -39,6 +39,11 @@ const xmlEscape = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 // Quote a shell arg only when it contains whitespace (keeps clean paths unquoted).
 const shArg = (s) => (/\s/.test(s) ? `"${s}"` : s);
 
+// Name the Gradle spec block after the OpenAPI file: "petstore.yaml" -> "petstore".
+// Strips dir, query string, extension; falls back to "api" if nothing usable remains.
+const specBlockName = (p) =>
+  String(p).split(/[\\/]/).pop().replace(/\?.*$/, "").replace(/\.[^.]+$/, "") || "api";
+
 // The Java DTO style is Java-only (Kotlin always emits data classes) and lombok
 // is the default, so it's emitted only for a non-default Java style.
 const useDtoStyle = (c) => c.language === "java" && c.dtoStyle && c.dtoStyle !== "lombok";
@@ -104,7 +109,7 @@ function gradleSnippet(c) {
     `}`,
     ``,
     `hurdyGurdy {`,
-    `    api {`,
+    `    "${specBlockName(c.spec)}" {`,
     ...body,
     `    }`,
     `}`,
