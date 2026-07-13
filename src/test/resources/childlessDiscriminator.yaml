@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info: {title: childlessDiscriminator, version: "1.0"}
+paths: {}
+components:
+  schemas:
+    # Discriminator base with NO subtypes (no allOf children, no explicit
+    # mapping). Must fall back to an instantiable type instead of an empty,
+    # uninstantiable sealed class / bare interface.
+    Thing:
+      type: object
+      discriminator:
+        propertyName: $type
+      properties:
+        id: {type: string}
+        name: {type: string}
+        $type: {type: string}
+    # Discriminator base WITH a child. Must stay polymorphic (sealed class /
+    # sealed interface) so selectivity of the fallback is proven.
+    Animal:
+      type: object
+      discriminator:
+        propertyName: kind
+      properties:
+        kind: {type: string}
+        name: {type: string}
+    Cat:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          properties:
+            claw_length: {type: integer}

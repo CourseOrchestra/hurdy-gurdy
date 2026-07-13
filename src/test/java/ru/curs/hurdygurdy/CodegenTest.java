@@ -301,6 +301,20 @@ class CodegenTest {
         GeneratedCodeCompiler.assertJavaCompiles(result);
     }
 
+    @Test
+    void childlessDiscriminatorRecordIsInstantiable() throws IOException {
+        // In RECORDS style a discriminator base with no subtypes would become a
+        // bare, uninstantiable interface. It must fall back to a concrete record
+        // (keeping @JsonTypeInfo) so it can be created/deserialized, while a
+        // discriminator base WITH children (Animal) stays a sealed interface. The
+        // snapshot locks both shapes.
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(Path.of("src/test/resources/childlessDiscriminator.yaml"), result);
+        verify(result);
+    }
+
     @ParameterizedTest
     @EnumSource(JavaDtoStyle.class)
     void youtrackCompilesInAllStyles(JavaDtoStyle style) throws IOException {

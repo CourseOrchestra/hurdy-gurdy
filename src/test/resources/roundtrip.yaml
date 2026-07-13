@@ -59,6 +59,23 @@ components:
           items:
             $ref: '#/components/schemas/Inner'
 
+    # Discriminator base with NO subtypes (no allOf children, no explicit
+    # mapping). Falls back to an instantiable data class / record (keeping
+    # @JsonTypeInfo) instead of an uninstantiable empty sealed class / bare
+    # interface, so it must survive a full serialize -> deserialize round-trip.
+    Solo:
+      type: object
+      required: [solo_id]
+      discriminator:
+        propertyName: solo_kind
+      properties:
+        solo_id:
+          type: string
+        solo_count:
+          type: integer
+        solo_kind:
+          type: string
+
     # Discriminator base with two subtypes; the base carries a required
     # property (name) that every subtype inherits.
     Pet:

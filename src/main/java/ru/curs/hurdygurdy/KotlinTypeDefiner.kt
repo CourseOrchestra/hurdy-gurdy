@@ -350,9 +350,26 @@ class KotlinTypeDefiner internal constructor(
             )
         }
 
+        val subclassMapping = effectiveSubclassMapping(name, schema, openAPI)
+        // A discriminator base is a sealed superclass ONLY when it actually has
+        // subtypes. A discriminator base with no subtypes would otherwise become an
+        // empty, uninstantiable `sealed class`, so fall back to a normal (data/open)
+        // class — mirroring the Java class DTO styles — while keeping @JsonTypeInfo.
+        val isSealedBase = schema.discriminator != null && subclassMapping.isNotEmpty()
+        // The discriminator property is dropped from the constructor (managed by
+        // Jackson), so exclude it when deciding whether a `data class` is viable: a
+        // data class with zero components does not compile.
+        val ownDataPropertyCount = schema.properties?.keys
+            ?.count { it != schema.discriminator?.propertyName } ?: 0
+        val hasDataProperties = ownDataPropertyCount > 0
+            || inheritedProperties.isNotEmpty()
+            || schema.additionalProperties != null
+
         //This class is a superclass
         if (schema.discriminator != null) {
-            classBuilder.addModifiers(KModifier.SEALED)
+            if (isSealedBase) {
+                classBuilder.addModifiers(KModifier.SEALED)
+            }
             classBuilder.addAnnotation(
                 AnnotationSpec
                     .builder(JsonTypeInfo::class)
@@ -361,9 +378,8 @@ class KotlinTypeDefiner internal constructor(
                     .addMember("property = %S", schema.discriminator.propertyName)
                     .build()
             )
-        } else if (!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
-            || inheritedProperties.isNotEmpty()
-        ) {
+        }
+        if (!isSealedBase && hasDataProperties) {
             classBuilder.addModifiers(KModifier.DATA)
         }
         //Intermediate class, can't be data, should be open
@@ -372,7 +388,6 @@ class KotlinTypeDefiner internal constructor(
             classBuilder.modifiers.remove(KModifier.DATA)
         }
 
-        val subclassMapping = effectiveSubclassMapping(name, schema, openAPI)
         if (subclassMapping.isNotEmpty()) {
             val mappings =
                 subclassMapping
