@@ -41,9 +41,12 @@ jobs:
         run: mvn -B versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
       - name: Build native image
         run: mvn -B clean -Pnative -DskipTests package
-      - name: Smoke test binary
+      - name: Acceptance test binary
         shell: bash
-        run: ./target/${{ matrix.bin }} --version
+        # Real spec parse against the native image -- guards against packaging
+        # regressions (missing runtime deps, dropped methods) that a --version
+        # smoke test never exercises. See PR #543.
+        run: acceptance/run.sh ./target/${{ matrix.bin }}
       - name: Rename binary
         shell: bash
         run: mv target/${{ matrix.bin }} ${{ matrix.asset }}
@@ -67,6 +70,9 @@ jobs:
         run: mvn -B versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
       - name: Build fat jar
         run: mvn -B clean -DskipTests package
+      - name: Acceptance test jar
+        shell: bash
+        run: acceptance/run.sh java -jar "$(ls target/hurdy-gurdy-*-cli.jar)"
       - name: Stage jar
         shell: bash
         run: |
