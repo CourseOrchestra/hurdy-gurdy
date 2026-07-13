@@ -18,6 +18,8 @@ jobs:
           java-version: '25'
       - name: Build with Maven
         run: mvn -B package
+      - name: Acceptance test packaged jar
+        run: acceptance/run.sh java -jar "$(ls target/hurdy-gurdy-*-cli.jar)"
 
   gradle-plugin:
     runs-on: ubuntu-latest
