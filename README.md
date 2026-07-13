@@ -124,8 +124,9 @@ hurdyGurdy {
 
 Each named block registers a `generate<Name>` task (e.g. `generatePetstore`) whose
 output dir is added to the `main` source set, so `compileJava`/`compileKotlin`
-depend on it automatically. The task is cacheable: an unchanged spec keeps both
-generation and dependent compilation `UP-TO-DATE`.
+depend on it automatically. The task is cacheable: unchanged inputs — the spec,
+every file it (transitively) references via `$ref: "<file>#/..."`, and the
+configuration — keep both generation and dependent compilation `UP-TO-DATE`.
 
 For Kotlin output, set `language = Language.KOTLIN` and apply the Kotlin JVM plugin.
 

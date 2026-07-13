@@ -5,9 +5,11 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.tasks.SourceSetContainer
+import ru.curs.hurdygurdy.ExternalRefs
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.JavaDtoStyle
 import ru.curs.hurdygurdy.Role
+import java.nio.file.Path
 
 class HurdyGurdyPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -30,6 +32,11 @@ class HurdyGurdyPlugin : Plugin<Project> {
                 task.group = "hurdy-gurdy"
                 task.description = "Generates code from the '${spec.name}' OpenAPI spec"
                 task.spec.set(spec.spec)
+                // re-discovered on every build at fingerprinting time, so a
+                // newly added $ref is picked up without any extra configuration
+                task.referencedSpecs.from(spec.spec.map { specFile ->
+                    ExternalRefs.collectSpecFiles(specFile.asFile.path).values.map(Path::toFile)
+                })
                 task.rootPackage.set(spec.rootPackage)
                 task.framework.set(spec.framework)
                 task.language.set(spec.language)
