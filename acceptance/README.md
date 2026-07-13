@@ -11,9 +11,10 @@ which crashes the generator before it writes anything.
 
 The matrix is the full cartesian product of framework (spring/quarkus),
 language (java/kotlin), `--generate` role (controller/api/client, each run
-separately), java DTO style (lombok/pojo/records, java only), and the
-`--response-parameter` / `--force-snake-case` toggles — 96 cases. The case
-list is generated in `run.sh`; no golden files are checked in.
+separately), and java DTO style (lombok/pojo/records, java only) — 24 cases.
+The `--response-parameter` / `--force-snake-case` toggles are left at their
+defaults (their output is covered by the JUnit tests). The case list is
+generated in `run.sh`; no golden files are checked in.
 
 ## Run locally
 

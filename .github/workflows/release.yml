@@ -43,9 +43,9 @@ jobs:
         run: mvn -B clean -Pnative -DskipTests package
       - name: Acceptance test binary
         shell: bash
-        # Real spec parse + golden compare against the native image -- guards
-        # against packaging regressions (missing runtime deps, dropped methods)
-        # that a --version smoke test never exercises. See PR #543.
+        # Real spec parse against the native image -- guards against packaging
+        # regressions (missing runtime deps, dropped methods) that a --version
+        # smoke test never exercises. See PR #543.
         run: acceptance/run.sh ./target/${{ matrix.bin }}
       - name: Rename binary
         shell: bash
