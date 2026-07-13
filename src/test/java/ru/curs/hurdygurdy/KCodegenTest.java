@@ -197,6 +197,17 @@ class KCodegenTest {
         verify(result);
     }
 
+    @Test
+    void childlessDiscriminatorFallsBackToInstantiable() throws IOException {
+        // A discriminator base with no subtypes (no allOf children, no explicit
+        // mapping) would otherwise become an uninstantiable empty `sealed class`.
+        // It must fall back to a normal `data class` (keeping @JsonTypeInfo) so it
+        // can be created/deserialized, while a discriminator base WITH children
+        // (Animal) stays sealed. The snapshot locks both shapes.
+        codegen.generate(Path.of("src/test/resources/childlessDiscriminator.yaml"), result);
+        verify(result);
+    }
+
     @ParameterizedTest
     @EnumSource(Framework.class)
     void youtrackOpenapiCompiles(Framework framework) throws IOException {

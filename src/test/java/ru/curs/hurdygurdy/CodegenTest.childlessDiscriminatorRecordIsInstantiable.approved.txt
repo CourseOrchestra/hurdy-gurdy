@@ -1,0 +1,55 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Animal.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.lang.String;
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "kind"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = Cat.class, name = "Cat")})
+public sealed interface Animal permits Cat {
+  String name();
+}
+---
+/com/example/dto/Cat.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Integer;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record Cat(String name, Integer clawLength) implements Animal {
+}
+---
+/com/example/dto/Thing.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "$type"
+)
+public record Thing(String id, String name) {
+}

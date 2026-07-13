@@ -436,11 +436,17 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (isPolymorphicInterface(schema)) {
             return buildSealedInterface(name, schema, openAPI, false);
         }
-        // 2) discriminator base -> sealed interface (name-based polymorphism)
-        if (schema.getDiscriminator() != null) {
+        // 2) discriminator base WITH subtypes -> sealed interface (name-based
+        // polymorphism). A discriminator base with NO subtypes would become a bare,
+        // uninstantiable interface, so let it fall through to the concrete-record
+        // path below and re-attach @JsonTypeInfo — mirroring the class DTO styles.
+        if (schema.getDiscriminator() != null && !permittedSubtypes(name, schema, openAPI).isEmpty()) {
             return buildSealedInterface(name, schema, openAPI, true);
         }
-        // 3) concrete schema -> record (flatten allOf-inherited components)
+        // 3) concrete schema -> record (flatten allOf-inherited components). A
+        // subtype-less discriminator base also lands here (buildConcreteRecord
+        // keeps its @JsonTypeInfo and drops the discriminator property), so it is
+        // instantiable instead of a bare interface.
         List<RecordComponent> inherited = inheritedComponents(schema, openAPI);
         List<ClassName> implemented = ancestorInterfaces(name, schema, openAPI);
         return buildConcreteRecord(name, currentSchemaOf(schema), openAPI, inherited, implemented);
@@ -593,6 +599,14 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (params.isForceSnakeCaseForProperties()) {
             recordBuilder.addAnnotation(AnnotationSpec.builder(JsonNaming.class).addMember("value",
                     "$T.class", ClassName.get(PropertyNamingStrategies.SnakeCaseStrategy.class)).build());
+        }
+        // A subtype-less discriminator base is built as a concrete record (rather
+        // than a bare, uninstantiable interface); keep its @JsonTypeInfo so Jackson
+        // still reads/writes the type-id property. Bases WITH subtypes never reach
+        // here (they become sealed interfaces); concrete subtypes' ownSchema is the
+        // inline allOf member, whose discriminator is null, so they stay unannotated.
+        if (ownSchema.getDiscriminator() != null) {
+            recordBuilder.addAnnotation(discriminatorTypeInfo(ownSchema));
         }
         implemented.forEach(recordBuilder::addSuperinterface);
 
