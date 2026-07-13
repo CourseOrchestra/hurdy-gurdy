@@ -57,15 +57,16 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 </plugin>
 ```
 
-The `gen-server` goal skips regeneration when the spec file and the plugin
-configuration are unchanged since the last run (tracked by a marker under
-`target/hurdy-gurdy/`, so it is wiped by `mvn clean` and never pollutes your
-source tree even when `outputDirectory` points into `src/main/java`). It
-tracks only the top spec file — if you edit an externally `$ref`ed file, run
-`mvn clean` to force regeneration. Likewise, if you point `outputDirectory`
-into your source tree (e.g. `src/main/java`) and manually delete the generated
-sources, run `mvn clean` too: the marker lives under `target/` and would
-otherwise skip regeneration and leave the sources missing.
+The `gen-server` goal skips regeneration when nothing the generated sources
+depend on has changed since the last run: the spec file and every file it
+(transitively) references via `$ref: "<file>#/..."`, the effective plugin
+configuration, and the plugin version itself. This is tracked by a
+human-readable marker file under `target/hurdy-gurdy/`, so it is wiped by
+`mvn clean` and never pollutes your source tree even when `outputDirectory`
+points into `src/main/java`. If you point `outputDirectory` into your source
+tree (e.g. `src/main/java`) and manually delete the generated sources, run
+`mvn clean`: the marker lives under `target/` and would otherwise skip
+regeneration and leave the sources missing.
 
 Generating Kotlin (`<language>kotlin</language>`) requires the
 `kotlin-maven-plugin` to be configured in the same project; otherwise the goal
