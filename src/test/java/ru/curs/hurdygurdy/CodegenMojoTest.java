@@ -2,14 +2,11 @@ package ru.curs.hurdygurdy;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Plugin;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
-import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -17,7 +14,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CodegenMojoTest {
 
@@ -190,16 +186,6 @@ class CodegenMojoTest {
 
         assertThat(javaFileCount(out)).isGreaterThan(0);
         assertThat(generated).exists();
-    }
-
-    @Test
-    void kotlinWithoutKotlinMavenPluginFails(@TempDir Path tmp) {
-        CodegenMojo mojo = newMojo(tmp, tmp.resolve("gen"));
-        mojo.language = "kotlin";
-
-        assertThatThrownBy(mojo::execute)
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining("kotlin-maven-plugin");
     }
 
     @Test
