@@ -52,4 +52,53 @@ class CachingFunctionalTest {
         assertEquals(TaskOutcome.UP_TO_DATE, second.task(":generatePetstore")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, second.task(":compileJava")?.outcome)
     }
+
+    @Test
+    fun `editing an externally referenced file re-runs generation`() {
+        setup()
+        write("openapi/petstore.yaml", SPEC_WITH_EXTERNAL_REF)
+        write("openapi/common.yaml", EXTERNAL_SPEC)
+        run("generatePetstore")
+
+        val unchanged = run("generatePetstore")
+        assertEquals(TaskOutcome.UP_TO_DATE, unchanged.task(":generatePetstore")?.outcome)
+
+        val common = File(projectDir, "openapi/common.yaml")
+        common.appendText("\n# a change in a referenced file\n")
+        val afterEdit = run("generatePetstore")
+        assertEquals(TaskOutcome.SUCCESS, afterEdit.task(":generatePetstore")?.outcome)
+    }
+
+    companion object {
+        val SPEC_WITH_EXTERNAL_REF = """
+            openapi: 3.0.0
+            info: { title: t, version: "1.0" }
+            paths:
+              \license:
+                get:
+                  tags: [license]
+                  operationId: getLicense
+                  responses:
+                    "200":
+                      description: ok
+                      content:
+                        application/json:
+                          schema:
+                            ${'$'}ref: "common.yaml#/components/schemas/LicenseResponse"
+        """.trimIndent()
+
+        val EXTERNAL_SPEC = """
+            openapi: 3.0.0
+            info: { title: common, version: "1.0" }
+            x-package: com.acme.common
+            paths: {}
+            components:
+              schemas:
+                LicenseResponse:
+                  type: object
+                  nullable: false
+                  properties:
+                    id: { type: string }
+        """.trimIndent()
+    }
 }

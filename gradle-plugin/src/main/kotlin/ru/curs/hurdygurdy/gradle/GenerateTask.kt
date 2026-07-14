@@ -1,6 +1,7 @@
 package ru.curs.hurdygurdy.gradle
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -8,6 +9,7 @@ import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -27,6 +29,15 @@ abstract class GenerateTask : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val spec: RegularFileProperty
+
+    /**
+     * Files transitively referenced from the spec via `$ref: "<file>#/..."`,
+     * declared as inputs so that editing a referenced file re-runs the task.
+     * Wired by [HurdyGurdyPlugin] from [ru.curs.hurdygurdy.ExternalRefs].
+     */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val referencedSpecs: ConfigurableFileCollection
 
     @get:Input abstract val rootPackage: Property<String>
     @get:Input abstract val framework: Property<Framework>

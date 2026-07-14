@@ -30,6 +30,9 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>
         <spec>${basedir}/src/main/openapi/api.yaml</spec>
+        <!--Optional: where generated sources are written
+        (default target/generated-sources/openapi)-->
+        <outputDirectory>${project.build.directory}/generated-sources/openapi</outputDirectory>
         <!--Set to true if you want to have HttpServletResponse response 
         parameter in Controller interface: good for server-side code.
         Set to false (default) if you don't need one 
@@ -52,6 +55,36 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
         </execution>
     </executions>
 </plugin>
+```
+
+The `gen-server` goal skips regeneration when nothing the generated sources
+depend on has changed since the last run: the spec file and every file it
+(transitively) references via `$ref: "<file>#/..."`, the effective plugin
+configuration, and the plugin version itself. This is tracked by marker files under `target/hurdy-gurdy/`.
+
+For several specs in one build, declare one `<execution>` per spec, each with
+its own `<configuration>` (including a distinct `<outputDirectory>`):
+
+```xml
+<executions>
+    <execution>
+        <id>gen-petstore</id>
+        <goals><goal>gen-server</goal></goals>
+        <configuration>
+            <spec>${basedir}/src/main/openapi/petstore.yaml</spec>
+            <rootPackage>com.example.petstore</rootPackage>
+        </configuration>
+    </execution>
+    <execution>
+        <id>gen-billing</id>
+        <goals><goal>gen-server</goal></goals>
+        <configuration>
+            <spec>${basedir}/src/main/openapi/billing.yaml</spec>
+            <rootPackage>com.example.billing</rootPackage>
+            <outputDirectory>${project.build.directory}/generated-sources/billing</outputDirectory>
+        </configuration>
+    </execution>
+</executions>
 ```
 
 ### Gradle plugin
@@ -81,8 +114,9 @@ hurdyGurdy {
 
 Each named block registers a `generate<Name>` task (e.g. `generatePetstore`) whose
 output dir is added to the `main` source set, so `compileJava`/`compileKotlin`
-depend on it automatically. The task is cacheable: an unchanged spec keeps both
-generation and dependent compilation `UP-TO-DATE`.
+depend on it automatically. The task is cacheable: unchanged inputs — the spec,
+every file it (transitively) references via `$ref: "<file>#/..."`, and the
+configuration — keep both generation and dependent compilation `UP-TO-DATE`.
 
 For Kotlin output, set `language = Language.KOTLIN` and apply the Kotlin JVM plugin.
 
