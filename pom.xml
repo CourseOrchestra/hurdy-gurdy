@@ -104,7 +104,7 @@
         <dependency>
             <groupId>io.quarkus.resteasy.reactive</groupId>
             <artifactId>resteasy-reactive-common</artifactId>
-            <version>3.37.2</version>
+            <version>3.37.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
