@@ -592,6 +592,18 @@ class KotlinTypeDefiner internal constructor(
                     paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
                 }
 
+                value.`$ref` != null -> {
+                    // A $ref default that is neither an enum constant nor an empty
+                    // object (handled above) is a structured object default, e.g.
+                    // {order: SIMILARITY, limit: 10}. It cannot be rendered as a
+                    // Kotlin initializer expression, so drop it — matching the Java
+                    // generator, which emits no initializer for object defaults —
+                    // and fall back to null for an optional property.
+                    if (!required) {
+                        paramSpec.defaultValue("null")
+                    }
+                }
+
                 else -> {
                     //Everything else (e.g., numbers)
                     paramSpec.defaultValue("%L", default.toString())

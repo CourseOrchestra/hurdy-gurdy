@@ -138,6 +138,16 @@ class CodegenTest {
     }
 
     @Test
+    void objectDefaultOnRefProperty() throws IOException {
+        // openapi-generator#24298: the Java generator already drops an object-level
+        // default on a $ref property (Lombok fields carry no initializer), so the
+        // output compiles. This locks that behavior as the parity baseline for the
+        // Kotlin fix.
+        codegen.generate(Path.of("src/test/resources/objectdefault.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void oneOfWithDiscriminatorCompiles() throws IOException {
         // openapi-generator#23997: a schema with BOTH oneOf and a discriminator
         // previously emitted duplicate @JsonTypeInfo/@JsonSubTypes (a NAME-based
