@@ -89,6 +89,23 @@ class KCodegenTest {
     }
 
     @Test
+    void objectDefaultOnRefPropertyCompiles() throws IOException {
+        // openapi-generator#24298: a $ref property whose referenced object has an
+        // object-level default previously pasted that default's JSON verbatim as
+        // the Kotlin initializer, which does not compile. The structured default
+        // must be dropped, leaving the optional property's null default.
+        codegen.generate(Path.of("src/test/resources/objectdefault.yaml"), result);
+        GeneratedCodeCompiler.assertKotlinCompiles(result);
+    }
+
+    @Test
+    void objectDefaultOnRefProperty() throws IOException {
+        // Locks the shape: format falls back to `= null`, not the raw JSON default.
+        codegen.generate(Path.of("src/test/resources/objectdefault.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void oneOfWithDiscriminator() throws IOException {
         // openapi-generator#23997: a schema with BOTH oneOf and a discriminator.
         // Kotlin previously emitted duplicate @JsonTypeInfo/@JsonSubTypes (a

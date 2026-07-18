@@ -1,0 +1,33 @@
+# Reproducer for OpenAPITools/openapi-generator#23997's sibling #24298 applied to
+# hurdy-gurdy: a $ref property whose referenced object schema carries an
+# object-level `default`. hurdy-gurdy's Kotlin generator pasted that default's
+# JSON toString straight into the initializer
+# (`val format: OutputFormat? = {"order":"SIMILARITY","limit":10}`), which does
+# not compile. A structured object default cannot be rendered as an initializer
+# expression, so it is dropped (as the Java generator already does) and the
+# optional property falls back to null.
+openapi: "3.1.0"
+info:
+  title: Object default on $ref property
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    OutputFormat:
+      type: object
+      properties:
+        order:
+          type: string
+          enum:
+            - IMPORTANCE
+            - SIMILARITY
+        limit:
+          type: integer
+      default:
+        order: SIMILARITY
+        limit: 10
+    Formatter:
+      type: object
+      properties:
+        format:
+          $ref: '#/components/schemas/OutputFormat'

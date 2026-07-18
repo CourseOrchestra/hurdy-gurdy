@@ -1,0 +1,37 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Formatter.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Formatter(
+  public val format: OutputFormat? = null,
+)
+---
+/com/example/dto/OutputFormat.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Int
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class OutputFormat(
+  public val order: Order? = null,
+  public val limit: Int? = null,
+) {
+  public enum class Order {
+    IMPORTANCE,
+    SIMILARITY,
+  }
+}
