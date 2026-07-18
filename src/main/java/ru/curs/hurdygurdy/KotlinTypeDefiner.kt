@@ -620,7 +620,11 @@ class KotlinTypeDefiner internal constructor(
 
 
     private fun polymorphicToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
-        if (isPolymorphicInterface(schema)) {
+        // A discriminator, when present, selects subtypes by a property value
+        // (NAME-based, emitted in getDTOClass) and takes precedence over
+        // oneOf/anyOf DEDUCTION. Emitting both would produce two @JsonTypeInfo and
+        // two @JsonSubTypes — neither is repeatable, so it would not compile.
+        if (isPolymorphicInterface(schema) && schema.discriminator == null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
             polymorphicMembers(schema).asSequence()
                 .map { it.`$ref` }

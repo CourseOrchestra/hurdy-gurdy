@@ -138,6 +138,33 @@ class CodegenTest {
     }
 
     @Test
+    void oneOfWithDiscriminatorCompiles() throws IOException {
+        // openapi-generator#23997: a schema with BOTH oneOf and a discriminator
+        // previously emitted duplicate @JsonTypeInfo/@JsonSubTypes (a NAME-based
+        // pair and a DEDUCTION-based pair), which does not compile. The
+        // discriminator must win, leaving only the NAME-based annotations.
+        codegen.generate(Path.of("src/test/resources/oneofdiscriminator.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @Test
+    void oneOfWithDiscriminator() throws IOException {
+        // Locks the shape: single NAME-based @JsonTypeInfo(property = "pet_type")
+        // + @JsonSubTypes from the discriminator mapping; no DEDUCTION pair.
+        codegen.generate(Path.of("src/test/resources/oneofdiscriminator.yaml"), result);
+        verify(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileOneOfWithDiscriminator(JavaDtoStyle style) throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true).javaDtoStyle(style))
+                .generate(Path.of("src/test/resources/oneofdiscriminator.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
         verify(result);
