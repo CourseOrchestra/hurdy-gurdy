@@ -1,0 +1,27 @@
+# A DTO with properties that are BOTH `required` and `nullable: true`. Per
+# OpenAPI 3.0, such a property must be PRESENT but its value MAY be null, so
+# {"foo":"x","baz":null} is a valid payload. In records mode hurdy-gurdy emitted
+# Objects.requireNonNull for every required component, ignoring nullable, so the
+# compact constructor rejected the (valid) explicit null. `foo` is required and
+# NOT nullable, so its non-null enforcement must be kept.
+openapi: "3.0.2"
+info:
+  title: Records required + nullable
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Foo:
+      type: object
+      properties:
+        foo:
+          type: string
+        bar:
+          type: string
+          nullable: true
+        baz:
+          type: string
+          nullable: true
+      required:
+        - foo
+        - baz

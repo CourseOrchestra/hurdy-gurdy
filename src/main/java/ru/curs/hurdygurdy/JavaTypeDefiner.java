@@ -647,7 +647,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 ensureJsonZonedDateTimeDeserializer();
             }
             canonical.addParameter(param.build());
-            if (c.required()) {
+            // A property that is `required` AND `nullable` must be present but may
+            // hold an explicit null (OpenAPI 3.0 semantics), so it must NOT be
+            // null-checked — otherwise a valid {"x":null} payload fails to
+            // deserialize. Only non-nullable required components are enforced.
+            if (c.required() && !isNullable(c.schema(), openAPI)) {
                 requiredNames.add(propertyName);
             }
         }
@@ -661,6 +665,23 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             recordBuilder.addMethod(compact.build());
         }
         return recordBuilder.build();
+    }
+
+    /**
+     * Whether a schema permits an explicit {@code null} value: an OpenAPI 3.0
+     * {@code nullable: true}, a same-file {@code $ref} to a nullable schema, or a
+     * 3.1 {@code anyOf:[X, null]} nullable wrapper.
+     */
+    private boolean isNullable(Schema<?> schema, OpenAPI openAPI) {
+        if (Boolean.TRUE.equals(schema.getNullable())) {
+            return true;
+        }
+        if (schema.get$ref() != null) {
+            return getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
+        }
+        List<Schema> anyOf = schema.getAnyOf();
+        return anyOf != null && anyOf.size() == 2
+                && anyOf.stream().anyMatch(s -> "null".equals(getInternalType(s)));
     }
 
     private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,
