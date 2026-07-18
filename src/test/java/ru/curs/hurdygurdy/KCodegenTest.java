@@ -89,6 +89,17 @@ class KCodegenTest {
     }
 
     @Test
+    void oneOfWithDiscriminator() throws IOException {
+        // openapi-generator#23997: a schema with BOTH oneOf and a discriminator.
+        // Kotlin previously emitted duplicate @JsonTypeInfo/@JsonSubTypes (a
+        // DEDUCTION pair from oneOf plus a NAME-based pair from the discriminator),
+        // which does not compile. The discriminator wins; verify() snapshots the
+        // single NAME-based shape and confirms it compiles.
+        codegen.generate(Path.of("src/test/resources/oneofdiscriminator.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void generateCommonParameters() throws IOException {
         codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
         verify(result);

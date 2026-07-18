@@ -450,16 +450,18 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private record RecordComponent(String key, Schema<?> schema, boolean required) { }
 
     private TypeSpec buildRecordDto(String name, Schema<?> schema, OpenAPI openAPI) {
-        // 1) oneOf / top-level anyOf -> sealed interface (deduction-based Jackson polymorphism)
-        if (isPolymorphicInterface(schema)) {
-            return buildSealedInterface(name, schema, openAPI, false);
-        }
-        // 2) discriminator base WITH subtypes -> sealed interface (name-based
-        // polymorphism). A discriminator base with NO subtypes would become a bare,
-        // uninstantiable interface, so let it fall through to the concrete-record
-        // path below and re-attach @JsonTypeInfo — mirroring the class DTO styles.
-        if (schema.getDiscriminator() != null && !permittedSubtypes(name, schema, openAPI).isEmpty()) {
-            return buildSealedInterface(name, schema, openAPI, true);
+        // 1) oneOf / top-level anyOf, or a discriminator base WITH subtypes ->
+        // sealed interface. When a discriminator is present it wins: subtypes are
+        // selected by its property value (name-based) rather than DEDUCTION, so a
+        // schema declaring both oneOf and a discriminator yields a single set of
+        // Jackson annotations. Pure oneOf/anyOf (no discriminator) stays DEDUCTION.
+        // A discriminator base with NO subtypes would become a bare, uninstantiable
+        // interface, so let it fall through to the concrete-record path below and
+        // re-attach @JsonTypeInfo — mirroring the class DTO styles.
+        boolean hasDiscriminatorSubtypes = schema.getDiscriminator() != null
+                && !permittedSubtypes(name, schema, openAPI).isEmpty();
+        if (isPolymorphicInterface(schema) || hasDiscriminatorSubtypes) {
+            return buildSealedInterface(name, schema, openAPI, schema.getDiscriminator() != null);
         }
         // 3) concrete schema -> record (flatten allOf-inherited components). A
         // subtype-less discriminator base also lands here (buildConcreteRecord
@@ -1044,7 +1046,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private void polymorphicToInterface(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
-        if (isPolymorphicInterface(schema)) {
+        // A discriminator, when present, selects subtypes by a property value
+        // (NAME-based, emitted by addDiscriminatorAnnotations) and takes precedence
+        // over oneOf/anyOf DEDUCTION. Emitting both would produce two @JsonTypeInfo
+        // and two @JsonSubTypes — neither is @Repeatable, so it would not compile.
+        if (isPolymorphicInterface(schema) && schema.getDiscriminator() == null) {
             var subtypesAnnotation = AnnotationSpec.builder(JsonSubTypes.class);
 
             final CodeBlock collect = polymorphicMembers(schema).stream()

@@ -1,0 +1,41 @@
+# Reproducer for OpenAPITools/openapi-generator#23997 applied to hurdy-gurdy:
+# a schema that declares BOTH `oneOf` and a `discriminator`. This is a legal,
+# common OpenAPI shape (oneOf enumerates the subtypes; the discriminator names
+# the property that selects among them). hurdy-gurdy previously emitted two
+# @JsonTypeInfo and two @JsonSubTypes annotations (a NAME-based pair from the
+# discriminator plus a DEDUCTION-based pair from the oneOf), which does not
+# compile because those Jackson annotations are not @Repeatable. When a
+# discriminator is present it must win: only the NAME-based annotations are
+# emitted.
+openapi: 3.0.1
+info:
+  title: oneOf + discriminator
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - pet_type
+      properties:
+        pet_type:
+          type: string
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+      discriminator:
+        propertyName: pet_type
+        mapping:
+          CAT: '#/components/schemas/Cat'
+          DOG: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      properties:
+        meow:
+          type: string
+    Dog:
+      type: object
+      properties:
+        bark:
+          type: string
