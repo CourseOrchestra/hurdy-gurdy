@@ -61,6 +61,11 @@ public final class Main implements Callable<Integer> {
             description = "Force snake_case for properties (default: true).")
     private Boolean forceSnakeCase;
 
+    @Option(names = "--alias-as-model", negatable = true, defaultValue = "false",
+            description = "Generate a model class for array aliases instead of "
+                    + "inlining them as List (default: ${DEFAULT-VALUE}).")
+    private boolean aliasAsModel;
+
     @Option(names = "--java-dto-style", defaultValue = "lombok",
             description = "Java DTO style: lombok, pojo or records "
                     + "(default: ${DEFAULT-VALUE}; ignored for Kotlin).")
@@ -72,6 +77,7 @@ public final class Main implements Callable<Integer> {
         GeneratorParams params = GeneratorParams.rootPackage(rootPackage)
                 .generateResponseParameter(responseParameter)
                 .forceSnakeCaseForProperties(forceSnakeCase == null || forceSnakeCase)
+                .generateAliasAsModel(aliasAsModel)
                 .framework(Framework.of(framework))
                 .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                 .generate(roles);

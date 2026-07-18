@@ -155,6 +155,14 @@ class KotlinTypeDefiner internal constructor(
                 }
             }
         } else {
+            val aliasTarget = inlinableArrayAlias(`$ref`, openAPI)
+            if (aliasTarget != null) {
+                // A same-file array alias (ItemArray: type: array) is not a class;
+                // inline it at the point of use (List<Item>) instead.
+                return inliningAlias(`$ref`) {
+                    defineKotlinType(aliasTarget, openAPI, parent, typeNameFallback, nullableOverride)
+                }
+            }
             return referencedTypeName(`$ref`, openAPI, nullableOverride)
         }
         return result.copy(nullable = nullableOverride ?: nullableByAnyOf ?: schema.nullable ?: true)
@@ -257,6 +265,17 @@ class KotlinTypeDefiner internal constructor(
         } else {
             getDTOClass(name, schema, openAPI, Any::class.asClassName(), emptyList())
         }
+    }
+
+    override fun getArrayAlias(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
+        val classBuilder = TypeSpec.classBuilder(name)
+        val itemsSchema: Schema<*>? = schema.items
+        val itemType = if (itemsSchema == null) ANY
+        else defineKotlinType(itemsSchema, openAPI, classBuilder, name + "Item", null)
+            .copy(nullable = (itemsSchema.nullable ?: false))
+        classBuilder.superclass(ClassName("kotlin.collections", "ArrayList").parameterizedBy(itemType))
+        getExtendsList(schema).map { ClassName.bestGuess(it) }.forEach { classBuilder.addSuperinterface(it) }
+        return classBuilder.build()
     }
 
     /**

@@ -23,6 +23,7 @@ class HurdyGurdyPlugin : Plugin<Project> {
             spec.generate.convention(setOf(Role.CONTROLLER))
             spec.generateResponseParameter.convention(false)
             spec.forceSnakeCaseForProperties.convention(true)
+            spec.generateAliasAsModel.convention(false)
             spec.outputDir.convention(
                 project.layout.buildDirectory.dir("generated-sources/hurdy-gurdy/${spec.name}")
             )
@@ -44,6 +45,7 @@ class HurdyGurdyPlugin : Plugin<Project> {
                 task.generate.set(spec.generate)
                 task.generateResponseParameter.set(spec.generateResponseParameter)
                 task.forceSnakeCaseForProperties.set(spec.forceSnakeCaseForProperties)
+                task.generateAliasAsModel.set(spec.generateAliasAsModel)
                 task.outputDir.set(spec.outputDir)
             }
 

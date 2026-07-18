@@ -46,6 +46,7 @@ abstract class GenerateTask : DefaultTask() {
     @get:Input abstract val generate: SetProperty<Role>
     @get:Input abstract val generateResponseParameter: Property<Boolean>
     @get:Input abstract val forceSnakeCaseForProperties: Property<Boolean>
+    @get:Input abstract val generateAliasAsModel: Property<Boolean>
 
     @get:OutputDirectory abstract val outputDir: DirectoryProperty
 
@@ -58,6 +59,7 @@ abstract class GenerateTask : DefaultTask() {
         val params = GeneratorParams.rootPackage(rootPackage.get())
             .generateResponseParameter(generateResponseParameter.get())
             .forceSnakeCaseForProperties(forceSnakeCaseForProperties.get())
+            .generateAliasAsModel(generateAliasAsModel.get())
             .framework(framework.get())
             .javaDtoStyle(javaDtoStyle.get())
             .generate(generate.get())

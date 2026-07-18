@@ -1,0 +1,28 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Item.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class Item(
+  public val `property`: String? = null,
+)
+---
+/com/example/dto/MyObject.kt
+package com.example.dto
+
+import java.util.UUID
+import kotlin.collections.List
+
+public data class MyObject(
+  public val id: UUID? = null,
+  public val itemArray: List<Item>? = null,
+)

@@ -147,6 +147,7 @@ class CodegenMojoTest {
         assertThat(stored.getProperty("rootPackage")).isEqualTo("com.example");
         assertThat(stored.getProperty("generateResponseParameter")).isEqualTo("false");
         assertThat(stored.getProperty("forceSnakeCaseForProperties")).isEqualTo("true");
+        assertThat(stored.getProperty("generateAliasAsModel")).isEqualTo("false");
         assertThat(stored.getProperty("outputDirectory")).isNotBlank();
         assertThat(stored.getProperty("spec|src/test/resources/sample1.yaml|crc32")).matches(FILE_CHECKSUM);
         // files transitively referenced via $ref are part of the fingerprint

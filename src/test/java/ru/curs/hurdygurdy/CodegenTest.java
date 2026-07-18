@@ -82,6 +82,43 @@ class CodegenTest {
     }
 
     @Test
+    void arrayAliasInlined() throws IOException {
+        // Reproducer from OpenAPITools/openapi-generator#23988: ItemArray is an
+        // alias for an array of Item. By default the alias is inlined at every
+        // point of use (List<Item>) and no ItemArray class is generated.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/issue23988.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void arrayAliasAsModel() throws IOException {
+        // Same spec with generateAliasAsModel (mirroring openapi-generator's
+        // parameter): the alias becomes a model of its own,
+        // class ItemArray extends ArrayList<Item>.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false)
+                .generateAliasAsModel(true));
+        codegen.generate(Path.of("src/test/resources/issue23988.yaml"), result);
+        verify(result);
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void allStylesCompileArrayAlias(JavaDtoStyle style) throws IOException {
+        for (boolean aliasAsModel : new boolean[]{false, true}) {
+            Path out = Files.createDirectories(result.resolve(aliasAsModel ? "model" : "inline"));
+            new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                    .forceSnakeCaseForProperties(false)
+                    .javaDtoStyle(style)
+                    .generateAliasAsModel(aliasAsModel))
+                    .generate(Path.of("src/test/resources/issue23988.yaml"), out);
+            GeneratedCodeCompiler.assertJavaCompiles(out);
+        }
+    }
+
+    @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
         verify(result);

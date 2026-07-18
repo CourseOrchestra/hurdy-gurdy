@@ -77,6 +77,19 @@ class GeneratorParamsTest {
     }
 
     @Test
+    void generateAliasAsModelDefaultsToFalse() {
+        assertThat(GeneratorParams.rootPackage("com.example").isGenerateAliasAsModel())
+                .isFalse();
+    }
+
+    @Test
+    void generateAliasAsModelBuilderOverrides() {
+        assertThat(GeneratorParams.rootPackage("com.example")
+                .generateAliasAsModel(true).isGenerateAliasAsModel())
+                .isTrue();
+    }
+
+    @Test
     void javaDtoStyleDefaultsToLombok() {
         assertEquals(JavaDtoStyle.LOMBOK,
                 GeneratorParams.rootPackage("com.example").getJavaDtoStyle());

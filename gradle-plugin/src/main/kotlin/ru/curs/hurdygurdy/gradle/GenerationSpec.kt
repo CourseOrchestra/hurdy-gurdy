@@ -20,6 +20,7 @@ abstract class GenerationSpec @Inject constructor(private val specName: String) 
     abstract val generate: SetProperty<Role>
     abstract val generateResponseParameter: Property<Boolean>
     abstract val forceSnakeCaseForProperties: Property<Boolean>
+    abstract val generateAliasAsModel: Property<Boolean>
     abstract val outputDir: DirectoryProperty
 
     override fun getName(): String = specName

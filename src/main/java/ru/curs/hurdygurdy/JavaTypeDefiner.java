@@ -165,6 +165,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     }
             }
         } else {
+            Schema<?> aliasTarget = inlinableArrayAlias($ref, openAPI);
+            if (aliasTarget != null) {
+                // A same-file array alias (ItemArray: type: array) is not a class;
+                // inline it at the point of use (List<Item>) instead.
+                return inliningAlias($ref, () ->
+                        defineJavaType(aliasTarget, openAPI, parent, typeNameFallback, parentIsInterface));
+            }
             return referencedClassName(openAPI, $ref);
         }
     }
@@ -300,6 +307,17 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             return getDTOClass(name, currentSchema, openAPI, baseClass, inheritedKeys);
         }
         return getDTOClass(name, schema, openAPI, ClassName.get(Object.class), Set.of());
+    }
+
+    @Override
+    TypeSpec getArrayAlias(String name, Schema<?> schema, OpenAPI openAPI) {
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(name).addModifiers(Modifier.PUBLIC);
+        Schema<?> itemsSchema = schema.getItems();
+        TypeName itemType = itemsSchema == null ? ClassName.OBJECT
+                : defineJavaType(itemsSchema, openAPI, classBuilder, name + "Item").box();
+        classBuilder.superclass(ParameterizedTypeName.get(ClassName.get(ArrayList.class), itemType));
+        getExtendsList(schema).stream().map(ClassName::bestGuess).forEach(classBuilder::addSuperinterface);
+        return classBuilder.build();
     }
 
     /**
