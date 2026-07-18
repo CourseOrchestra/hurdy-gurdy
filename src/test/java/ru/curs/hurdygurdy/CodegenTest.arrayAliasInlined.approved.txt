@@ -1,0 +1,33 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Item.java
+package com.example.dto;
+
+import java.lang.String;
+import lombok.Data;
+
+@Data
+public class Item {
+  private String property;
+}
+---
+/com/example/dto/MyObject.java
+package com.example.dto;
+
+import java.util.List;
+import java.util.UUID;
+import lombok.Data;
+
+@Data
+public class MyObject {
+  private UUID id;
+
+  private List<Item> itemArray;
+}

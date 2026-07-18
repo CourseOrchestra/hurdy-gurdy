@@ -51,6 +51,9 @@ public class CodegenMojo extends AbstractMojo {
     @Parameter(property = "forceSnakeCaseForProperties", required = false)
     boolean forceSnakeCaseForProperties = true;
 
+    @Parameter(property = "generateAliasAsModel", required = false)
+    boolean generateAliasAsModel = false;
+
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     MavenProject project;
 
@@ -73,6 +76,7 @@ public class CodegenMojo extends AbstractMojo {
                 GeneratorParams.rootPackage(rootPackage)
                         .generateResponseParameter(generateResponseParameter)
                         .forceSnakeCaseForProperties(forceSnakeCaseForProperties)
+                        .generateAliasAsModel(generateAliasAsModel)
                         .framework(Framework.of(framework))
                         .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                         .generate(roles);

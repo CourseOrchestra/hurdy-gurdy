@@ -23,6 +23,12 @@ public abstract class DTOExtractor<T> implements TypeSpecExtractor<T> {
                 Optional.ofNullable(openAPI).map(OpenAPI::getComponents)
                         .map(Components::getSchemas).orElse(Collections.emptyMap());
         for (Map.Entry<String, Schema> schemaEntry : stringSchemaMap.entrySet()) {
+            // An array alias has no class of its own unless generateAliasAsModel
+            // is set: it is inlined (List<...>) at every point of use instead.
+            if (TypeDefiner.isArraySchema(schemaEntry.getValue())
+                    && !typeDefiner.params.isGenerateAliasAsModel()) {
+                continue;
+            }
             T dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue(), openAPI);
             typeSpecBiConsumer.accept(ClassCategory.DTO, dto);
         }

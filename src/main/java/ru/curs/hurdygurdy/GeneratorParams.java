@@ -9,6 +9,7 @@ public final class GeneratorParams {
     private final String rootPackage;
     private boolean generateResponseParameter = false;
     private boolean forceSnakeCaseForProperties = true;
+    private boolean generateAliasAsModel = false;
     private Framework framework = Framework.SPRING;
     private JavaDtoStyle javaDtoStyle = JavaDtoStyle.LOMBOK;
     private final EnumSet<Role> generate = EnumSet.of(Role.CONTROLLER);
@@ -74,6 +75,22 @@ public final class GeneratorParams {
         return this;
     }
 
+    /**
+     * Controls how an alias — a named component schema that is a plain
+     * {@code type: array} — is generated (mirrors openapi-generator's
+     * {@code generateAliasAsModel}). When {@code false} (default), the alias is
+     * inlined at every point of use ({@code List<Item>}); when {@code true},
+     * the alias becomes a model of its own
+     * ({@code class ItemArray extends ArrayList<Item>}).
+     *
+     * @param value whether to generate a model class for array aliases
+     * @return this
+     */
+    public GeneratorParams generateAliasAsModel(boolean value) {
+        this.generateAliasAsModel = value;
+        return this;
+    }
+
     public GeneratorParams framework(Framework value) {
         this.framework = value;
         return this;
@@ -98,6 +115,10 @@ public final class GeneratorParams {
 
     public boolean isForceSnakeCaseForProperties() {
         return forceSnakeCaseForProperties;
+    }
+
+    public boolean isGenerateAliasAsModel() {
+        return generateAliasAsModel;
     }
 
     public Framework getFramework() {
