@@ -1,0 +1,42 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Problem.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Problem(
+  public val errorType: ErrorType? = null,
+  public val status: Status? = null,
+) {
+  public enum class ErrorType {
+    @JsonProperty("about:blank")
+    ABOUT_BLANK,
+    @JsonProperty("https://example.com/errors/validation")
+    HTTPS_EXAMPLE_COM_ERRORS_VALIDATION,
+    @JsonProperty("active")
+    ACTIVE,
+  }
+}
+---
+/com/example/dto/Status.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+
+public enum class Status {
+  @JsonProperty("active")
+  ACTIVE,
+  @JsonProperty("archived")
+  ARCHIVED,
+}
