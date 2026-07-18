@@ -119,6 +119,25 @@ class CodegenTest {
     }
 
     @Test
+    void inlineEnumWithNonIdentifierValuesCompiles() throws IOException {
+        // openapi-generator#24012: an inline (property-level) enum whose values
+        // are not legal Java identifiers ("about:blank", a URL) must be
+        // normalized like a top-level enum. Previously the inline path emitted
+        // the raw values verbatim, producing non-compiling Java.
+        codegen.generate(Path.of("src/test/resources/inlineenum.yaml"), result);
+        GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    @Test
+    void inlineEnumNormalized() throws IOException {
+        // Locks the normalized shape: inline enum constants become
+        // SCREAMING_SNAKE_CASE with @JsonProperty preserving the wire value,
+        // matching the top-level enum path.
+        codegen.generate(Path.of("src/test/resources/inlineenum.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
         verify(result);

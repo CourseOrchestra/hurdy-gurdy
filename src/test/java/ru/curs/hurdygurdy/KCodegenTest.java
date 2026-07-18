@@ -77,6 +77,18 @@ class KCodegenTest {
     }
 
     @Test
+    void inlineEnumNormalized() throws IOException {
+        // Parity guard for OpenAPITools/openapi-generator#24012: unlike the Java
+        // generator (fixed separately), Kotlin already routes both inline and
+        // top-level enums through the same normalizing helper, so inline enum
+        // values that are not legal identifiers ("about:blank", a URL) become
+        // SCREAMING_SNAKE_CASE constants with @JsonProperty preserving the wire
+        // value. verify() snapshots the shape and confirms it compiles.
+        codegen.generate(Path.of("src/test/resources/inlineenum.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void generateCommonParameters() throws IOException {
         codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
         verify(result);

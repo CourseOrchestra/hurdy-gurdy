@@ -139,6 +139,7 @@ public record PlayerActivityDTO(String tag, String userId, String currency, Long
 /com/example/dto/PlayerDTO.java
 package com.example.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -154,11 +155,14 @@ public record PlayerDTO(String tag, String email, String userId, LocalDate dateO
     @JsonDeserialize(using = ZonedDateTimeDeserializer.class) @JsonSerialize(using = ZonedDateTimeSerializer.class) ZonedDateTime signUpAt,
     boolean duplicate) {
   public enum Gender {
-    m,
+    @JsonProperty("m")
+    M,
 
-    f,
+    @JsonProperty("f")
+    F,
 
-    n
+    @JsonProperty("n")
+    N
   }
 }
 ---

@@ -1,0 +1,48 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Problem.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Problem {
+  private ErrorType errorType;
+
+  private Status status;
+
+  public enum ErrorType {
+    @JsonProperty("about:blank")
+    ABOUT_BLANK,
+
+    @JsonProperty("https://example.com/errors/validation")
+    HTTPS_EXAMPLE_COM_ERRORS_VALIDATION,
+
+    @JsonProperty("active")
+    ACTIVE
+  }
+}
+---
+/com/example/dto/Status.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum Status {
+  @JsonProperty("active")
+  ACTIVE,
+
+  @JsonProperty("archived")
+  ARCHIVED
+}

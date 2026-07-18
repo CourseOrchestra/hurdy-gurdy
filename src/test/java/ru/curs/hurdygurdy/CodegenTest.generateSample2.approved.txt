@@ -200,6 +200,7 @@ public class PlayerActivityDTO {
 /com/example/dto/PlayerDTO.java
 package com.example.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -243,11 +244,14 @@ public class PlayerDTO {
   private boolean duplicate;
 
   public enum Gender {
-    m,
+    @JsonProperty("m")
+    M,
 
-    f,
+    @JsonProperty("f")
+    F,
 
-    n
+    @JsonProperty("n")
+    N
   }
 }
 ---
