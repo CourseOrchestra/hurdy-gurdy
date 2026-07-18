@@ -117,6 +117,30 @@ class KCodegenTest {
     }
 
     @Test
+    void binaryResponseTypeSpring() throws IOException {
+        // A binary download response must return a body type a Spring message
+        // converter can write (Resource), never MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binarydownload.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryRequestBodyTypeSpring() throws IOException {
+        // A raw octet-stream request body must be a readable body type (Resource),
+        // never MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binaryrawbody.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryDtoPropertyKotlin() throws IOException {
+        // A binary property inside a JSON DTO must be ByteArray (base64), never
+        // MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binaryproperty.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void generateCommonParameters() throws IOException {
         codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
         verify(result);

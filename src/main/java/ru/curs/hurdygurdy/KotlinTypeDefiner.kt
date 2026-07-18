@@ -38,7 +38,6 @@ import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
-import org.springframework.web.multipart.MultipartFile
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import java.time.DateTimeException
 import java.time.LocalDate
@@ -96,9 +95,11 @@ class KotlinTypeDefiner internal constructor(
                     "date" == schema.format -> LocalDate::class.asTypeName()
                     "date-time" == schema.format -> ZonedDateTime::class.asTypeName()
                     "uuid" == schema.format -> UUID::class.asTypeName()
-                    "binary" == schema.format -> if (params.framework == Framework.QUARKUS)
-                        ClassName("org.jboss.resteasy.reactive.multipart", "FileUpload")
-                    else MultipartFile::class.asTypeName()
+                    // A bare binary schema (a DTO property / JSON value) is base64
+                    // in JSON, so it maps to ByteArray. Binary request/response
+                    // BODIES and multipart parts are position-dependent and handled
+                    // by the API extractor.
+                    "binary" == schema.format -> ByteArray::class.asTypeName()
                     schema.enum != null -> {
                         //internal enum
                         val simpleName = getEnumName(schema, typeNameFallback)

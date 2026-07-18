@@ -1,0 +1,23 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.io.Resource;
+import org.springframework.web.bind.annotation.GetMapping;
+
+public interface Controller {
+  @GetMapping(
+      value = "/download",
+      produces = "application/octet-stream"
+  )
+  Resource download(HttpServletResponse response);
+}

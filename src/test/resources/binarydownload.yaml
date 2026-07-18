@@ -1,0 +1,21 @@
+# Binary file-download response: the 2xx body is `type: string, format: binary`.
+# The generated method must return a body type a message converter can write
+# (Spring Resource / Quarkus InputStream), never MultipartFile/FileUpload (those
+# are inbound multipart upload parts only).
+openapi: 3.0.1
+info:
+  title: Binary download
+  version: 1.0.0
+paths:
+  /download:
+    get:
+      operationId: download
+      responses:
+        '200':
+          description: the file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+components: {}

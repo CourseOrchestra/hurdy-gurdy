@@ -1,0 +1,18 @@
+# A binary property inside a JSON DTO. In JSON such a value is base64-encoded, so
+# the field must be byte[] (Java) / ByteArray (Kotlin) — Jackson base64s it — not
+# MultipartFile.
+openapi: 3.0.1
+info:
+  title: Binary property
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+          format: binary
