@@ -1,0 +1,32 @@
+# Reproducer for OpenAPITools/openapi-generator#24012 applied to hurdy-gurdy:
+# an inline (property-level) enum whose values are not legal Java identifiers
+# ("about:blank", a URL) must be normalized to SCREAMING_SNAKE_CASE constants
+# with @JsonProperty preserving the original wire value, exactly like a
+# top-level (named) enum. Previously the inline path emitted the raw values
+# verbatim, producing non-compiling Java.
+openapi: 3.0.1
+info:
+  title: Inline enum normalization
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        # inline enum with non-identifier values + a lowercase-but-legal value
+        error_type:
+          type: string
+          title: ErrorType
+          enum:
+            - about:blank
+            - https://example.com/errors/validation
+            - active
+        # a top-level enum for contrast (already normalized before the fix)
+        status:
+          $ref: '#/components/schemas/Status'
+    Status:
+      type: string
+      enum:
+        - active
+        - archived

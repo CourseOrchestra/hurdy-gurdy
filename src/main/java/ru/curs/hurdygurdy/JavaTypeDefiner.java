@@ -125,7 +125,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                             enumBuilder.addModifiers(Modifier.STATIC);
                         }
                         for (Object e : schema.getEnum()) {
-                            enumBuilder.addEnumConstant(e.toString());
+                            addEnumValue(enumBuilder, e);
                         }
                         TypeSpec internalEnum = enumBuilder.build();
                         parent.addType(internalEnum);
