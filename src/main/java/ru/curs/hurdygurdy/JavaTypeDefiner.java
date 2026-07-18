@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ArrayTypeName;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.CodeBlock;
 import com.palantir.javapoet.FieldSpec;
@@ -32,8 +33,6 @@ import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import org.springframework.web.multipart.MultipartFile;
-
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.time.DateTimeException;
@@ -114,9 +113,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                     } else if ("uuid".equals(schema.getFormat())) {
                         return ClassName.get(UUID.class);
                     } else if ("binary".equals(schema.getFormat())) {
-                        return params.getFramework() == Framework.QUARKUS
-                                ? ClassName.get("org.jboss.resteasy.reactive.multipart", "FileUpload")
-                                : ClassName.get(MultipartFile.class);
+                        // A bare binary schema — a DTO property / JSON value — is
+                        // base64-encoded in JSON, so it maps to byte[]. Binary
+                        // request/response BODIES and multipart parts are position-
+                        // dependent and handled by the API extractor (which maps
+                        // them to Resource/InputStream/MultipartFile/FileUpload).
+                        return ArrayTypeName.of(TypeName.BYTE);
                     } else if (schema.getEnum() != null) {
                         //internal enum
                         String simpleName = getEnumName(schema, typeNameFallback);

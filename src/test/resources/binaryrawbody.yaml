@@ -1,0 +1,21 @@
+# Raw (non-multipart) binary request body: application/octet-stream with
+# `type: string, format: binary`. The body parameter must be a readable body
+# type (Spring Resource / Quarkus InputStream), never MultipartFile/FileUpload.
+openapi: 3.0.1
+info:
+  title: Binary raw body
+  version: 1.0.0
+paths:
+  /upload:
+    post:
+      operationId: upload
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '204':
+          description: stored
+components: {}

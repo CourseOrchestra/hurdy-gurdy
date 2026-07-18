@@ -1,0 +1,24 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import java.io.InputStream;
+
+@Path("")
+public interface Controller {
+  @GET
+  @Path("/download")
+  @Produces("application/octet-stream")
+  InputStream download();
+}

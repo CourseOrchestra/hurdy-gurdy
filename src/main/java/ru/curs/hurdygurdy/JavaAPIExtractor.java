@@ -71,6 +71,17 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             ClassName.get("org.springframework.web.service.annotation", "DeleteExchange");
     private static final ClassName SPRING_RESPONSE_ENTITY =
             ClassName.get("org.springframework.http", "ResponseEntity");
+    // Position-dependent target types for `format: binary`. A multipart part is a
+    // MultipartFile/FileUpload; a raw body or a response is a converter-backed
+    // body type (Spring Resource / JAX-RS InputStream). A bare binary DTO property
+    // is byte[] and handled by the type definer, not here.
+    private static final ClassName MULTIPART_FILE =
+            ClassName.get("org.springframework.web.multipart", "MultipartFile");
+    private static final ClassName QUARKUS_FILE_UPLOAD =
+            ClassName.get("org.jboss.resteasy.reactive.multipart", "FileUpload");
+    private static final ClassName SPRING_RESOURCE =
+            ClassName.get("org.springframework.core.io", "Resource");
+    private static final ClassName INPUT_STREAM = ClassName.get(java.io.InputStream.class);
 
     public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
                             GeneratorParams params) {
@@ -413,8 +424,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .entrySet()
                         .stream()
                         .map(e -> new RequestPartParams(
-                                JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(), openAPI,
-                                        parent, null)),
+                                // A binary part is an uploaded file (MultipartFile /
+                                // FileUpload); other parts resolve normally.
+                                isBinary(e.getValue())
+                                        ? multipartPartType()
+                                        : JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(),
+                                                openAPI, parent, null)),
                                 e.getKey(),
                                 quarkus
                                         ? AnnotationSpec.builder(QUARKUS_REST_FORM)
@@ -424,8 +439,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.getValue().getSchema()).stream()
-                        .map(s -> typeDefiner.defineJavaType(s, openAPI, parent, null))
-                        .map(JavaAPIExtractor::safeUnbox).map(t ->
+                        // A binary single-part body/response is a converter-backed
+                        // body type (Resource / InputStream), not a multipart part.
+                        .map(s -> isBinary(s)
+                                ? binaryBodyType()
+                                : JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(s, openAPI, parent, null)))
+                        .map(t ->
                                 new RequestPartParams(t,
                                         "request",
                                         quarkus
@@ -435,6 +454,32 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                                         .build()));
             }
         }
+    }
+
+    /** Whether a schema is {@code type: string, format: binary} (OpenAPI 3.0 or 3.1). */
+    private static boolean isBinary(Schema<?> schema) {
+        if (schema == null) {
+            return false;
+        }
+        String type = schema.getType();
+        if (type == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
+            type = schema.getTypes().iterator().next();
+        }
+        return "string".equals(type) && "binary".equals(schema.getFormat());
+    }
+
+    /**
+     * Type of a binary multipart part: an uploaded file. Keyed on the actual
+     * framework rather than the annotation-context flag, since a return type
+     * derives its content with that flag hardcoded to {@code false}.
+     */
+    private ClassName multipartPartType() {
+        return getFramework() == Framework.QUARKUS ? QUARKUS_FILE_UPLOAD : MULTIPART_FILE;
+    }
+
+    /** Type of a binary single-part request/response body: a converter-backed stream. */
+    private ClassName binaryBodyType() {
+        return getFramework() == Framework.QUARKUS ? INPUT_STREAM : SPRING_RESOURCE;
     }
 
     private List<AnnotationSpec> getQuarkusMethodAnnotations(

@@ -175,6 +175,48 @@ class CodegenTest {
     }
 
     @Test
+    void binaryResponseTypeSpring() throws IOException {
+        // A binary (format: binary) download response must return a body type a
+        // Spring message converter can write (Resource), never MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binarydownload.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryResponseTypeQuarkus() throws IOException {
+        // Quarkus controller (no response envelope) returns the body type; a binary
+        // response must be InputStream, never FileUpload.
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(Framework.QUARKUS).generateResponseParameter(false))
+                .generate(Path.of("src/test/resources/binarydownload.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryRequestBodyTypeSpring() throws IOException {
+        // A raw (non-multipart) octet-stream request body must be a readable body
+        // type (Resource), never MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binaryrawbody.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryRequestBodyTypeQuarkus() throws IOException {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(Framework.QUARKUS).generateResponseParameter(false))
+                .generate(Path.of("src/test/resources/binaryrawbody.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryDtoPropertyJava() throws IOException {
+        // A binary property inside a JSON DTO must be byte[] (base64), never
+        // MultipartFile.
+        codegen.generate(Path.of("src/test/resources/binaryproperty.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void dictionarySupport() throws IOException {
         codegen.generate(Path.of("src/test/resources/dictionary.yaml"), result);
         verify(result);

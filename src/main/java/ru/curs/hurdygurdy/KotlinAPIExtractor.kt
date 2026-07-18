@@ -13,6 +13,7 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.media.Content
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.parameters.RequestBody
 import org.springframework.web.bind.annotation.*
@@ -71,6 +72,15 @@ class KotlinAPIExtractor(
         val SPRING_PATCH_EXCHANGE = ClassName("org.springframework.web.service.annotation", "PatchExchange")
         val SPRING_DELETE_EXCHANGE = ClassName("org.springframework.web.service.annotation", "DeleteExchange")
         val SPRING_RESPONSE_ENTITY = ClassName("org.springframework.http", "ResponseEntity")
+
+        // Position-dependent target types for `format: binary`: a multipart part is
+        // a MultipartFile/FileUpload, a raw body or response is a converter-backed
+        // body type (Spring Resource / JAX-RS InputStream). A bare binary DTO
+        // property is ByteArray and handled by the type definer.
+        val MULTIPART_FILE = ClassName("org.springframework.web.multipart", "MultipartFile")
+        val QUARKUS_FILE_UPLOAD = ClassName("org.jboss.resteasy.reactive.multipart", "FileUpload")
+        val SPRING_RESOURCE = ClassName("org.springframework.core.io", "Resource")
+        val INPUT_STREAM = ClassName("java.io", "InputStream")
     }
 
     public override fun buildMethod(
@@ -509,7 +519,10 @@ class KotlinAPIExtractor(
                     .map { (name, schema) ->
                         RequestPartParams(
                             name = name,
-                            typeName = typeDefiner.defineKotlinType(schema, openAPI, parent, null, null),
+                            // A binary part is an uploaded file (MultipartFile /
+                            // FileUpload); other parts resolve normally.
+                            typeName = if (isBinary(schema)) multipartPartType()
+                            else typeDefiner.defineKotlinType(schema, openAPI, parent, null, null),
                             annotation = if (quarkus)
                                 AnnotationSpec.builder(QUARKUS_REST_FORM)
                                     .addMember("%S", name).build()
@@ -522,7 +535,12 @@ class KotlinAPIExtractor(
             } else {
                 //Single-part
                 Optional.ofNullable(entry.value.schema).stream().asSequence()
-                    .map { typeDefiner.defineKotlinType(it, openAPI, parent, null, null) }
+                    // A binary single-part body/response is a converter-backed body
+                    // type (Resource / InputStream), not a multipart part.
+                    .map {
+                        if (isBinary(it)) binaryBodyType()
+                        else typeDefiner.defineKotlinType(it, openAPI, parent, null, null)
+                    }
                     .map {
                         RequestPartParams(
                             name = "request",
@@ -538,4 +556,22 @@ class KotlinAPIExtractor(
             }
         }
     }
+
+    /** Whether a schema is `type: string, format: binary` (OpenAPI 3.0 or 3.1). */
+    private fun isBinary(schema: Schema<*>?): Boolean {
+        if (schema == null) {
+            return false
+        }
+        val type = schema.type ?: schema.types?.singleOrNull()
+        return "string" == type && "binary" == schema.format
+    }
+
+    // Keyed on the actual framework (not the annotation-context flag, which a
+    // return type derives with `quarkus = false`). Nullable to match the
+    // surrounding generated body/part types.
+    private fun multipartPartType(): TypeName =
+        (if (framework == Framework.QUARKUS) QUARKUS_FILE_UPLOAD else MULTIPART_FILE).copy(nullable = true)
+
+    private fun binaryBodyType(): TypeName =
+        (if (framework == Framework.QUARKUS) INPUT_STREAM else SPRING_RESOURCE).copy(nullable = true)
 }

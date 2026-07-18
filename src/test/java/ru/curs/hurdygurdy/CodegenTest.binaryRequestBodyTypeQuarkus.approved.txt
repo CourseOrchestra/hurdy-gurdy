@@ -1,0 +1,24 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import java.io.InputStream;
+
+@Path("")
+public interface Controller {
+  @POST
+  @Path("/upload")
+  @Consumes("application/octet-stream")
+  void upload(InputStream request);
+}
