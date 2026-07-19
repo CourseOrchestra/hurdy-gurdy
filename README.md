@@ -25,7 +25,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 <plugin>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>3.1</version>
+    <version>3.2</version>
     <configuration>
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>
@@ -96,7 +96,7 @@ import ru.curs.hurdygurdy.gradle.Language
 
 plugins {
     java
-    id("ru.curs.hurdy-gurdy") version "3.1"
+    id("ru.curs.hurdy-gurdy") version "3.2"
 }
 
 hurdyGurdy {
