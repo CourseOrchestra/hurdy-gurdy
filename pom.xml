@@ -71,10 +71,15 @@
             <artifactId>kotlinpoet-jvm</artifactId>
             <version>2.3.0</version>
         </dependency>
+        <!-- Compile-time-only annotation processor: needed on the compile classpath
+             but never at runtime, so it must not be shaded into the CLI fat jar.
+             provided scope keeps it out of the runtime classpath (and out of
+             META-INF/THIRD-PARTY.txt, which lists only shipped dependencies). -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.46</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>
@@ -447,6 +452,22 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>cli</shadedClassifierName>
+                            <!-- com.github.java-json-tools:uri-template is dual-licensed
+                                 Apache-2.0 / LGPLv3 and ships both license texts plus an
+                                 AUTHORS file at its jar root. We elect the Apache-2.0 arm,
+                                 so drop these stray root files (they would otherwise land
+                                 in the fat-jar root and misleadingly suggest LGPL). The
+                                 dependency is still recorded in META-INF/THIRD-PARTY.txt. -->
+                            <filters>
+                                <filter>
+                                    <artifact>com.github.java-json-tools:uri-template</artifact>
+                                    <excludes>
+                                        <exclude>ASL-2.0.txt</exclude>
+                                        <exclude>LGPL-3.0.txt</exclude>
+                                        <exclude>AUTHORS</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>ru.curs.hurdygurdy.Main</mainClass>
