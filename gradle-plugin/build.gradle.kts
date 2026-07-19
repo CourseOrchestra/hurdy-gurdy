@@ -87,6 +87,33 @@ detekt {
 // default: they enable the rules that need a compiled classpath, so `check`
 // runs the fuller analysis. This is why they require the core ru.curs:hurdy-gurdy
 // artifact to be resolvable (mavenLocal), same as compilation.
+// Enforce the Apache 2.0 license header on every Kotlin/Java source, mirroring
+// the checkstyle Header check in the core Maven build. There is a single header
+// template for the whole repository (../header.txt); comparison is line-by-line
+// with the trailing CR stripped, so it is agnostic to LF vs CRLF.
+val licenseHeaderFile = layout.projectDirectory.file("../header.txt")
+val licensedSources = fileTree("src") { include("**/*.kt", "**/*.java") }
+val repoRootDir = projectDir
+val verifyLicenseHeaders = tasks.register("verifyLicenseHeaders") {
+    description = "Verifies every Kotlin/Java source starts with the Apache 2.0 license header."
+    group = "verification"
+    inputs.file(licenseHeaderFile)
+    inputs.files(licensedSources)
+    doLast {
+        val expected = licenseHeaderFile.asFile.readLines().map { it.trimEnd('\r') }
+        val offenders = licensedSources.files
+            .filter { f -> f.readLines().take(expected.size).map { it.trimEnd('\r') } != expected }
+            .map { it.relativeTo(repoRootDir).path }
+            .sorted()
+        if (offenders.isNotEmpty()) {
+            throw GradleException(
+                "Missing or malformed Apache 2.0 license header in:\n  " +
+                    offenders.joinToString("\n  ")
+            )
+        }
+    }
+}
+
 tasks.named("check") {
-    dependsOn(tasks.named("detektMain"), tasks.named("detektTest"))
+    dependsOn(tasks.named("detektMain"), tasks.named("detektTest"), verifyLicenseHeaders)
 }

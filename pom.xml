@@ -23,8 +23,8 @@
 
     <licenses>
         <license>
-            <name>GNU Lesser General Public License (LGPL), Version 3</name>
-            <url>https://www.gnu.org/licenses/lgpl.txt</url>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -321,6 +321,11 @@
                 <configuration>
                     <configLocation>checkstyle.xml</configLocation>
                     <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+                    <propertyExpansion>checkstyle.header.file=${project.basedir}/header.txt</propertyExpansion>
+                    <!-- Kotlin sources live under src/main/java alongside the Java ones,
+                         so include them too and the Apache license header is enforced
+                         on .java and .kt alike (see the Header module in checkstyle.xml). -->
+                    <includes>**/*.java,**/*.kt</includes>
                 </configuration>
                 <dependencies>
                     <dependency>
