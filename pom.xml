@@ -51,6 +51,7 @@
         <maven.enforcer.plugin.version>3.6.3</maven.enforcer.plugin.version>
         <extra.enforcer.rules.version>1.12.0</extra.enforcer.rules.version>
         <exec.maven.plugin.version>3.6.3</exec.maven.plugin.version>
+        <license.maven.plugin.version>2.6.0</license.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -225,6 +226,19 @@
                 <excludes>
                     <exclude>hurdy-gurdy-version.properties</exclude>
                 </excludes>
+            </resource>
+            <!-- Bundle this project's own Apache-2.0 license text into both the plugin
+                 jar and the shaded CLI jar. Placed at the jar root (/LICENSE) rather
+                 than META-INF/LICENSE so the ApacheLicenseResourceTransformer (which
+                 strips META-INF/LICENSE entries to de-duplicate the bundled ones) does
+                 not drop it too. The per-dependency licenses are listed in
+                 META-INF/THIRD-PARTY.txt. -->
+            <resource>
+                <directory>${project.basedir}</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>LICENSE</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
@@ -438,7 +452,41 @@
                                     <mainClass>ru.curs.hurdygurdy.Main</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <!-- The CLI jar bundles third-party bytecode, so it must carry their
+                                     notices (Apache-2.0 §4). ApacheNoticeResourceTransformer merges the
+                                     dependencies' META-INF/NOTICE files; ApacheLicenseResourceTransformer
+                                     collapses their colliding META-INF/LICENSE entries. The complete
+                                     per-dependency license listing (incl. rhino's MPL-2.0) is bundled
+                                     separately as META-INF/THIRD-PARTY.txt by the license-maven-plugin. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                                    <addHeader>false</addHeader>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
                             </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Generate a complete third-party license listing straight into the
+                 build output (META-INF/THIRD-PARTY.txt) so it is packaged into both
+                 the plugin jar and the shaded CLI jar. Limited to the scopes that are
+                 actually shipped (compile/runtime), so it mirrors what the fat jar
+                 bundles. Runs in prepare-package, before jar/shade run in package. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>${license.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>bundle-third-party-notices</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>add-third-party</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                            <thirdPartyFilename>THIRD-PARTY.txt</thirdPartyFilename>
+                            <excludedScopes>test,provided,system</excludedScopes>
                         </configuration>
                     </execution>
                 </executions>
