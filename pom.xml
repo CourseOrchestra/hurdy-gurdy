@@ -71,15 +71,10 @@
             <artifactId>kotlinpoet-jvm</artifactId>
             <version>2.3.0</version>
         </dependency>
-        <!-- Compile-time-only annotation processor: needed on the compile classpath
-             but never at runtime, so it must not be shaded into the CLI fat jar.
-             provided scope keeps it out of the runtime classpath (and out of
-             META-INF/THIRD-PARTY.txt, which lists only shipped dependencies). -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.46</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>
