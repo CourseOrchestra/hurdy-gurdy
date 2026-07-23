@@ -611,7 +611,10 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>1.1.6</version>
+                        <!-- Do not bump to 1.1.6: it is broken, see
+                             https://github.com/graalvm/native-build-tools/issues/1000.
+                             Upgrade once 1.1.7 is released. -->
+                        <version>1.1.5</version>
                         <extensions>true</extensions>
                         <executions>
                             <execution>

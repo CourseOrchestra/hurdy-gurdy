@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 10
+    ignore:
+      # 1.1.6 is broken (NoClassDefFoundError: MessageUtils in every native build),
+      # see https://github.com/graalvm/native-build-tools/issues/1000.
+      # Remove this rule once 1.1.7 is released.
+      - dependency-name: "org.graalvm.buildtools:native-maven-plugin"
+        versions: ["1.1.6"]
   - package-ecosystem: gradle
     directory: "/gradle-plugin"
     schedule:
