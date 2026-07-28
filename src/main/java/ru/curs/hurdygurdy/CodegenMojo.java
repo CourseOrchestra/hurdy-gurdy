@@ -58,6 +58,8 @@ public class CodegenMojo extends AbstractMojo {
     boolean generateResponseParameter = false;
 
     /**
+     * Generates the API interface in addition to the controller.
+     *
      * @deprecated superseded by adding {@code api} to the {@code generate} parameter
      */
     @Deprecated
