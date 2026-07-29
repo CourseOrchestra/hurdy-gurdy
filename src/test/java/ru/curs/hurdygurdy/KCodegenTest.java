@@ -93,6 +93,16 @@ class KCodegenTest {
     }
 
     @Test
+    void leadingUnderscoreProperty() throws IOException {
+        // hurdy-gurdy#566: a leading underscore is valid snake_case. Locks the
+        // shape: the underscore survives into the property name, and an explicit
+        // @JsonProperty pins the wire name, which @JsonNaming(SnakeCaseStrategy)
+        // would otherwise mangle (it eats the first leading underscore).
+        codegen.generate(Path.of("src/test/resources/issue566.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void inlineEnumNormalized() throws IOException {
         // Parity guard for OpenAPITools/openapi-generator#24012: unlike the Java
         // generator (fixed separately), Kotlin already routes both inline and

@@ -1,0 +1,40 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Anchors.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Anchors(
+  public val name: String? = null,
+)
+---
+/com/example/dto/UserConfig.kt
+package com.example.dto
+
+import com.fasterxml.jackson.`annotation`.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UserConfig(
+  public val id: String,
+  @JsonProperty(value = "_anchors")
+  public val _anchors: Anchors? = null,
+  @JsonProperty(value = "_created_at")
+  public val _createdAt: String? = null,
+  @JsonProperty(value = "__meta")
+  public val __meta: String? = null,
+  public val plainName: String? = null,
+)

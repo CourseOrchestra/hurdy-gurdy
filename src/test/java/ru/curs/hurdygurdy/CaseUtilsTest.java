@@ -43,9 +43,52 @@ class CaseUtilsTest {
             "'',_",                  // empty becomes _
             "'[]',_",                // only illegal chars becomes _
             "0abc,_0abc",            // leading digit gets prefixed
+            "_anchors,_anchors",     // a leading underscore is already legal — kept
+            "__meta,__meta",         // ...however many of them there are
+            "_files[0],_files0",     // stripping illegal chars keeps the underscore
+            "_,_",                   // a bare underscore is a legal identifier
     })
     void toIdentifier(String input, String expected) {
         assertThat(CaseUtils.toIdentifier(input)).isEqualTo(expected);
+    }
+
+    /**
+     * A leading underscore is a valid {@code snake_case} property name (issue
+     * 566) and must survive camel-casing verbatim: it is the whole point of the
+     * user writing it, and dropping it would clash with an otherwise
+     * identically-named property. Underscores that lead the name are copied as
+     * they are; only the ones <em>between</em> words are word separators.
+     */
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource({
+            "_anchors,_anchors",             // exactly the issue-566 property
+            "_created_at,_createdAt",        // leading one kept, inner one separates
+            "__meta,__meta",                 // doubled leading underscores kept
+            "___a_b,___aB",                  // any number of them
+            "_a,_a",
+            "_snake_case_name,_snakeCaseName",
+            "_already_Camel,_alreadyCamel",
+    })
+    void snakeToCamelLeadingUnderscore(String input, String expected) {
+        assertThat(CaseUtils.snakeToCamel(input)).isEqualTo(expected);
+    }
+
+    /**
+     * The {@code capitalizeFirst} (type-name) flavour keeps leading underscores
+     * too — {@code Character.toUpperCase('_')} is {@code '_'}, so the first
+     * <em>letter</em> is deliberately left alone rather than being hunted for.
+     * Pinned here because the Java/Kotlin accessor names derived from this
+     * overload must stay in step with the field name.
+     */
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource({
+            "_anchors,_anchors",
+            "_created_at,_createdAt",
+            "__meta,__meta",
+            "snake_case,SnakeCase",
+    })
+    void snakeToCamelCapitalizedLeadingUnderscore(String input, String expected) {
+        assertThat(CaseUtils.snakeToCamel(input, true)).isEqualTo(expected);
     }
 
     @Test
@@ -108,6 +151,22 @@ class CaseUtilsTest {
         assertThat(CaseUtils.kebabToCamel("thisIsCamel")).isEqualTo("thisIsCamel");
     }
 
+    /**
+     * A leading underscore in a kebab-case name (a header or query-parameter
+     * name such as {@code _meta-info}) is not a separator either, so it is kept
+     * exactly as written.
+     */
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource({
+            "_meta-info,_metaInfo",
+            "__meta-info,__metaInfo",
+            "_anchors,_anchors",
+            "_,_",
+    })
+    void kebabToCamelLeadingUnderscore(String input, String expected) {
+        assertThat(CaseUtils.kebabToCamel(input)).isEqualTo(expected);
+    }
+
     @Test
     void pathToCamelNull() {
         assertThat(CaseUtils.pathToCamel(null)).isNull();
@@ -157,7 +216,14 @@ class CaseUtilsTest {
                     "'an---example__name',        AnExample__name",
                     "'const',                     Const",
                     "'foo',                       Foo",
-                    "'Foo',                       Foo"
+                    "'Foo',                       Foo",
+                    // A leading underscore is a legal Java identifier START, so it
+                    // is kept (upper-casing it is a no-op) instead of being treated
+                    // as a delimiter.
+                    "'_anchors',                  _anchors",
+                    "'__meta',                    __meta",
+                    "'_my-variable.name',         _myVariableName",
+                    "'_',                         _"
             })
     void normalizeToCamelTest(String input, String expected) {
         assertThat(normalizeToCamel(input)).isEqualTo(expected);
@@ -178,7 +244,13 @@ class CaseUtilsTest {
                     "'an---example__name',        AN_EXAMPLE__NAME",
                     "'const',                     CONST",
                     "'foo',                       FOO",
-                    "'FOO',                       FOO"
+                    "'FOO',                       FOO",
+                    // Leading underscores are identifier characters, not delimiters:
+                    // kept verbatim, no extra separator inserted after them.
+                    "'_anchors',                  _ANCHORS",
+                    "'__meta',                    __META",
+                    "'_hello world',              _HELLO_WORLD",
+                    "'_',                         _"
             })
     void normalizeToScreamingSnakeTest(String input, String expected) {
         assertThat(normalizeToScreamingSnake(input)).isEqualTo(expected);

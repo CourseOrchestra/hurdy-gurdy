@@ -1,0 +1,39 @@
+## Reproducer from https://github.com/CourseOrchestra/hurdy-gurdy/issues/566:
+## a leading underscore is a valid snake_case property name (YAML-anchor
+## metadata, conventional "meta/private" prefixes), so
+## `forceSnakeCaseForProperties` must accept it, the generated Java/Kotlin
+## property must keep the leading underscore, and so must the JSON wire name
+## (Jackson's SnakeCaseStrategy drops a leading underscore on its own).
+openapi: 3.0.1
+info:
+  title: Test
+  version: 0.0.1
+paths: {}
+
+components:
+  schemas:
+    Anchors:
+      type: object
+      properties:
+        name:
+          type: string
+    UserConfig:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        ## Exactly the property from the issue.
+        _anchors:
+          $ref: '#/components/schemas/Anchors'
+        ## Leading underscore AND an inner one: the identifier must be
+        ## `_createdAt`, the wire name `_created_at`.
+        _created_at:
+          type: string
+        ## Doubled leading underscore: SnakeCaseStrategy would eat exactly one.
+        __meta:
+          type: string
+        ## An ordinary snake_case property, unaffected.
+        plain_name:
+          type: string

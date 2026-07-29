@@ -657,6 +657,13 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             TypeName typeName = defineJavaType(c.schema(), openAPI, recordBuilder,
                     CaseUtils.snakeToCamel(c.key(), true));
             ParameterSpec.Builder param = ParameterSpec.builder(typeName, propertyName);
+            // Record-component annotation: propagates to the field, the accessor and
+            // the canonical-constructor parameter, so both hops see the pinned name.
+            String jsonName = jsonNameOverride(c.key(), propertyName);
+            if (jsonName != null) {
+                param.addAnnotation(AnnotationSpec.builder(JsonProperty.class)
+                        .addMember("value", "$S", jsonName).build());
+            }
             if (typeName instanceof ClassName className && "ZonedDateTime".equals(className.simpleName())) {
                 param.addAnnotation(AnnotationSpec.builder(ClassName.get(JsonDeserialize.class))
                                 .addMember("using", "ZonedDateTimeDeserializer.class").build())
@@ -1071,6 +1078,14 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                 typeName,
                 propertyName, Modifier.PRIVATE);
+        // Pins the wire name when @JsonNaming alone cannot reproduce the spec key
+        // (a leading/trailing underscore); the field-level name governs the whole
+        // logical property, getter and setter included.
+        String jsonName = jsonNameOverride(key, propertyName);
+        if (jsonName != null) {
+            fieldBuilder.addAnnotation(AnnotationSpec.builder(JsonProperty.class)
+                    .addMember("value", "$S", jsonName).build());
+        }
         if (typeName instanceof ClassName className && "ZonedDateTime"
                 .equals(className.simpleName())) {
             fieldBuilder.addAnnotation(AnnotationSpec.builder(

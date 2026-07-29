@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -43,6 +44,21 @@ import java.util.regex.Pattern;
 public abstract class TypeDefiner<T> {
     protected static final Pattern CLASS_NAME_PATTERN = Pattern.compile("/([^/$]+)$");
     protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
+    /**
+     * A property name accepted by {@code forceSnakeCaseForProperties}: lower-case
+     * snake_case, optionally prefixed by underscores. A <em>leading</em>
+     * underscore is a common snake_case convention for "meta"/"private" keys
+     * (YAML-anchor metadata and the like), so it is valid — see
+     * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/566">issue 566</a>.
+     */
+    private static final Pattern SNAKE_CASE_PROPERTY = Pattern.compile("[_$a-z][a-z_0-9]*");
+    /**
+     * The very strategy the generated DTOs are annotated with, used to tell
+     * whether it can reproduce a spec property name from the camel-cased
+     * identifier — see {@link #jsonNameOverride(String, String)}.
+     */
+    private static final PropertyNamingStrategies.SnakeCaseStrategy SNAKE_CASE_STRATEGY =
+            new PropertyNamingStrategies.SnakeCaseStrategy();
 
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final GeneratorParams params;
@@ -138,12 +154,38 @@ public abstract class TypeDefiner<T> {
 
     final void checkPropertyName(String name, String propertyName) {
         if (params.isForceSnakeCaseForProperties()
-                && !propertyName.matches("[$a-z][a-z_0-9]*")) throw new IllegalStateException(
+                && !SNAKE_CASE_PROPERTY.matcher(propertyName).matches()) throw new IllegalStateException(
                 String.format("Property '%s' of schema '%s' is not in snake case",
                         propertyName, name)
         );
     }
 
+    /**
+     * The JSON name that must be pinned with an explicit {@code @JsonProperty} on
+     * the generated property, or {@code null} when the configured Jackson naming
+     * already reproduces the spec key on its own (the overwhelmingly common case,
+     * which stays annotation-free).
+     *
+     * <p>In snake-case mode the generator camel-cases the spec key and leans on
+     * {@code @JsonNaming(SnakeCaseStrategy)} to turn it back. That round trip is
+     * <em>lossy</em> for underscores at the edges of a name: {@code SnakeCaseStrategy}
+     * silently drops the first leading underscore, so {@code _anchors} would go on
+     * the wire as {@code anchors} and {@code __meta} as {@code _meta}
+     * (<a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/566">issue 566</a>);
+     * a trailing underscore is lost in the camel-casing itself. The check is the
+     * round trip itself rather than an underscore test, so any key the strategy
+     * cannot reproduce is pinned.
+     *
+     * @param key          the property name as written in the specification
+     * @param propertyName the generated Java/Kotlin property identifier
+     */
+    final String jsonNameOverride(String key, String propertyName) {
+        if (!params.isForceSnakeCaseForProperties()) {
+            // No @JsonNaming is emitted, and the identifier IS the spec key.
+            return null;
+        }
+        return SNAKE_CASE_STRATEGY.translate(propertyName).equals(key) ? null : key;
+    }
 
     final Map<String, String> getSubclassMapping(Schema<?> schema) {
         return Optional.ofNullable(schema.getDiscriminator())
