@@ -46,8 +46,8 @@ public abstract class TypeDefiner<T> {
     protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
     /**
      * A property name accepted by {@code forceSnakeCaseForProperties}: lower-case
-     * snake_case, optionally prefixed by underscores. A <em>leading</em>
-     * underscore is a common snake_case convention for "meta"/"private" keys
+     * snake_case, optionally prefixed by underscores (and {@code $}, for backwards compatibility).
+     * A <em>leading</em> underscore is a common snake_case convention for "meta"/"private" keys
      * (YAML-anchor metadata and the like), so it is valid — see
      * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/566">issue 566</a>.
      */
