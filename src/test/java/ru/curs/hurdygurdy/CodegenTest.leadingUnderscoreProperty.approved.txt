@@ -1,0 +1,48 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Anchors.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Anchors {
+  private String name;
+}
+---
+/com/example/dto/UserConfig.java
+package com.example.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class UserConfig {
+  private String id;
+
+  @JsonProperty("_anchors")
+  private Anchors _anchors;
+
+  @JsonProperty("_created_at")
+  private String _createdAt;
+
+  @JsonProperty("__meta")
+  private String __meta;
+
+  private String plainName;
+}

@@ -564,6 +564,18 @@ class KotlinTypeDefiner internal constructor(
         val paramSpec =
             ParameterSpec.builder(propertyName, typeName)
 
+        // Pins the wire name when @JsonNaming alone cannot reproduce the spec key
+        // (a leading/trailing underscore). On a data-class constructor `val` the
+        // annotation lands on the constructor parameter, which is where both the
+        // Kotlin module's creator binding and the merged property read it from.
+        jsonNameOverride(key, propertyName)?.let { jsonName ->
+            paramSpec.addAnnotation(
+                AnnotationSpec.builder(JsonProperty::class)
+                    .addMember("value = %S", jsonName)
+                    .build()
+            )
+        }
+
         if (typeName is ClassName && ("ZonedDateTime" == typeName.simpleName)) {
             paramSpec.addAnnotation(
                 AnnotationSpec.builder(JsonDeserialize::class)
