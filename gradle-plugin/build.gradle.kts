@@ -50,7 +50,7 @@ repositories {
 
 dependencies {
     implementation("ru.curs:hurdy-gurdy:$hurdyGurdyVersion")
-    testImplementation(platform("org.junit:junit-bom:6.1.2"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test-junit5"))
