@@ -47,7 +47,7 @@
         <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
         <kotlin.version>2.4.10</kotlin.version>
         <checkstyle.maven.plugin.version>3.6.0</checkstyle.maven.plugin.version>
-        <checkstyle.version>13.10.0</checkstyle.version>
+        <checkstyle.version>13.11.0</checkstyle.version>
         <maven.enforcer.plugin.version>3.6.3</maven.enforcer.plugin.version>
         <extra.enforcer.rules.version>1.12.0</extra.enforcer.rules.version>
         <exec.maven.plugin.version>3.6.3</exec.maven.plugin.version>
