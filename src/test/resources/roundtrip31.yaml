@@ -22,7 +22,10 @@ components:
 
     NullableHolder:
       type: object
-      required: [id]
+      # `tag` and `counts` are REQUIRED on purpose: a non-required property is
+      # nullable anyway, so only a required one proves the `"null"` in the type
+      # array was read (hurdy-gurdy#603).
+      required: [id, tag, counts]
       properties:
         id:
           type: string
@@ -36,6 +39,14 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Inner'
             - type: 'null'
+        # 3.1 type-array spelling of the same thing -> nullable String
+        tag:
+          type: [string, "null"]
+        # ...and of a nullable list of non-null items
+        counts:
+          type: [array, "null"]
+          items:
+            type: integer
 
     # Self-referential (cyclic) tree schema: an Element references itself, both
     # as a nullable single self-reference (`next`, terminating a chain) and as a

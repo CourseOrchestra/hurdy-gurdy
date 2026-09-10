@@ -1,0 +1,41 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.Thing
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.String
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @GetMapping(
+    value = ["/api/v1/thing"],
+    produces = ["application/json"],
+  )
+  public fun getThing(@RequestParam(required = false, name = "filter") filter: String?, response: HttpServletResponse): Thing?
+}
+---
+/com/example/dto
+---
+/com/example/dto/Thing.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Thing(
+  public val reqNullable: String,
+  public val optPlain: String? = null,
+  public val properlyNullable: String? = null,
+)

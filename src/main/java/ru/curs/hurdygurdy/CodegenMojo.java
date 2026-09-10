@@ -102,6 +102,7 @@ public class CodegenMojo extends AbstractMojo {
                 "java".equalsIgnoreCase(language)
                         ? new JavaCodegen(params)
                         : new KotlinCodegen(params);
+        codegen.setWarningListener(getLog()::warn);
         try {
             Path targetPath = outputDirectory.toPath();
             Files.createDirectories(targetPath);

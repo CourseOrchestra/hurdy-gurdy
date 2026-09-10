@@ -1,0 +1,153 @@
+## Reproducer for https://github.com/CourseOrchestra/hurdy-gurdy/issues/603:
+## the OpenAPI 3.1 way of spelling "nullable X" is `type: [X, "null"]`, since
+## 3.1 removed the 3.0 `nullable` keyword. swagger-parser leaves `getType()`
+## null for a 3.1 document and fills `getTypes()` instead, so a two-element
+## type array used to fall through every type branch: Kotlin emitted `Any`,
+## and Java minted an empty DTO class named after the property.
+##
+## Every schema here therefore carries `null` in a type array — as a property,
+## as an array item, as a named component, as an array alias, and on the API
+## surface (parameter, request body, response) — and nothing here uses the
+## `nullable` keyword: see straynullable31.yaml for that.
+openapi: 3.1.0
+info:
+  title: OpenAPI 3.1 type arrays
+  version: "1.0"
+
+paths:
+  /api/v1/sample/{sample_id}:
+    get:
+      operationId: getSample
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: string
+        # A nullable query parameter: the type is integer, `null` only marks it
+        # as nullable (and an optional parameter is nullable in any case).
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: [integer, "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+    post:
+      operationId: putSample
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: [object, "null"]
+              title: SampleUpdate
+              properties:
+                comment:
+                  type: [string, "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: [array, "null"]
+                items:
+                  $ref: '#/components/schemas/Sample'
+
+components:
+  schemas:
+    Inner:
+      type: object
+      required: [inner_name]
+      properties:
+        inner_name:
+          type: string
+
+    # A named component that is itself nullable: a `$ref` to it must stay
+    # nullable even where the referring property is `required`.
+    NullableInner:
+      type: [object, "null"]
+      properties:
+        note:
+          type: string
+
+    # An array alias whose type array carries `null`: still an array alias, so
+    # it is inlined as List<Item> at the point of use rather than becoming an
+    # empty class.
+    ItemArray:
+      type: [array, "null"]
+      items:
+        $ref: '#/components/schemas/Inner'
+
+    Sample:
+      type: object
+      # Everything below is `required`, which is what makes the type arrays
+      # observable: a non-required property is nullable anyway.
+      required:
+        - plain
+        - opt_string
+        - opt_long
+        - opt_double
+        - opt_bool
+        - opt_date
+        - opt_uuid
+        - opt_list
+        - opt_object
+        - opt_enum
+        - null_items
+        - item_array
+        - nullable_ref
+      properties:
+        # Plain 3.1 single type: `getType()` is null here too, so this is the
+        # baseline that proves `getTypes()` is consulted at all.
+        plain:
+          type: string
+        opt_string:
+          type: [string, "null"]
+        opt_long:
+          type: [integer, "null"]
+          format: int64
+        opt_double:
+          type: [number, "null"]
+        opt_bool:
+          type: [boolean, "null"]
+        opt_date:
+          type: [string, "null"]
+          format: date
+        opt_uuid:
+          type: [string, "null"]
+          format: uuid
+        opt_list:
+          type: [array, "null"]
+          items:
+            type: string
+        # An inline object that is also nullable: the DTO must still be
+        # generated (named after the property), just referenced nullably.
+        opt_object:
+          type: [object, "null"]
+          properties:
+            field:
+              type: string
+        opt_enum:
+          type: [string, "null"]
+          enum: [FIRST, SECOND]
+        # Nullability of the ITEMS, not of the list.
+        null_items:
+          type: array
+          items:
+            type: [string, "null"]
+        item_array:
+          $ref: '#/components/schemas/ItemArray'
+        nullable_ref:
+          $ref: '#/components/schemas/NullableInner'
+        # Regression guard: the pre-existing anyOf nullable-unwrap must keep
+        # working next to the type-array spelling.
+        any_of_inner:
+          anyOf:
+            - $ref: '#/components/schemas/Inner'
+            - type: 'null'

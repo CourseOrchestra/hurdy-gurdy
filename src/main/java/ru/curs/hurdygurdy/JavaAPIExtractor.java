@@ -474,14 +474,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     /** Whether a schema is {@code type: string, format: binary} (OpenAPI 3.0 or 3.1). */
     private static boolean isBinary(Schema<?> schema) {
-        if (schema == null) {
-            return false;
-        }
-        String type = schema.getType();
-        if (type == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
-            type = schema.getTypes().iterator().next();
-        }
-        return "string".equals(type) && "binary".equals(schema.getFormat());
+        return schema != null && "string".equals(TypeDefiner.effectiveType(schema))
+                && "binary".equals(schema.getFormat());
     }
 
     /**

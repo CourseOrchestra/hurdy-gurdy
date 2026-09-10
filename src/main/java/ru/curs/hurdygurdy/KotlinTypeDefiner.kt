@@ -85,7 +85,15 @@ class KotlinTypeDefiner internal constructor(
         }
     }
 
-    private fun Schema<*>.getInternalType() = type ?: types?.singleOrNull()
+    private fun Schema<*>.getInternalType() = TypeDefiner.effectiveType(this)
+
+    /**
+     * Whether this schema is nullable: true when it says so (3.0 `nullable: true`
+     * or a 3.1 `type: [X, "null"]`), otherwise whatever `nullable` states — null
+     * when the schema says nothing at all, leaving the choice to the caller.
+     */
+    private fun Schema<*>.nullableOrNull(): Boolean? =
+        if (TypeDefiner.isNullableSchema(this)) true else nullable
 
     public override fun defineKotlinType(
         outerSchema: Schema<*>, openAPI: OpenAPI,
@@ -140,7 +148,7 @@ class KotlinTypeDefiner internal constructor(
                     val itemsSchema: Schema<*> = schema.items
                     List::class.asTypeName().parameterizedBy(
                         defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"), null)
-                            .copy(nullable = (itemsSchema.nullable ?: false))
+                            .copy(nullable = (itemsSchema.nullableOrNull() ?: false))
                     )
                 }
 
@@ -182,7 +190,7 @@ class KotlinTypeDefiner internal constructor(
             }
             return referencedTypeName(`$ref`, openAPI, nullableOverride)
         }
-        return result.copy(nullable = nullableOverride ?: nullableByAnyOf ?: schema.nullable ?: true)
+        return result.copy(nullable = nullableOverride ?: nullableByAnyOf ?: schema.nullableOrNull() ?: true)
     }
 
     private fun referencedTypeName(
@@ -545,7 +553,7 @@ class KotlinTypeDefiner internal constructor(
     ): String {
         checkPropertyName(name, key)
         val nullable = if (value.`$ref` == null) {
-            value.nullable == true
+            TypeDefiner.isNullableSchema(value)
         } else {
             getNullable(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN), false)
         }
@@ -597,7 +605,7 @@ class KotlinTypeDefiner internal constructor(
         } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
         if (default != null) {
             when {
-                value.type == "array" -> {
+                value.getInternalType() == "array" -> {
                     //Empty list as default
                     paramSpec.defaultValue("listOf()")
                 }

@@ -578,8 +578,7 @@ class KotlinAPIExtractor(
         if (schema == null) {
             return false
         }
-        val type = schema.type ?: schema.types?.singleOrNull()
-        return "string" == type && "binary" == schema.format
+        return "string" == TypeDefiner.effectiveType(schema) && "binary" == schema.format
     }
 
     // Keyed on the actual framework (not the annotation-context flag, which a

@@ -1,0 +1,127 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.Sample
+import com.example.dto.SampleUpdate
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.Int
+import kotlin.String
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @GetMapping(
+    value = ["/api/v1/sample/{sample_id}"],
+    produces = ["application/json"],
+  )
+  public fun getSample(
+    @PathVariable(name = "sample_id") sampleId: String?,
+    @RequestParam(required = false, name = "page") page: Int?,
+    response: HttpServletResponse,
+  ): Sample?
+
+  @PostMapping(
+    value = ["/api/v1/sample/{sample_id}"],
+    produces = ["application/json"],
+  )
+  public fun putSample(@RequestBody request: SampleUpdate?, response: HttpServletResponse): List<Sample>?
+}
+---
+/com/example/dto
+---
+/com/example/dto/Inner.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Inner(
+  public val innerName: String,
+)
+---
+/com/example/dto/NullableInner.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class NullableInner(
+  public val note: String? = null,
+)
+---
+/com/example/dto/OptObject.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class OptObject(
+  public val `field`: String? = null,
+)
+---
+/com/example/dto/Sample.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import java.time.LocalDate
+import java.util.UUID
+import kotlin.Boolean
+import kotlin.Double
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class Sample(
+  public val plain: String,
+  public val optString: String?,
+  public val optLong: Long?,
+  public val optDouble: Double?,
+  public val optBool: Boolean?,
+  public val optDate: LocalDate?,
+  public val optUuid: UUID?,
+  public val optList: List<String>?,
+  public val optObject: OptObject?,
+  public val optEnum: OptEnum?,
+  public val nullItems: List<String?>,
+  public val itemArray: List<Inner>?,
+  public val nullableRef: NullableInner?,
+  public val anyOfInner: Inner? = null,
+) {
+  public enum class OptEnum {
+    FIRST,
+    SECOND,
+  }
+}
+---
+/com/example/dto/SampleUpdate.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.String
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class SampleUpdate(
+  public val comment: String? = null,
+)

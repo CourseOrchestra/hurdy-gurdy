@@ -76,14 +76,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private String getInternalType(Schema<?> schema) {
-        String internalType = schema.getType();
-        if (internalType == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
-            internalType = schema.getTypes().iterator().next();
-        }
-        if (internalType == null) {
-            internalType = "unknown";
-        }
-        return internalType;
+        String internalType = effectiveType(schema);
+        return internalType == null ? "unknown" : internalType;
     }
 
     @Override
@@ -694,11 +688,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /**
      * Whether a schema permits an explicit {@code null} value: an OpenAPI 3.0
-     * {@code nullable: true}, a same-file {@code $ref} to a nullable schema, or a
-     * 3.1 {@code anyOf:[X, null]} nullable wrapper.
+     * {@code nullable: true}, a 3.1 {@code type: [X, "null"]} union, a same-file
+     * {@code $ref} to a nullable schema, or a 3.1 {@code anyOf:[X, null]}
+     * nullable wrapper.
      */
     private boolean isNullable(Schema<?> schema, OpenAPI openAPI) {
-        if (Boolean.TRUE.equals(schema.getNullable())) {
+        if (isNullableSchema(schema)) {
             return true;
         }
         if (schema.get$ref() != null) {
