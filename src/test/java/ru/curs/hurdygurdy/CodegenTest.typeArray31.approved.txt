@@ -13,12 +13,14 @@ package com.example.controller;
 import com.example.dto.Sample;
 import com.example.dto.SampleUpdate;
 import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -35,6 +37,15 @@ public interface Controller {
       produces = "application/json"
   )
   List<Sample> putSample(@RequestBody SampleUpdate request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/sample/count",
+      produces = "application/json"
+  )
+  Integer getCount(HttpServletResponse response);
+
+  @PutMapping("/api/v1/sample/count")
+  void setFlag(@RequestBody Boolean request, HttpServletResponse response);
 }
 ---
 /com/example/dto

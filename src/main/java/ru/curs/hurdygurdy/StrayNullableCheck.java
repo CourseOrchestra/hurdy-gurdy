@@ -88,10 +88,13 @@ final class StrayNullableCheck {
             forEach(components.getRequestBodies(), "#/components/requestBodies", this::visitRequestBody);
             forEach(components.getResponses(), "#/components/responses", this::visitResponse);
             forEach(components.getCallbacks(), "#/components/callbacks", this::visitCallback);
+            forEach(components.getPathItems(), "#/components/pathItems", this::visitPathItem);
         }
         if (openAPI.getPaths() != null) {
             openAPI.getPaths().forEach((path, pathItem) -> visitPathItem(pathItem, "#/paths/" + path));
         }
+        // 3.1 added webhooks: path items reachable from nowhere else.
+        forEach(openAPI.getWebhooks(), "#/webhooks", this::visitPathItem);
     }
 
     private void visitPathItem(PathItem pathItem, String path) {

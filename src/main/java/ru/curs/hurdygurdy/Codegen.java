@@ -87,9 +87,13 @@ public abstract class Codegen<T> {
     private void warnStrayNullable(OpenAPI api) {
         List<String> locations = StrayNullableCheck.locations(api);
         for (String location : locations.subList(0, Math.min(locations.size(), MAX_REPORTED_WARNINGS))) {
+            // Deliberately not "use type: [X, \"null\"] instead": that is the right
+            // advice only for `nullable: true`. For `nullable: false` a null union
+            // would reverse the meaning, and a $ref carries no type to extend.
             warningListener.accept(String.format(
                     "hurdy-gurdy: 'nullable' is not an OpenAPI 3.1 keyword and is ignored at %s; "
-                            + "use type: [<type>, \"null\"] instead", location));
+                            + "remove it, or — if the value really may be null — say so with "
+                            + "type: [<type>, \"null\"]", location));
         }
         if (locations.size() > MAX_REPORTED_WARNINGS) {
             warningListener.accept(String.format(

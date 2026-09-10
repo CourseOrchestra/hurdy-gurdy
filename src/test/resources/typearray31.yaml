@@ -59,6 +59,30 @@ paths:
                 items:
                   $ref: '#/components/schemas/Sample'
 
+  # A nullable PRIMITIVE on the API surface: bodies and responses are unboxed
+  # for a compact signature (`int getBills()`), which a schema permitting null
+  # must opt out of — `int`/`boolean` cannot carry that null.
+  /api/v1/sample/count:
+    get:
+      operationId: getCount
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: [integer, "null"]
+    put:
+      operationId: setFlag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: [boolean, "null"]
+      responses:
+        "200":
+          description: OK
+
 components:
   schemas:
     Inner:
