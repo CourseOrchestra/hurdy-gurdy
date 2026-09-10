@@ -84,6 +84,13 @@ components:
       items:
         $ref: '#/components/schemas/Inner'
 
+    # An array alias whose ITEMS are nullable: List<String?> when inlined, and
+    # `ArrayList<String?>` when generateAliasAsModel turns it into a class.
+    NullableItemArray:
+      type: array
+      items:
+        type: [string, "null"]
+
     Sample:
       type: object
       # Everything below is `required`, which is what makes the type arrays
@@ -143,6 +150,14 @@ components:
             type: [string, "null"]
         item_array:
           $ref: '#/components/schemas/ItemArray'
+        null_item_array:
+          $ref: '#/components/schemas/NullableItemArray'
+        # A plain (non-nullable) list of booleans: the item type has to be
+        # boxed, since List<boolean> is not a legal Java type.
+        flags:
+          type: array
+          items:
+            type: boolean
         nullable_ref:
           $ref: '#/components/schemas/NullableInner'
         # Regression guard: the pre-existing anyOf nullable-unwrap must keep

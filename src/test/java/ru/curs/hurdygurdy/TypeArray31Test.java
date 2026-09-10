@@ -61,6 +61,8 @@ class TypeArray31Test {
             assertThat(sample.getMethod("optString").getReturnType()).isEqualTo(String.class);
             assertThat(sample.getMethod("optLong").getReturnType()).isEqualTo(Long.class);
             assertThat(sample.getMethod("optList").getReturnType()).isEqualTo(java.util.List.class);
+            // Boxed, not primitive: `type: [boolean, "null"]` permits null.
+            assertThat(sample.getMethod("optBool").getReturnType()).isEqualTo(Boolean.class);
 
             // required + `type: [string, "null"]`, present with an explicit
             // null: valid, and the non-null `plain` still arrives. The two

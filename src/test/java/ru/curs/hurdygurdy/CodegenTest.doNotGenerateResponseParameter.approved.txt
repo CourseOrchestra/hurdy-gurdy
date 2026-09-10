@@ -137,6 +137,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.Serializable;
+import java.lang.Boolean;
 import java.lang.Double;
 import java.lang.Integer;
 import java.lang.String;
@@ -157,7 +158,7 @@ public class MenuItemDTO implements Serializable {
 
   private List<String> menuTips;
 
-  private boolean boolValue;
+  private Boolean boolValue;
 
   private Integer intValue;
 

@@ -297,7 +297,7 @@ class KotlinTypeDefiner internal constructor(
         val itemsSchema: Schema<*>? = schema.items
         val itemType = if (itemsSchema == null) ANY
         else defineKotlinType(itemsSchema, openAPI, classBuilder, name + "Item", null)
-            .copy(nullable = (itemsSchema.nullable ?: false))
+            .copy(nullable = (itemsSchema.nullableOrNull() ?: false))
         classBuilder.superclass(ClassName("kotlin.collections", "ArrayList").parameterizedBy(itemType))
         getExtendsList(schema).map { ClassName.bestGuess(it) }.forEach { classBuilder.addSuperinterface(it) }
         return classBuilder.build()

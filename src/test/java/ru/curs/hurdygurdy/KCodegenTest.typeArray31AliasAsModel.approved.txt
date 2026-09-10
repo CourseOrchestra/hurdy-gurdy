@@ -12,7 +12,6 @@ package com.example.controller
 
 import com.example.dto.Sample
 import com.example.dto.SampleUpdate
-import jakarta.servlet.http.HttpServletResponse
 import kotlin.Int
 import kotlin.String
 import kotlin.collections.List
@@ -27,17 +26,13 @@ public interface Controller {
     value = ["/api/v1/sample/{sample_id}"],
     produces = ["application/json"],
   )
-  public fun getSample(
-    @PathVariable(name = "sample_id") sampleId: String?,
-    @RequestParam(required = false, name = "page") page: Int?,
-    response: HttpServletResponse,
-  ): Sample?
+  public fun getSample(@PathVariable(name = "sample_id") sampleId: String?, @RequestParam(required = false, name = "page") page: Int?): Sample?
 
   @PostMapping(
     value = ["/api/v1/sample/{sample_id}"],
     produces = ["application/json"],
   )
-  public fun putSample(@RequestBody request: SampleUpdate?, response: HttpServletResponse): List<Sample>?
+  public fun putSample(@RequestBody request: SampleUpdate?): List<Sample>?
 }
 ---
 /com/example/dto
@@ -54,6 +49,13 @@ public data class Inner(
   public val innerName: String,
 )
 ---
+/com/example/dto/ItemArray.kt
+package com.example.dto
+
+import kotlin.collections.ArrayList
+
+public class ItemArray : ArrayList<Inner>()
+---
 /com/example/dto/NullableInner.kt
 package com.example.dto
 
@@ -65,6 +67,14 @@ import kotlin.String
 public data class NullableInner(
   public val note: String? = null,
 )
+---
+/com/example/dto/NullableItemArray.kt
+package com.example.dto
+
+import kotlin.String
+import kotlin.collections.ArrayList
+
+public class NullableItemArray : ArrayList<String?>()
 ---
 /com/example/dto/OptObject.kt
 package com.example.dto
@@ -104,8 +114,8 @@ public data class Sample(
   public val optObject: OptObject?,
   public val optEnum: OptEnum?,
   public val nullItems: List<String?>,
-  public val itemArray: List<Inner>?,
-  public val nullItemArray: List<String?>? = null,
+  public val itemArray: ItemArray?,
+  public val nullItemArray: NullableItemArray? = null,
   public val flags: List<Boolean>? = null,
   public val nullableRef: NullableInner?,
   public val anyOfInner: Inner? = null,

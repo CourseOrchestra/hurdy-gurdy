@@ -157,13 +157,21 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         return TypeName.INT.box();
                     }
                 case "boolean":
-                    return TypeName.BOOLEAN;
+                    // Unlike the number/integer cases above, a boolean stays primitive:
+                    // Lombok names its accessor isFoo() rather than getFoo(), so boxing
+                    // every boolean would rename accessors on existing generated code.
+                    // A schema that explicitly permits null (3.0 `nullable: true`, 3.1
+                    // `type: [boolean, "null"]`) must be boxed all the same — a
+                    // primitive cannot hold the null the schema declares legal.
+                    return isNullableSchema(schema) ? TypeName.BOOLEAN.box() : TypeName.BOOLEAN;
                 case "array":
                     Schema<?> itemsSchema = schema.getItems();
+                    // .box(): a primitive is not a legal type argument (List<boolean>
+                    // does not exist), and JavaPoet rejects one outright.
                     return ParameterizedTypeName.get(ClassName.get(List.class),
                             defineJavaType(itemsSchema, openAPI, parent,
                                     typeNameFallback == null ? null : typeNameFallback + "Item",
-                                    parentIsInterface));
+                                    parentIsInterface).box());
                 case "object":
                 default:
                     String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();

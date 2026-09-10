@@ -47,7 +47,12 @@ class StrayNullableCheckTest {
         assertThat(locationsIn(SPEC_31)).containsExactlyInAnyOrder(
                 "#/components/schemas/Thing",
                 "#/components/schemas/Thing/properties/req_nullable",
-                "#/paths//api/v1/thing/get/parameters/filter");
+                "#/paths//api/v1/thing/get/parameters/filter",
+                // A response header carries a schema of its own...
+                "#/paths//api/v1/thing/get/responses/200/headers/X-Total",
+                // ...and a callback is a whole path item, operations included.
+                "#/paths//api/v1/thing/get/callbacks/thing_changed/{$request.query.callback_url}"
+                        + "/post/requestBody/content/application/json/properties/changed_at");
     }
 
     @Test
@@ -65,7 +70,7 @@ class StrayNullableCheckTest {
 
         codegen.generate(Path.of(SPEC_31), result);
 
-        assertThat(warnings).hasSize(3);
+        assertThat(warnings).hasSize(5);
         assertThat(warnings).allMatch(w -> w.contains("not an OpenAPI 3.1 keyword"));
         assertThat(warnings).anyMatch(w -> w.contains("#/components/schemas/Thing/properties/req_nullable"));
     }

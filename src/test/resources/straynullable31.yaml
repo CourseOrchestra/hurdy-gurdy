@@ -26,10 +26,32 @@ paths:
       responses:
         "200":
           description: OK
+          headers:
+            X-Total:
+              schema:
+                type: integer
+                nullable: true
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Thing'
+      callbacks:
+        thing_changed:
+          '{$request.query.callback_url}':
+            post:
+              operationId: thingChanged
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        changed_at:
+                          type: string
+                          nullable: true
+              responses:
+                "200":
+                  description: OK
 
 components:
   schemas:

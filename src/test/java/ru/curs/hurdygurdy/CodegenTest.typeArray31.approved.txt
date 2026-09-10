@@ -86,6 +86,7 @@ package com.example.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Boolean;
 import java.lang.Double;
 import java.lang.Long;
 import java.lang.String;
@@ -105,7 +106,7 @@ public class Sample {
 
   private Double optDouble;
 
-  private boolean optBool;
+  private Boolean optBool;
 
   private LocalDate optDate;
 
@@ -120,6 +121,10 @@ public class Sample {
   private List<String> nullItems;
 
   private List<Inner> itemArray;
+
+  private List<String> nullItemArray;
+
+  private List<Boolean> flags;
 
   private NullableInner nullableRef;
 
