@@ -1,0 +1,178 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.Sample;
+import com.example.dto.SampleUpdate;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @GetMapping(
+      value = "/api/v1/sample/{sample_id}",
+      produces = "application/json"
+  )
+  Sample getSample(@PathVariable(name = "sample_id") String sampleId,
+      @RequestParam(required = false, name = "page") Integer page, HttpServletResponse response);
+
+  @PostMapping(
+      value = "/api/v1/sample/{sample_id}",
+      produces = "application/json"
+  )
+  List<Sample> putSample(@RequestBody SampleUpdate request, HttpServletResponse response);
+
+  @GetMapping(
+      value = "/api/v1/sample/count",
+      produces = "application/json"
+  )
+  Integer getCount(HttpServletResponse response);
+
+  @PutMapping("/api/v1/sample/count")
+  void setFlag(@RequestBody Boolean request, HttpServletResponse response);
+
+  @PatchMapping(
+      value = "/api/v1/sample/count",
+      produces = "application/json"
+  )
+  Integer bumpCount(HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/Inner.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Inner {
+  private String innerName;
+}
+---
+/com/example/dto/NullableInner.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class NullableInner {
+  private String note;
+}
+---
+/com/example/dto/OptObject.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class OptObject {
+  private String field;
+}
+---
+/com/example/dto/Sample.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Boolean;
+import java.lang.Double;
+import java.lang.Long;
+import java.lang.String;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Sample {
+  private String plain;
+
+  private String optString;
+
+  private Long optLong;
+
+  private Double optDouble;
+
+  private Boolean optBool;
+
+  private LocalDate optDate;
+
+  private UUID optUuid;
+
+  private List<String> optList;
+
+  private OptObject optObject;
+
+  private OptEnum optEnum;
+
+  private List<String> nullItems;
+
+  private List<Inner> itemArray;
+
+  private List<String> nullItemArray;
+
+  private List<Boolean> flags;
+
+  private NullableInner nullableRef;
+
+  private Inner anyOfInner;
+
+  private String reqAnyOf;
+
+  private List<String> anyOfItems;
+
+  private List<NullableInner> nullableRefList;
+
+  private List<NullableInner> nullableRefArray;
+
+  public enum OptEnum {
+    FIRST,
+
+    SECOND
+  }
+}
+---
+/com/example/dto/SampleUpdate.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SampleUpdate {
+  private String comment;
+}

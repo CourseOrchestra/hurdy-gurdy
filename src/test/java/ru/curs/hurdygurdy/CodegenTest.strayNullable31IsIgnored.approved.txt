@@ -1,0 +1,46 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.Thing;
+import jakarta.servlet.http.HttpServletResponse;
+import java.lang.String;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @GetMapping(
+      value = "/api/v1/thing",
+      produces = "application/json"
+  )
+  Thing getThing(@RequestParam(required = false, name = "filter") String filter,
+      HttpServletResponse response);
+}
+---
+/com/example/dto
+---
+/com/example/dto/Thing.java
+package com.example.dto;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.String;
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Thing {
+  private String reqNullable;
+
+  private String optPlain;
+
+  private String properlyNullable;
+}

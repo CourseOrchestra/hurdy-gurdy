@@ -1,0 +1,89 @@
+## A half-finished OpenAPI 3.0 -> 3.1 migration: the version string was bumped
+## but the `nullable` keywords were left in place. OpenAPI 3.1 removed
+## `nullable` outright (JSON Schema 2020-12 has no such keyword), so it means
+## nothing here — swagger-parser does not even read it into the schema, it
+## drops it into the extension map with every other unrecognised keyword.
+##
+## hurdy-gurdy follows the spec and ignores it (`req_nullable` below is
+## required, so it stays NON-null), but warns about every occurrence: silently
+## turning a nullable field non-null is exactly the trap this migration sets.
+openapi: 3.1.0
+info:
+  title: Stray nullable keywords
+  version: "1.0"
+
+paths:
+  /api/v1/thing:
+    get:
+      operationId: getThing
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Total:
+              schema:
+                type: integer
+                nullable: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+      callbacks:
+        thing_changed:
+          '{$request.query.callback_url}':
+            post:
+              operationId: thingChanged
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        changed_at:
+                          type: string
+                          nullable: true
+              responses:
+                "200":
+                  description: OK
+
+# A 3.1 webhook: a path item reachable from nowhere else in the document.
+webhooks:
+  thing_created:
+    post:
+      operationId: thingCreated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                created_at:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: OK
+
+components:
+  schemas:
+    Thing:
+      type: object
+      nullable: false
+      required: [req_nullable]
+      properties:
+        req_nullable:
+          type: string
+          nullable: true
+        opt_plain:
+          type: string
+        # The correct 3.1 spelling, alongside the stray ones: only the
+        # `nullable` occurrences are reported.
+        properly_nullable:
+          type: [string, "null"]

@@ -298,6 +298,34 @@ classpath. For multipart endpoints, it also requires `org.jboss.resteasy.reactiv
 and `org.jboss.resteasy.reactive.multipart.FileUpload` — both provided by the
 Quarkus REST extension.
 
+## Nullability in OpenAPI 3.0 and 3.1
+
+A property is nullable (Kotlin `T?`; in Java `records` style, exempt from the
+`Objects.requireNonNull` check) when it is not `required`, or when the schema
+says it may be null. How a schema says that depends on the version of the
+document:
+
+| Document | Nullable spelling |
+|----------|-------------------|
+| `openapi: 3.0.x` | `type: string` + `nullable: true` |
+| `openapi: 3.1.x` | `type: [string, "null"]`, or `anyOf: [{type: string}, {type: 'null'}]` |
+
+**`nullable` is ignored in a 3.1 document.** OpenAPI 3.1 adopted JSON Schema
+2020-12, which has no `nullable` keyword — it was
+[removed outright rather than deprecated](https://www.openapis.org/blog/2021/02/16/migrating-from-openapi-3-0-to-3-1-0),
+because a type array expresses the same thing. hurdy-gurdy follows the spec, as
+other 3.1 tooling does, so a `nullable` left over from a 3.0 document means
+nothing once the version string says 3.1: a `required` property carrying it
+generates as **non-null**.
+
+Since that is easy to miss when migrating, every leftover `nullable` in a 3.1
+document is reported as a build warning naming its location, for example:
+
+```
+hurdy-gurdy: 'nullable' is not an OpenAPI 3.1 keyword and is ignored at
+#/components/schemas/Thing/properties/req_nullable; use type: [<type>, "null"] instead
+```
+
 ## Client generation (`generate=client`)
 
 With `client` in the `generate` set, the emitted `XxxClient` interfaces are meant to be

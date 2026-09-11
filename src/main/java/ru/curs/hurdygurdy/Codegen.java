@@ -28,15 +28,24 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 
 public abstract class Codegen<T> {
+
+    /**
+     * Stray {@code nullable}s beyond this many are summarised in a single final
+     * line: a 3.0 document bumped to 3.1 wholesale can carry hundreds, and a
+     * warning per occurrence would then bury the rest of the build log.
+     */
+    private static final int MAX_REPORTED_WARNINGS = 10;
 
     private final GeneratorParams params;
     private OpenAPI openAPI;
     private final Map<ClassCategory, List<T>> typeSpecs = new EnumMap<>(ClassCategory.class);
     private final List<TypeSpecExtractor<T>> typeSpecExtractors;
     private final TypeDefiner<T> typeDefiner;
+    private Consumer<String> warningListener = System.err::println;
 
 
     public Codegen(GeneratorParams params, TypeProducersFactory<T> typeProducersFactory) {
@@ -54,6 +63,42 @@ public abstract class Codegen<T> {
         openAPI = result.getOpenAPI();
         if (openAPI == null) {
             throw new IllegalArgumentException(String.join(String.format("%n"), result.getMessages()));
+        }
+        warnStrayNullable(openAPI);
+    }
+
+    /**
+     * Sets where generator warnings go; by default they are printed to
+     * {@code System.err}. The Maven plugin points this at the build log.
+     *
+     * @param listener receives one message per warning
+     */
+    public void setWarningListener(Consumer<String> listener) {
+        this.warningListener = listener;
+    }
+
+    /**
+     * Reports every {@code nullable} keyword left over in a 3.1 document. The
+     * keyword was removed in OpenAPI 3.1 and is therefore ignored (see
+     * {@link StrayNullableCheck}); saying so out loud is what keeps a
+     * half-finished 3.0 &rarr; 3.1 migration from silently turning nullable
+     * fields into non-null ones.
+     */
+    private void warnStrayNullable(OpenAPI api) {
+        List<String> locations = StrayNullableCheck.locations(api);
+        for (String location : locations.subList(0, Math.min(locations.size(), MAX_REPORTED_WARNINGS))) {
+            // Deliberately not "use type: [X, \"null\"] instead": that is the right
+            // advice only for `nullable: true`. For `nullable: false` a null union
+            // would reverse the meaning, and a $ref carries no type to extend.
+            warningListener.accept(String.format(
+                    "hurdy-gurdy: 'nullable' is not an OpenAPI 3.1 keyword and is ignored at %s; "
+                            + "remove it, or — if the value really may be null — say so with "
+                            + "type: [<type>, \"null\"]", location));
+        }
+        if (locations.size() > MAX_REPORTED_WARNINGS) {
+            warningListener.accept(String.format(
+                    "hurdy-gurdy: ... and %d more ignored 'nullable' keyword(s) in this 3.1 document",
+                    locations.size() - MAX_REPORTED_WARNINGS));
         }
     }
 

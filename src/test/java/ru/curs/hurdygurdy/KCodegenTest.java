@@ -238,6 +238,34 @@ class KCodegenTest {
     }
 
     @Test
+    void typeArray31() throws IOException {
+        // hurdy-gurdy#603: `type: [X, "null"]` is the OpenAPI 3.1 spelling of a
+        // nullable X, and must produce `X?` — Kotlin used to emit `Any` for
+        // every two-element type array.
+        codegen.generate(Path.of("src/test/resources/typearray31.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void typeArray31AliasAsModel() throws IOException {
+        // The alias-as-model path builds its item type separately from the
+        // inline-array one, so it needs its own coverage that `items:
+        // {type: [string, "null"]}` yields ArrayList<String?>.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateAliasAsModel(true));
+        codegen.generate(Path.of("src/test/resources/typearray31.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void strayNullable31IsIgnored() throws IOException {
+        // 3.1 removed the `nullable` keyword, so a 3.1 document carrying it says
+        // nothing: `req_nullable` is required and therefore stays non-null.
+        codegen.generate(Path.of("src/test/resources/straynullable31.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void noOwnTypes() throws IOException {
         codegen.generate(Path.of("src/test/resources/externaltype.yaml"), result);
         // Snapshot only: this spec deliberately references external, un-generated

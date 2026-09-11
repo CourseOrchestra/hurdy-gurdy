@@ -76,14 +76,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private String getInternalType(Schema<?> schema) {
-        String internalType = schema.getType();
-        if (internalType == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
-            internalType = schema.getTypes().iterator().next();
-        }
-        if (internalType == null) {
-            internalType = "unknown";
-        }
-        return internalType;
+        String internalType = effectiveType(schema);
+        return internalType == null ? "unknown" : internalType;
     }
 
     @Override
@@ -163,13 +157,21 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                         return TypeName.INT.box();
                     }
                 case "boolean":
-                    return TypeName.BOOLEAN;
+                    // Unlike the number/integer cases above, a boolean stays primitive:
+                    // Lombok names its accessor isFoo() rather than getFoo(), so boxing
+                    // every boolean would rename accessors on existing generated code.
+                    // A schema that explicitly permits null (3.0 `nullable: true`, 3.1
+                    // `type: [boolean, "null"]`) must be boxed all the same — a
+                    // primitive cannot hold the null the schema declares legal.
+                    return isNullableSchema(schema) ? TypeName.BOOLEAN.box() : TypeName.BOOLEAN;
                 case "array":
                     Schema<?> itemsSchema = schema.getItems();
+                    // .box(): a primitive is not a legal type argument (List<boolean>
+                    // does not exist), and JavaPoet rejects one outright.
                     return ParameterizedTypeName.get(ClassName.get(List.class),
                             defineJavaType(itemsSchema, openAPI, parent,
                                     typeNameFallback == null ? null : typeNameFallback + "Item",
-                                    parentIsInterface));
+                                    parentIsInterface).box());
                 case "object":
                 default:
                     String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();
@@ -694,19 +696,16 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /**
      * Whether a schema permits an explicit {@code null} value: an OpenAPI 3.0
-     * {@code nullable: true}, a same-file {@code $ref} to a nullable schema, or a
-     * 3.1 {@code anyOf:[X, null]} nullable wrapper.
+     * {@code nullable: true}, a 3.1 {@code type: [X, "null"]} union, a same-file
+     * {@code $ref} to a nullable schema, or a 3.1 {@code anyOf:[X, null]}
+     * nullable wrapper.
      */
     private boolean isNullable(Schema<?> schema, OpenAPI openAPI) {
-        if (Boolean.TRUE.equals(schema.getNullable())) {
+        if (isNullableSchema(schema)) {
             return true;
         }
-        if (schema.get$ref() != null) {
-            return getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
-        }
-        List<Schema> anyOf = schema.getAnyOf();
-        return anyOf != null && anyOf.size() == 2
-                && anyOf.stream().anyMatch(s -> "null".equals(getInternalType(s)));
+        return schema.get$ref() != null
+                && getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
     }
 
     private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,

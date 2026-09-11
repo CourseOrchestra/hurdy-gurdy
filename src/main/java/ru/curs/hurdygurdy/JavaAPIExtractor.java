@@ -403,6 +403,17 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         return name.isBoxedPrimitive() ? name.unbox() : name;
     }
 
+    /**
+     * The type of a request/response body or a multipart part. Primitives are
+     * unboxed to keep signatures compact ({@code int getBills()}), <em>unless</em>
+     * the schema admits null (3.0 {@code nullable: true}, 3.1
+     * {@code type: [X, "null"]}) — a primitive cannot carry the null the schema
+     * declares legal, and unlike a path variable a body may genuinely be absent.
+     */
+    private static TypeName bodyTypeName(Schema<?> schema, TypeName name) {
+        return TypeDefiner.isNullableSchema(schema) ? safeBox(name) : safeUnbox(name);
+    }
+
     private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI, TypeSpec.Builder parent) {
         return getSuccessfulReply(operation)
                 .stream()
@@ -444,8 +455,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                 // FileUpload); other parts resolve normally.
                                 isBinary(e.getValue())
                                         ? multipartPartType()
-                                        : JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(e.getValue(),
-                                                openAPI, parent, null)),
+                                        : JavaAPIExtractor.bodyTypeName(e.getValue(),
+                                                typeDefiner.defineJavaType(e.getValue(),
+                                                        openAPI, parent, null)),
                                 e.getKey(),
                                 quarkus
                                         ? AnnotationSpec.builder(QUARKUS_REST_FORM)
@@ -459,7 +471,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         // body type (Resource / InputStream), not a multipart part.
                         .map(s -> isBinary(s)
                                 ? binaryBodyType()
-                                : JavaAPIExtractor.safeUnbox(typeDefiner.defineJavaType(s, openAPI, parent, null)))
+                                : JavaAPIExtractor.bodyTypeName(s,
+                                        typeDefiner.defineJavaType(s, openAPI, parent, null)))
                         .map(t ->
                                 new RequestPartParams(t,
                                         "request",
@@ -474,14 +487,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     /** Whether a schema is {@code type: string, format: binary} (OpenAPI 3.0 or 3.1). */
     private static boolean isBinary(Schema<?> schema) {
-        if (schema == null) {
-            return false;
-        }
-        String type = schema.getType();
-        if (type == null && schema.getTypes() != null && schema.getTypes().size() == 1) {
-            type = schema.getTypes().iterator().next();
-        }
-        return "string".equals(type) && "binary".equals(schema.getFormat());
+        return schema != null && "string".equals(TypeDefiner.effectiveType(schema))
+                && "binary".equals(schema.getFormat());
     }
 
     /**

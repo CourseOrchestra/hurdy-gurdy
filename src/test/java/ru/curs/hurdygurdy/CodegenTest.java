@@ -261,6 +261,23 @@ class CodegenTest {
     }
 
     @Test
+    void typeArray31() throws IOException {
+        // hurdy-gurdy#603: `type: [X, "null"]` is the OpenAPI 3.1 spelling of a
+        // nullable X. Java used to mint an empty DTO class named after the
+        // property (Opt, Num, Arr...) for every such schema.
+        codegen.generate(Path.of("src/test/resources/typearray31.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void strayNullable31IsIgnored() throws IOException {
+        // 3.1 removed the `nullable` keyword, so a 3.1 document carrying it says
+        // nothing: `req_nullable` is required and therefore NOT nullable here.
+        codegen.generate(Path.of("src/test/resources/straynullable31.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void noOwnTypes() throws IOException {
         codegen.generate(Path.of("src/test/resources/externaltype.yaml"), result);
         // Snapshot only: this spec deliberately references external, un-generated

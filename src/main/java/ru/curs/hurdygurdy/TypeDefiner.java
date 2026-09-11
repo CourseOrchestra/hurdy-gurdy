@@ -46,8 +46,8 @@ public abstract class TypeDefiner<T> {
     protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
     /**
      * A property name accepted by {@code forceSnakeCaseForProperties}: lower-case
-     * snake_case, optionally prefixed by underscores (and {@code $}, for backwards compatibility).
-     * A <em>leading</em> underscore is a common snake_case convention for "meta"/"private" keys
+     * snake_case, optionally prefixed by underscores (and {@code $}, for backwards compatibility).
+     * A <em>leading</em> underscore is a common snake_case convention for "meta"/"private" keys
      * (YAML-anchor metadata and the like), so it is valid — see
      * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/566">issue 566</a>.
      */
@@ -81,12 +81,81 @@ public abstract class TypeDefiner<T> {
         }
     }
 
-    static boolean isArraySchema(Schema<?> schema) {
-        if ("array".equals(schema.getType())) {
+    /**
+     * The single JSON type of a schema, whichever way the document spells it.
+     *
+     * <p>An OpenAPI 3.0 document fills {@code type}; a 3.1 document always leaves
+     * {@code type} null and fills the {@code types} set instead (JSON Schema
+     * 2020-12 allows a union). {@code "null"} is stripped from that set, because
+     * a 3.1 {@code type: [string, "null"]} is simply how the spec spells
+     * "nullable string": the type is {@code string} and the nullability is
+     * reported separately by {@link #isNullableSchema(Schema)}.
+     *
+     * <p>Returns null for a typeless schema and for a genuine multi-type union
+     * (say {@code [string, integer]}), neither of which has a single Java/Kotlin
+     * type; a schema that is <em>only</em> {@code type: "null"} keeps
+     * {@code "null"}, which is how the {@code anyOf: [X, null]} unwrap
+     * recognises its null member.
+     */
+    static String effectiveType(Schema<?> schema) {
+        if (schema == null) {
+            return null;
+        }
+        if (schema.getType() != null) {
+            return schema.getType();
+        }
+        Set<String> types = schema.getTypes();
+        if (types == null) {
+            return null;
+        }
+        List<String> named = types.stream().filter(t -> !"null".equals(t)).toList();
+        if (named.size() == 1) {
+            return named.get(0);
+        }
+        return named.isEmpty() && types.contains("null") ? "null" : null;
+    }
+
+    /**
+     * Whether a schema admits an explicit {@code null}: an OpenAPI 3.0
+     * {@code nullable: true}, a 3.1 {@code type} array containing {@code "null"},
+     * or the 3.1 nullable wrapper {@code anyOf: [X, {type: "null"}]} — all three
+     * spellings of the same thing, so every caller deciding nullability must
+     * treat them alike.
+     *
+     * <p>The 3.1 {@code nullable} keyword is deliberately <em>not</em> consulted.
+     * OpenAPI 3.1 removed it outright (JSON Schema 2020-12 has no such keyword),
+     * so swagger-parser does not populate {@code getNullable()} for a 3.1
+     * document — it drops the stray keyword into the schema's extension map
+     * along with every other unrecognised keyword. Honouring it there would
+     * revive a keyword the spec deleted and make hurdy-gurdy disagree with every
+     * other 3.1 tool; {@link StrayNullableCheck} warns about it instead.
+     */
+    static boolean isNullableSchema(Schema<?> schema) {
+        if (schema == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(schema.getNullable())) {
             return true;
         }
         Set<String> types = schema.getTypes();
-        return types != null && types.size() == 1 && types.contains("array");
+        return types != null && types.contains("null") || isNullableAnyOf(schema);
+    }
+
+    /**
+     * Whether a schema is the two-member nullable wrapper
+     * {@code anyOf: [X, {type: "null"}]} — the form the type definers unwrap to
+     * the type of {@code X}. A {@code oneOf} is not treated this way: the
+     * generator reads {@code oneOf} as a polymorphic base, not as a wrapper.
+     */
+    @SuppressWarnings("rawtypes")
+    private static boolean isNullableAnyOf(Schema<?> schema) {
+        List<Schema> anyOf = schema.getAnyOf();
+        return anyOf != null && anyOf.size() == 2
+                && anyOf.stream().anyMatch(member -> "null".equals(effectiveType(member)));
+    }
+
+    static boolean isArraySchema(Schema<?> schema) {
+        return "array".equals(effectiveType(schema));
     }
 
     /**
@@ -258,11 +327,15 @@ public abstract class TypeDefiner<T> {
     }
 
     protected boolean getNullable(OpenAPI currentOpenAPI, String className, Boolean defaultValue) {
-        return Optional.ofNullable(currentOpenAPI.getComponents())
+        Schema<?> schema = Optional.ofNullable(currentOpenAPI.getComponents())
                 .map(Components::getSchemas)
                 .map(map -> map.get(className))
-                .map(Schema::getNullable)
-                .orElse(defaultValue);
+                .orElse(null);
+        if (isNullableSchema(schema)) {
+            // 3.0 `nullable: true`, or a 3.1 `type: [..., "null"]` component.
+            return true;
+        }
+        return schema == null || schema.getNullable() == null ? defaultValue : schema.getNullable();
     }
 
     protected String getDefault(OpenAPI currentOpenAPI, String className) {

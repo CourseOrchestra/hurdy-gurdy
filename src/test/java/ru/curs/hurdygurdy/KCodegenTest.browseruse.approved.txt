@@ -716,7 +716,7 @@ import kotlin.String
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class TaskGifResponse(
-  public val gif: String,
+  public val gif: String?,
 )
 ---
 /com/example/dto/TaskMediaResponse.kt
@@ -729,7 +729,7 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class TaskMediaResponse(
-  public val recordings: List<String>,
+  public val recordings: List<String>?,
 )
 ---
 /com/example/dto/TaskOutputFileResponse.kt
@@ -760,7 +760,7 @@ public data class TaskResponse(
   public val id: String,
   public val task: String,
   public val liveUrl: String? = null,
-  public val output: String,
+  public val output: String?,
   public val status: TaskStatusEnum,
   @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
@@ -786,7 +786,7 @@ import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class TaskScreenshotsResponse(
-  public val screenshots: List<String>,
+  public val screenshots: List<String>?,
 )
 ---
 /com/example/dto/TaskSimpleResponse.kt
@@ -803,7 +803,7 @@ import kotlin.String
 public data class TaskSimpleResponse(
   public val id: String,
   public val task: String,
-  public val output: String,
+  public val output: String?,
   public val status: TaskStatusEnum,
   @field:JsonDeserialize(using = ZonedDateTimeDeserializer::class)
   @get:JsonSerialize(using = ZonedDateTimeSerializer::class)
