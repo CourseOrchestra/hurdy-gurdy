@@ -22,10 +22,11 @@ components:
 
     NullableHolder:
       type: object
-      # `tag` and `counts` are REQUIRED on purpose: a non-required property is
-      # nullable anyway, so only a required one proves the `"null"` in the type
-      # array was read (hurdy-gurdy#603).
-      required: [id, tag, counts]
+      # `tag`, `counts` and `nick` are REQUIRED on purpose: a non-required
+      # property is nullable anyway, so only a required one proves the `"null"`
+      # was read — from the type array for the first two, and from the anyOf
+      # wrapper for `nick` (hurdy-gurdy#603).
+      required: [id, tag, counts, nick]
       properties:
         id:
           type: string

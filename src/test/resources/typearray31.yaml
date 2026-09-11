@@ -82,6 +82,19 @@ paths:
       responses:
         "200":
           description: OK
+    # The same nullable primitive in the other documented 3.1 spelling: the
+    # anyOf wrapper must keep the response boxed just as the type array does.
+    patch:
+      operationId: bumpCount
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: integer
+                  - type: 'null'
 
 components:
   schemas:
@@ -133,6 +146,7 @@ components:
         - null_items
         - item_array
         - nullable_ref
+        - req_any_of
       properties:
         # Plain 3.1 single type: `getType()` is null here too, so this is the
         # baseline that proves `getTypes()` is consulted at all.
@@ -190,3 +204,16 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Inner'
             - type: 'null'
+        # REQUIRED and nullable through the anyOf wrapper: the nullability has
+        # to survive `required`, exactly as the type-array spelling does.
+        req_any_of:
+          anyOf:
+            - type: string
+            - type: 'null'
+        # ...and the same wrapper one level down, as an array item.
+        any_of_items:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: 'null'

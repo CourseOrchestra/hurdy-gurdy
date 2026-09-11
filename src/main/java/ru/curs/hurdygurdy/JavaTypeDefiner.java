@@ -704,12 +704,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         if (isNullableSchema(schema)) {
             return true;
         }
-        if (schema.get$ref() != null) {
-            return getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
-        }
-        List<Schema> anyOf = schema.getAnyOf();
-        return anyOf != null && anyOf.size() == 2
-                && anyOf.stream().anyMatch(s -> "null".equals(getInternalType(s)));
+        return schema.get$ref() != null
+                && getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
     }
 
     private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,

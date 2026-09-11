@@ -17,6 +17,7 @@ import kotlin.Int
 import kotlin.String
 import kotlin.collections.List
 import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PatchMapping
 import org.springframework.web.bind.`annotation`.PathVariable
 import org.springframework.web.bind.`annotation`.PostMapping
 import org.springframework.web.bind.`annotation`.PutMapping
@@ -44,6 +45,12 @@ public interface Controller {
 
   @PutMapping(value = ["/api/v1/sample/count"])
   public fun setFlag(@RequestBody request: Boolean?)
+
+  @PatchMapping(
+    value = ["/api/v1/sample/count"],
+    produces = ["application/json"],
+  )
+  public fun bumpCount(): Int?
 }
 ---
 /com/example/dto
@@ -130,6 +137,8 @@ public data class Sample(
   public val flags: List<Boolean>? = null,
   public val nullableRef: NullableInner?,
   public val anyOfInner: Inner? = null,
+  public val reqAnyOf: String?,
+  public val anyOfItems: List<String?>? = null,
 ) {
   public enum class OptEnum {
     FIRST,

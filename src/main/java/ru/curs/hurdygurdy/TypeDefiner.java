@@ -117,8 +117,10 @@ public abstract class TypeDefiner<T> {
 
     /**
      * Whether a schema admits an explicit {@code null}: an OpenAPI 3.0
-     * {@code nullable: true}, or a 3.1 {@code type} array containing
-     * {@code "null"}.
+     * {@code nullable: true}, a 3.1 {@code type} array containing {@code "null"},
+     * or the 3.1 nullable wrapper {@code anyOf: [X, {type: "null"}]} — all three
+     * spellings of the same thing, so every caller deciding nullability must
+     * treat them alike.
      *
      * <p>The 3.1 {@code nullable} keyword is deliberately <em>not</em> consulted.
      * OpenAPI 3.1 removed it outright (JSON Schema 2020-12 has no such keyword),
@@ -136,7 +138,20 @@ public abstract class TypeDefiner<T> {
             return true;
         }
         Set<String> types = schema.getTypes();
-        return types != null && types.contains("null");
+        return types != null && types.contains("null") || isNullableAnyOf(schema);
+    }
+
+    /**
+     * Whether a schema is the two-member nullable wrapper
+     * {@code anyOf: [X, {type: "null"}]} — the form the type definers unwrap to
+     * the type of {@code X}. A {@code oneOf} is not treated this way: the
+     * generator reads {@code oneOf} as a polymorphic base, not as a wrapper.
+     */
+    @SuppressWarnings("rawtypes")
+    private static boolean isNullableAnyOf(Schema<?> schema) {
+        List<Schema> anyOf = schema.getAnyOf();
+        return anyOf != null && anyOf.size() == 2
+                && anyOf.stream().anyMatch(member -> "null".equals(effectiveType(member)));
     }
 
     static boolean isArraySchema(Schema<?> schema) {
