@@ -128,6 +128,13 @@ components:
       items:
         type: [string, "null"]
 
+    # An array alias whose items are a `$ref` to a nullable component: the
+    # element type has to pick the nullability up from the referenced schema.
+    NullableInnerArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/NullableInner'
+
     Sample:
       type: object
       # Everything below is `required`, which is what makes the type arrays
@@ -217,3 +224,12 @@ components:
             anyOf:
               - type: string
               - type: 'null'
+        # Items that are a `$ref` to a nullable component -> List<NullableInner?>,
+        # while `item_array` above (a `$ref` to a plain component) stays
+        # List<Inner>: a list ELEMENT is non-null unless the schema says otherwise.
+        nullable_ref_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/NullableInner'
+        nullable_ref_array:
+          $ref: '#/components/schemas/NullableInnerArray'

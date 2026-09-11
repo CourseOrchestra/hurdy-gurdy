@@ -86,6 +86,13 @@ public data class NullableInner(
   public val note: String? = null,
 )
 ---
+/com/example/dto/NullableInnerArray.kt
+package com.example.dto
+
+import kotlin.collections.ArrayList
+
+public class NullableInnerArray : ArrayList<NullableInner?>()
+---
 /com/example/dto/NullableItemArray.kt
 package com.example.dto
 
@@ -139,6 +146,8 @@ public data class Sample(
   public val anyOfInner: Inner? = null,
   public val reqAnyOf: String?,
   public val anyOfItems: List<String?>? = null,
+  public val nullableRefList: List<NullableInner?>? = null,
+  public val nullableRefArray: NullableInnerArray? = null,
 ) {
   public enum class OptEnum {
     FIRST,

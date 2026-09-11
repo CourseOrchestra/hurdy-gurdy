@@ -95,6 +95,22 @@ class KotlinTypeDefiner internal constructor(
     private fun Schema<*>.nullableOrNull(): Boolean? =
         if (TypeDefiner.isNullableSchema(this)) true else nullable
 
+    /**
+     * Whether an array ITEM is nullable: what the item schema itself declares,
+     * or — for a bare `$ref` — what the referenced component explicitly
+     * declares (`nullable: true`, or `"null"` among its types).
+     *
+     * A `$ref` that declares nothing stays NON-null, which is why the
+     * referenced schema is read with a `false` default rather than through
+     * [referencedTypeName]: a *property* holding a `$ref` defaults to nullable
+     * (the value may be absent), but a list ELEMENT does not — `List<Inner>`,
+     * not `List<Inner?>`.
+     */
+    private fun Schema<*>.isNullableItem(openAPI: OpenAPI): Boolean =
+        nullableOrNull()
+            ?: `$ref`?.let { getNullable(openAPI, extractGroup(it, CLASS_NAME_PATTERN), false) }
+            ?: false
+
     public override fun defineKotlinType(
         outerSchema: Schema<*>, openAPI: OpenAPI,
         parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
@@ -148,7 +164,7 @@ class KotlinTypeDefiner internal constructor(
                     val itemsSchema: Schema<*> = schema.items
                     List::class.asTypeName().parameterizedBy(
                         defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"), null)
-                            .copy(nullable = (itemsSchema.nullableOrNull() ?: false))
+                            .copy(nullable = itemsSchema.isNullableItem(openAPI))
                     )
                 }
 
@@ -297,7 +313,7 @@ class KotlinTypeDefiner internal constructor(
         val itemsSchema: Schema<*>? = schema.items
         val itemType = if (itemsSchema == null) ANY
         else defineKotlinType(itemsSchema, openAPI, classBuilder, name + "Item", null)
-            .copy(nullable = (itemsSchema.nullableOrNull() ?: false))
+            .copy(nullable = itemsSchema.isNullableItem(openAPI))
         classBuilder.superclass(ClassName("kotlin.collections", "ArrayList").parameterizedBy(itemType))
         getExtendsList(schema).map { ClassName.bestGuess(it) }.forEach { classBuilder.addSuperinterface(it) }
         return classBuilder.build()

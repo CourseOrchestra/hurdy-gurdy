@@ -129,6 +129,8 @@ public data class Sample(
   public val anyOfInner: Inner? = null,
   public val reqAnyOf: String?,
   public val anyOfItems: List<String?>? = null,
+  public val nullableRefList: List<NullableInner?>? = null,
+  public val nullableRefArray: List<NullableInner?>? = null,
 ) {
   public enum class OptEnum {
     FIRST,

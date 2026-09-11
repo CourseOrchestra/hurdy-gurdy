@@ -152,6 +152,10 @@ public class Sample {
 
   private List<String> anyOfItems;
 
+  private List<NullableInner> nullableRefList;
+
+  private List<NullableInner> nullableRefArray;
+
   public enum OptEnum {
     FIRST,
 
