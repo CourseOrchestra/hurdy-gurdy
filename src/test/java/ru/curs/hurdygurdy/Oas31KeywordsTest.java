@@ -16,10 +16,12 @@
 
 package ru.curs.hurdygurdy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -64,6 +66,10 @@ class Oas31KeywordsTest {
         // type, so both widen to a list of anything.
         assertThat(keywords).contains("private List<Object> looseArray;");
         assertThat(keywords).contains("private List<Object> tuple;");
+        // `items` alongside `prefixItems` constrains only the elements after the
+        // prefix, so it is not the common element type: List<Boolean> here would
+        // claim the first two elements are booleans when they are string/integer.
+        assertThat(keywords).contains("private List<Object> tupleWithItems;");
 
         // `const` carries its own JSON type.
         assertThat(keywords).contains("private String constString;");
@@ -76,17 +82,60 @@ class Oas31KeywordsTest {
         assertThat(keywords).doesNotContain("class MultiType");
         assertThat(keywords).doesNotContain("class BoolSchema");
 
-        // 3.1's contentMediaType and 3.0's format: binary are the same thing.
-        assertThat(keywords).contains("private byte[] octets;");
+        // contentEncoding is what makes a string carry bytes.
+        assertThat(keywords).contains("private byte[] octetsEncoded;");
+        assertThat(keywords).contains("private byte[] octetsEncodingOnly;");
         assertThat(keywords).contains("private byte[] octetsLegacy;");
+        // contentMediaType alone describes the DECODED content; the JSON value is
+        // still a plain string, and typing it as bytes would base64 it on the wire.
+        assertThat(keywords).contains("private String octetsMediaTypeOnly;");
 
         // The enum's null is nullability, not a constant.
         assertThat(keywords).contains("public enum Colour");
         assertThat(keywords).contains("RED");
         assertThat(keywords).contains("GREEN");
         assertThat(keywords).doesNotContain("NULL");
+        assertThat(keywords).contains("public enum Shade");
 
         GeneratedCodeCompiler.assertJavaCompiles(result);
+    }
+
+    /**
+     * An enum whose {@code null} member is the <em>only</em> statement of its
+     * nullability — there is no {@code type: [..., "null"]} to carry it.
+     *
+     * <p>The {@code null} has to come out of the member list (it is not a
+     * constant, and naming an enum entry after it throws), but taking it out
+     * must not take the nullability with it. swagger-parser infers
+     * {@code types: [string]} for such a schema, so nothing else records the
+     * fact; the normalizer therefore adds {@code "null"} to the type set, which
+     * is the canonical 3.1 spelling of exactly what the member said.
+     *
+     * <p>Checked behaviourally rather than on the text: in {@code records} style
+     * a required non-nullable component is guarded by
+     * {@code Objects.requireNonNull}, so a required property that still accepts
+     * an explicit null is proof the nullability survived.
+     */
+    @Test
+    void typelessNullableEnumKeepsItsNullability() throws Exception {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .javaDtoStyle(JavaDtoStyle.RECORDS))
+                .generate(SPEC, result);
+        Path classes = GeneratedCodeCompiler.compileJava(result);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            Class<?> type = loader.loadClass("com.example.dto.RequiredNullableEnum");
+            ObjectMapper mapper = new ObjectMapper();
+
+            // required, present, explicitly null: the enum said null was allowed.
+            Object value = mapper.readValue("{\"shade\":null}", type);
+            assertThat(type.getMethod("shade").invoke(value)).isNull();
+
+            // and a real member still round-trips.
+            Object red = mapper.readValue("{\"shade\":\"red\"}", type);
+            assertThat(type.getMethod("shade").invoke(red)).hasToString("RED");
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
     }
 
     @Test
@@ -165,6 +214,7 @@ class Oas31KeywordsTest {
 
         assertThat(keywords).contains("looseArray: List<Any>");
         assertThat(keywords).contains("tuple: List<Any>");
+        assertThat(keywords).contains("tupleWithItems: List<Any>");
 
         assertThat(keywords).contains("constString: String");
         assertThat(keywords).contains("constInt: Int");
@@ -173,8 +223,10 @@ class Oas31KeywordsTest {
         assertThat(keywords).contains("multiType: Any");
         assertThat(keywords).contains("boolSchema: Any");
 
-        assertThat(keywords).contains("octets: ByteArray");
+        assertThat(keywords).contains("octetsEncoded: ByteArray");
+        assertThat(keywords).contains("octetsEncodingOnly: ByteArray");
         assertThat(keywords).contains("octetsLegacy: ByteArray");
+        assertThat(keywords).contains("octetsMediaTypeOnly: String");
 
         assertThat(keywords).contains("public enum class Colour");
         assertThat(keywords).contains("RED");

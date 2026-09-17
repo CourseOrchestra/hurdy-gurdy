@@ -339,12 +339,13 @@ express. They map as follows:
 |---------|--------------|------|
 | `type: [string, "null"]` | `String?` / nullable | see the section above |
 | `const: <value>` | the value's own type | `const: circle` is a `String` |
-| `contentMediaType: application/octet-stream` | `byte[]` / `ByteArray` | 3.1's spelling of `format: binary`, which JSON Schema dropped |
+| `contentEncoding: base64` (or `base64url`) | `byte[]` / `ByteArray` | the string carries encoded bytes |
+| `contentMediaType` alone | `String` | it describes the *decoded* content; without `contentEncoding` the JSON value is an ordinary string |
 | `type: array` with no `items` | `List<Object>` / `List<Any>` | 3.1 does not require `items` |
-| `prefixItems: [...]` | `List<Object>` / `List<Any>` | no tuple type in Java or Kotlin; reported as a warning |
+| `prefixItems: [...]` | `List<Object>` / `List<Any>` | no tuple type in Java or Kotlin; reported as a warning. Applies even when `items` is also present, since `items` then constrains only the elements *after* the prefix |
 | `type: [string, integer]` | `Object` / `Any` | a multi-type union has no single target type |
 | `true` / `false` as a schema | `Object` / `Any` | `true` admits any value |
-| `enum` containing `null` | enum without the `null` | the `null` is nullability, not a constant |
+| `enum` containing `null` | enum without the `null`, schema marked nullable | the `null` is nullability, not a constant — and the nullability is kept |
 | `additionalProperties: true` or `{}` | `Map<String, Object>` / `Map<String, Any?>` | the same free-form dictionary, either spelling, either version |
 | `additionalProperties: false` | no dictionary field | the schema forbids additional properties, either version |
 
@@ -366,6 +367,11 @@ wrongly:
   `#/components/schemas/Holder/$defs/Local`) has no class to name. Move the
   schema into `components/schemas` and reference it from there.
 - **`webhooks`.** The 3.1 top-level `webhooks` map is not generated.
+- **3.1-style binary bodies and file parts.** A binary request/response body or
+  multipart file part is still recognised by `format: binary`, the 3.0 spelling.
+  The 3.1 idioms — an `application/octet-stream` media type with no schema, or a
+  part carrying only `contentMediaType` — are not yet mapped to
+  `Resource`/`InputStream`/`MultipartFile`.
 
 ## Client generation (`generate=client`)
 

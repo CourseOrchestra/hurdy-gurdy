@@ -21,7 +21,9 @@ import io.swagger.v3.oas.models.media.Schema;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -69,7 +71,7 @@ final class SchemaNormalizer {
     private static void normalizeSchema(Schema<?> schema, String path, Consumer<String> warningListener) {
         widenArrayWithoutItemType(schema, path, warningListener);
         typeFromConst(schema);
-        binaryFromContentMediaType(schema);
+        binaryFromContentEncoding(schema);
         dropNullEnumMember(schema);
         canonicalizeAdditionalProperties(schema);
     }
@@ -86,13 +88,24 @@ final class SchemaNormalizer {
      */
     private static void widenArrayWithoutItemType(Schema<?> schema, String path,
                                                   Consumer<String> warningListener) {
-        if (!TypeDefiner.isArraySchema(schema) || schema.getItems() != null) {
+        if (!TypeDefiner.isArraySchema(schema)) {
             return;
         }
-        if (schema.getPrefixItems() != null && !schema.getPrefixItems().isEmpty()) {
+        boolean tuple = schema.getPrefixItems() != null && !schema.getPrefixItems().isEmpty();
+        if (!tuple && schema.getItems() != null) {
+            // An ordinary array: `items` IS the element type.
+            return;
+        }
+        if (tuple) {
+            // Deliberately regardless of `items`. Alongside `prefixItems`, `items`
+            // constrains only the elements AFTER the tuple prefix, so it is not the
+            // common element type: taking it as one would type
+            // `prefixItems: [string, integer], items: boolean` as List<Boolean> and
+            // claim the first two elements are booleans.
             warningListener.accept(String.format(
                     "hurdy-gurdy: the 'prefixItems' tuple at %s has no Java/Kotlin equivalent and is "
-                            + "generated as a list of any value; declare 'items' to get an element type",
+                            + "generated as a list of any value; replace it with a plain 'items' "
+                            + "element type to get something more specific",
                     path));
         }
         schema.setItems(new Schema<>());
@@ -125,31 +138,56 @@ final class SchemaNormalizer {
     }
 
     /**
-     * Reads 3.1's {@code contentMediaType} spelling of binary content as the
-     * {@code format: binary} the generators already handle. JSON Schema 2020-12
-     * dropped {@code format: binary}, so a strictly-written 3.1 document has no
-     * other way to say "these are bytes".
+     * Reads 3.1's {@code contentEncoding} as the {@code format: binary} the
+     * generators already handle, so a base64-encoded string becomes a byte array.
+     *
+     * <p>Keyed on {@code contentEncoding} and <em>not</em> on
+     * {@code contentMediaType}: the two say different things.{@code contentEncoding}
+     * states how the JSON string itself is encoded, which is what makes it a
+     * carrier for bytes; {@code contentMediaType} only describes what the
+     * <em>decoded</em> content would be. A string bearing {@code contentMediaType}
+     * alone is an ordinary, unencoded string, and typing it as bytes would
+     * base64-encode it on the wire — changing a valid document's meaning.
      */
-    private static void binaryFromContentMediaType(Schema<?> schema) {
+    private static void binaryFromContentEncoding(Schema<?> schema) {
         if ("string".equals(TypeDefiner.effectiveType(schema))
                 && schema.getFormat() == null
-                && "application/octet-stream".equalsIgnoreCase(schema.getContentMediaType())) {
+                && isBase64(schema.getContentEncoding())) {
             schema.setFormat("binary");
         }
     }
 
+    /** The RFC 4648 encodings that turn a string into bytes. */
+    private static boolean isBase64(String contentEncoding) {
+        return "base64".equalsIgnoreCase(contentEncoding)
+                || "base64url".equalsIgnoreCase(contentEncoding);
+    }
+
     /**
-     * Removes the {@code null} member of a nullable enum. A 3.1 document spells
-     * a nullable enum by listing {@code null} in both {@code type} and
-     * {@code enum}; the null is the nullability, which
-     * {@link TypeDefiner#isNullableSchema(Schema)} reads from {@code type}, and
-     * turning it into an enum constant as well would be both wrong and — since
-     * the constant's name comes from its value — a {@code NullPointerException}.
+     * Removes the {@code null} member of a nullable enum, keeping the nullability
+     * it was expressing.
+     *
+     * <p>The member itself cannot survive: an enum constant is named after its
+     * value, so a null one has no name — which is where the
+     * {@code NullPointerException} came from. But in a schema such as
+     * {@code enum: [red, null]} the null is not decoration, it is the only
+     * statement that null is permitted, and swagger-parser infers
+     * {@code types: [string]} for it — nothing else records the fact. Dropping
+     * the member alone would therefore quietly narrow the schema.
+     *
+     * <p>So when nothing else already says the schema is nullable, {@code "null"}
+     * is added to the type set first. That is the canonical 3.1 spelling of
+     * precisely what the member said, and it is what
+     * {@link TypeDefiner#isNullableSchema(Schema)} reads — so the nullability
+     * survives in the form every other caller already understands.
      */
     private static void dropNullEnumMember(Schema<?> schema) {
         List<?> values = schema.getEnum();
         if (values == null || !values.contains(null)) {
             return;
+        }
+        if (!TypeDefiner.isNullableSchema(schema)) {
+            preserveNullability(schema);
         }
         List<Object> withoutNull = new ArrayList<>();
         for (Object value : values) {
@@ -158,6 +196,26 @@ final class SchemaNormalizer {
             }
         }
         setEnum(schema, withoutNull.isEmpty() ? null : withoutNull);
+    }
+
+    /**
+     * Records "this schema admits null" as a {@code "null"} member of the type
+     * set. Does nothing when the schema declares no type at all: a lone
+     * {@code "null"} type would say the value can <em>only</em> be null, which is
+     * a stronger claim than the one being preserved.
+     */
+    private static void preserveNullability(Schema<?> schema) {
+        Set<String> types = schema.getTypes();
+        Set<String> withNull = new LinkedHashSet<>();
+        if (types != null && !types.isEmpty()) {
+            withNull.addAll(types);
+        } else if (schema.getType() != null) {
+            withNull.add(schema.getType());
+        } else {
+            return;
+        }
+        withNull.add("null");
+        schema.setTypes(withNull);
     }
 
     @SuppressWarnings("unchecked")

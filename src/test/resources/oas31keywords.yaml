@@ -27,6 +27,17 @@ components:
             - type: string
             - type: integer
 
+        # A tuple that also declares `items`. In JSON Schema 2020-12 `items`
+        # constrains only the elements AFTER the prefix, so it is NOT the common
+        # element type and must not be used as one.
+        tuple_with_items:
+          type: array
+          prefixItems:
+            - type: string
+            - type: integer
+          items:
+            type: boolean
+
         # `const` replaces the 3.0 idiom of a single-valued `enum`. The value's
         # own JSON type is the property's type.
         const_string:
@@ -44,10 +55,20 @@ components:
         # any value.
         bool_schema: true
 
-        # 3.1's replacement for `format: binary`, which JSON Schema 2020-12
-        # dropped. Both spellings mean the same thing in a DTO property: bytes,
-        # base64-encoded on the wire.
-        octets:
+        # `contentEncoding` is what says a string carries base64-encoded bytes,
+        # so this is the 3.1 spelling that maps to a byte array.
+        octets_encoded:
+          type: string
+          contentMediaType: application/octet-stream
+          contentEncoding: base64
+        # base64 with no declared media type is still base64.
+        octets_encoding_only:
+          type: string
+          contentEncoding: base64
+        # `contentMediaType` ALONE says what the decoded content is, not that the
+        # JSON string is encoded: without `contentEncoding` the value is a plain
+        # string and must stay one.
+        octets_media_type_only:
           type: string
           contentMediaType: application/octet-stream
         octets_legacy:
@@ -65,6 +86,15 @@ components:
             - green
             - null
 
+        # An enum whose `null` is the ONLY statement of nullability: there is no
+        # type array to carry it. Dropping the member must not drop the fact.
+        typeless_nullable_enum:
+          title: Shade
+          enum:
+            - red
+            - green
+            - null
+
         # A free-form dictionary. `additionalProperties: true` is the 3.0
         # spelling and `{}` the 3.1 one; both mean "any value".
         free_dict_true:
@@ -73,3 +103,20 @@ components:
         free_dict_empty:
           type: object
           additionalProperties: {}
+
+    # The behavioural half of `typeless_nullable_enum`: a REQUIRED property whose
+    # only statement of nullability is the `null` among its enum members. In
+    # `records` style a required non-nullable component is guarded by
+    # Objects.requireNonNull, so if normalization drops the null without
+    # preserving the nullability, an explicit null here stops being accepted.
+    RequiredNullableEnum:
+      type: object
+      required:
+        - shade
+      properties:
+        shade:
+          title: RequiredShade
+          enum:
+            - red
+            - green
+            - null
