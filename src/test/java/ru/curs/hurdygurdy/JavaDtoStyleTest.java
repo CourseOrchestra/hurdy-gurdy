@@ -200,6 +200,64 @@ class JavaDtoStyleTest {
         }
     }
 
+    /**
+     * A property named {@code $name} in POJO style.
+     *
+     * <p>{@code $} is a legal Java identifier character but a format specifier to
+     * JavaPoet, and the generated {@code equals} used to interpolate field names
+     * straight into its format string: {@code $name} arrived as
+     * {@code Objects.equals($name, that.$name)}, whose {@code $n} JavaPoet read
+     * back as one of its own placeholders and rejected with
+     * {@code IllegalArgumentException: invalid format string}. Generation aborted.
+     *
+     * <p>Nothing caught it because POJO style is the only one that hand-writes
+     * value methods — {@code LOMBOK} gets them from {@code @Data} and
+     * {@code RECORDS} from the language — and no fixture previously run through
+     * POJO had a {@code $}-prefixed property. {@code twoparams.yaml} does.
+     *
+     * <p>Generating, compiling and then running the value methods is the point:
+     * a source-text assertion would have passed on a build that emits
+     * {@code $name} without ever comparing it.
+     */
+    @Test
+    void pojoHandlesDollarPrefixedPropertyName() throws Exception {
+        new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(true)
+                .javaDtoStyle(JavaDtoStyle.POJO))
+                .generate(Path.of("src/test/resources/twoparams.yaml"), result);
+
+        String src = sourceOf("BuildBundleElement");
+        assertThat(src).contains("private Integer $name;");
+        assertThat(src).contains("Objects.equals($name, that.$name)");
+
+        Path classes = GeneratedCodeCompiler.compileJava(result);
+        try (URLClassLoader loader = GeneratedCodeCompiler.classLoaderFor(classes)) {
+            Class<?> element = loader.loadClass("com.example.dto.BuildBundleElement");
+            Method setDollarName = element.getMethod("set$name", Integer.class);
+            Method setId = element.getMethod("setId", String.class);
+
+            Object a = element.getDeclaredConstructor().newInstance();
+            setId.invoke(a, "bundle");
+            setDollarName.invoke(a, 1);
+
+            Object b = element.getDeclaredConstructor().newInstance();
+            setId.invoke(b, "bundle");
+            setDollarName.invoke(b, 1);
+
+            assertThat(a).isEqualTo(b);
+            assertThat(a).hasSameHashCodeAs(b);
+
+            // The $-named field is genuinely part of the comparison, not skipped
+            // over to make the format string legal.
+            setDollarName.invoke(b, 2);
+            assertThat(a).isNotEqualTo(b);
+
+            assertThat(a.toString()).contains("$name=1");
+        } finally {
+            TestFiles.deleteRecursively(classes);
+        }
+    }
+
     private static Method findAnnotatedMethod(Class<?> type,
                                               Class<? extends java.lang.annotation.Annotation> annotation) {
         return Stream.of(type.getMethods())

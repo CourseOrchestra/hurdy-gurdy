@@ -65,6 +65,7 @@ import com.fasterxml.jackson.`annotation`.JsonAnyGetter
 import com.fasterxml.jackson.`annotation`.JsonAnySetter
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Any
 import kotlin.String
 import kotlin.collections.Map
 
@@ -72,7 +73,7 @@ import kotlin.collections.Map
 public data class ObjectWithAFreeDict(
   @param:JsonAnySetter
   @get:JsonAnyGetter
-  public val additionalProperties: Map<String, String> = HashMap(),
+  public val additionalProperties: Map<String, Any?> = HashMap(),
 )
 ---
 /com/example/dto/ObjectWithPrimitiveDictValues.kt

@@ -44,7 +44,6 @@ import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -174,6 +173,16 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                                     parentIsInterface).box());
                 case "object":
                 default:
+                    // "object" always describes a class, empty or not. Everything
+                    // reaching `default` has NO single JSON type — a 3.1 multi-type
+                    // union, a `true`/`false` schema, or a schema that constrains
+                    // nothing — and is a class only if it goes on to describe one.
+                    // Without this test the name fallback invents an empty class
+                    // from the property's own name, which compiles and means
+                    // nothing; Object at least says what is actually known.
+                    if (!"object".equals(internalType) && !describesObject(schema)) {
+                        return ClassName.OBJECT;
+                    }
                     String simpleName = schema.getTitle() == null ? typeNameFallback : schema.getTitle();
                     if (simpleName != null) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI));
@@ -312,7 +321,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // $refs) has already been routed to an interface by the class-vs-interface
         // decision below; a non-polymorphic anyOf (scalars, a single $ref) has a null
         // allOf and falls through to a plain (empty) class rather than NPE-ing here.
-        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
+        if (schema.getOneOf() == null && schema.getAllOf() != null) {
             ClassName baseClass = ClassName.get(Object.class);
             Schema<?> currentSchema = schema;
             Set<String> inheritedKeys = new HashSet<>();
@@ -363,7 +372,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private Set<String> inheritedPropertyKeys(Schema<?> schema, OpenAPI openAPI) {
         Set<String> keys = new HashSet<>();
         Schema<?> ownSchema = schema;
-        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
+        if (schema.getOneOf() == null && schema.getAllOf() != null) {
             for (Schema<?> s : schema.getAllOf()) {
                 if (s.get$ref() != null) {
                     keys.addAll(inheritedPropertyKeys(s.get$ref(), openAPI));
@@ -494,7 +503,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /** The non-$ref member schema of an allOf (its own properties), else the schema itself. */
     private Schema<?> currentSchemaOf(Schema<?> schema) {
-        if (schema instanceof ComposedSchema && schema.getOneOf() == null && schema.getAllOf() != null) {
+        if (schema.getOneOf() == null && schema.getAllOf() != null) {
             Schema<?> current = schema;
             for (Schema<?> s : schema.getAllOf()) {
                 if (s.get$ref() == null) {
@@ -513,7 +522,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      */
     private List<RecordComponent> inheritedComponents(Schema<?> schema, OpenAPI openAPI) {
         List<RecordComponent> result = new ArrayList<>();
-        if (!(schema instanceof ComposedSchema) || schema.getOneOf() != null || schema.getAllOf() == null) {
+        if (schema.getOneOf() != null || schema.getAllOf() == null) {
             return result;
         }
         Set<String> seen = new HashSet<>();
@@ -582,7 +591,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      */
     private List<ClassName> ancestorInterfaces(String name, Schema<?> schema, OpenAPI openAPI) {
         List<ClassName> result = new ArrayList<>();
-        if (schema instanceof ComposedSchema && schema.getAllOf() != null) {
+        if (schema.getAllOf() != null) {
             for (Schema<?> s : schema.getAllOf()) {
                 // Only implement an allOf parent that is itself generated as an
                 // interface (a discriminator base or a oneOf container). A plain
@@ -1022,11 +1031,19 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             equals.addStatement("return true");
         } else {
             equals.addStatement("$L that = ($L) o", cast, cast);
+            // Field names go through $N rather than into the format string: a
+            // property legitimately named `$name` would otherwise have its `$n`
+            // read back as a JavaPoet placeholder and blow up the format.
             String cond = fields.stream()
-                    .map(f -> String.format("$T.equals(%s, that.%s)", f.name(), f.name()))
+                    .map(f -> "$T.equals($N, that.$N)")
                     .collect(java.util.stream.Collectors.joining("\n    && "));
-            Object[] args = fields.stream().map(f -> Objects.class).toArray();
-            equals.addStatement("return " + cond, args);
+            List<Object> equalsArgs = new ArrayList<>();
+            for (FieldSpec field : fields) {
+                equalsArgs.add(Objects.class);
+                equalsArgs.add(field);
+                equalsArgs.add(field);
+            }
+            equals.addStatement("return " + cond, equalsArgs.toArray());
         }
         classBuilder.addMethod(equals.build());
         // hashCode: seed with super.hashCode() so inherited fields contribute.

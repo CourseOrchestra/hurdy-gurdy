@@ -76,6 +76,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
 import java.lang.String;
 import java.util.HashMap;
 import java.util.Map;
@@ -89,7 +90,7 @@ public class ObjectWithAFreeDict {
   @Getter(
       onMethod_ = @JsonAnyGetter
   )
-  private Map<String, String> additionalProperties = new HashMap<>();
+  private Map<String, Object> additionalProperties = new HashMap<>();
 }
 ---
 /com/example/dto/ObjectWithPrimitiveDictValues.java

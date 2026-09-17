@@ -64,7 +64,10 @@ public abstract class Codegen<T> {
         if (openAPI == null) {
             throw new IllegalArgumentException(String.join(String.format("%n"), result.getMessages()));
         }
+        // Order matters: the stray-nullable check reads the document exactly as
+        // written, so it has to run before anything rewrites it.
         warnStrayNullable(openAPI);
+        SchemaNormalizer.normalize(openAPI, warningListener);
     }
 
     /**
