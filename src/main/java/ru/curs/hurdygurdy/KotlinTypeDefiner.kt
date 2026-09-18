@@ -52,7 +52,6 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.media.ComposedSchema
 import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import java.time.DateTimeException
@@ -183,8 +182,12 @@ class KotlinTypeDefiner internal constructor(
                 }
 
                 else -> {
+                    // No single JSON type: a 3.1 multi-type union, a `true`/`false`
+                    // schema, or a schema that constrains nothing. Such a schema is
+                    // a class only if it goes on to describe one; otherwise it
+                    // genuinely admits any value.
                     val simpleName = schema.title
-                    if (simpleName != null) {
+                    if (simpleName != null && describesObject(schema)) {
                         typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
                         ClassName(
                             java.lang.String.join(".", params.rootPackage, "dto"),
@@ -278,7 +281,7 @@ class KotlinTypeDefiner internal constructor(
     private fun isPolymorphicInterface(schema: Schema<*>): Boolean = polymorphicMembers(schema).isNotEmpty()
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
-        return if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
+        return if (schema.oneOf == null && schema.allOf != null) {
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
             var inheritedProperties: List<InheritedProperty> = emptyList()
@@ -346,7 +349,7 @@ class KotlinTypeDefiner internal constructor(
             }
         }
         var ownSchema: Schema<*> = schema
-        if (schema is ComposedSchema && schema.oneOf == null && schema.allOf != null) {
+        if (schema.oneOf == null && schema.allOf != null) {
             for (s in schema.allOf) {
                 if (s.`$ref` != null) {
                     constructorPropertiesOf(s.`$ref`, openAPI).forEach(::add)
@@ -716,20 +719,18 @@ class KotlinTypeDefiner internal constructor(
 
     private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
         openAPI.components.schemas.forEach { schemaName, schema ->
-            if (schema is ComposedSchema) {
-                if (isPolymorphicInterface(schema)) {
-                    val interfaceName = ClassName(
-                        java.lang.String.join(".", params.rootPackage, "dto"),
-                        schemaName
-                    ).copy(nullable = false)
+            if (isPolymorphicInterface(schema)) {
+                val interfaceName = ClassName(
+                    java.lang.String.join(".", params.rootPackage, "dto"),
+                    schemaName
+                ).copy(nullable = false)
 
-                    for (s in polymorphicMembers(schema)) {
-                        if (s.`$ref` != null) {
-                            val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
-                            val className = (typeName as ClassName).simpleName
-                            if (className == name) {
-                                classBuilder.addSuperinterface(interfaceName)
-                            }
+                for (s in polymorphicMembers(schema)) {
+                    if (s.`$ref` != null) {
+                        val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
+                        val className = (typeName as ClassName).simpleName
+                        if (className == name) {
+                            classBuilder.addSuperinterface(interfaceName)
                         }
                     }
                 }

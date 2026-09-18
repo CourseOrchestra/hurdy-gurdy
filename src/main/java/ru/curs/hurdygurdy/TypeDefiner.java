@@ -45,6 +45,13 @@ public abstract class TypeDefiner<T> {
     protected static final Pattern CLASS_NAME_PATTERN = Pattern.compile("/([^/$]+)$");
     protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
     /**
+     * The only {@code $ref} shape that names a generated class:
+     * {@code #/components/schemas/<Name>}, optionally prefixed by another
+     * file — see {@link #checkReferenceIsGeneratable(String)}.
+     */
+    private static final Pattern COMPONENT_SCHEMA_REF =
+            Pattern.compile("^[^#]*#/components/schemas/[^/]+$");
+    /**
      * A property name accepted by {@code forceSnakeCaseForProperties}: lower-case
      * snake_case, optionally prefixed by underscores (and {@code $}, for backwards compatibility).
      * A <em>leading</em> underscore is a common snake_case convention for "meta"/"private" keys
@@ -152,6 +159,25 @@ public abstract class TypeDefiner<T> {
         List<Schema> anyOf = schema.getAnyOf();
         return anyOf != null && anyOf.size() == 2
                 && anyOf.stream().anyMatch(member -> "null".equals(effectiveType(member)));
+    }
+
+    /**
+     * Whether a schema that declares no single JSON type nevertheless describes
+     * an object — it has properties, a dictionary, composition or a
+     * discriminator. A schema with none of those admits any value, and must map
+     * to {@code Object}/{@code Any} rather than to a class invented from
+     * whatever name happened to be in scope.
+     *
+     * <p>Only consulted for a schema with no effective type; an explicit
+     * {@code type: object} is a class whether or not it declares anything.
+     */
+    static boolean describesObject(Schema<?> schema) {
+        return schema.getProperties() != null && !schema.getProperties().isEmpty()
+                || schema.getAdditionalProperties() != null
+                || schema.getAllOf() != null
+                || schema.getOneOf() != null
+                || schema.getAnyOf() != null
+                || schema.getDiscriminator() != null;
     }
 
     static boolean isArraySchema(Schema<?> schema) {
@@ -297,6 +323,7 @@ public abstract class TypeDefiner<T> {
 
 
     DTOMeta getReferencedTypeInfo(OpenAPI currentOpenAPI, String ref) {
+        checkReferenceIsGeneratable(ref);
         String fileName = extractGroup(ref, FILE_NAME_PATTERN);
         String className = extractGroup(ref, CLASS_NAME_PATTERN);
         if (fileName.isBlank()) {
@@ -355,6 +382,30 @@ public abstract class TypeDefiner<T> {
                 .map(l -> !l.isEmpty())
                 .orElse(false);
 
+    }
+
+    /**
+     * Rejects a {@code $ref} that does not name a component schema.
+     *
+     * <p>hurdy-gurdy generates one class per entry in
+     * {@code components/schemas}, so that is the only pointer it can turn into a
+     * type name. JSON Schema 2020-12 — and therefore OpenAPI 3.1 — allows a
+     * pointer to walk further in, most usefully into a schema's private
+     * {@code $defs}. Such a reference has no generated class to name, and
+     * {@link #CLASS_NAME_PATTERN} would quietly reduce it to the pointer's last
+     * segment: the output then refers to a class nobody generated and does not
+     * compile, which the user meets as a compiler error in their own build about
+     * a name they never wrote. Saying so here, naming the offending pointer, is
+     * the whole improvement.
+     */
+    private static void checkReferenceIsGeneratable(String ref) {
+        if (!COMPONENT_SCHEMA_REF.matcher(ref).matches()) {
+            throw new IllegalStateException(String.format(
+                    "Unsupported $ref '%s': hurdy-gurdy generates a class per component schema, so a "
+                            + "reference must point at '#/components/schemas/<Name>' (optionally "
+                            + "prefixed by another file). Move the schema into components/schemas "
+                            + "and reference it from there.", ref));
+        }
     }
 
     protected String extractGroup(String ref, Pattern pattern) {

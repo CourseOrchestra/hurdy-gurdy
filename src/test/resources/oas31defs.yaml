@@ -1,0 +1,24 @@
+# JSON Schema 2020-12 lets a schema keep private subschemas under `$defs` and
+# reference them by a pointer that walks into a component. hurdy-gurdy generates
+# one class per component schema and has nowhere to put such a subschema, so the
+# reference has to be reported rather than silently resolved to the last segment
+# of the pointer — which is what it used to do, naming a class that is never
+# generated and leaving the output uncompilable. See Oas31KeywordsTest.
+openapi: "3.1.0"
+info:
+  title: A $ref into $defs
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Holder:
+      type: object
+      $defs:
+        Local:
+          type: object
+          properties:
+            x:
+              type: string
+      properties:
+        local:
+          $ref: '#/components/schemas/Holder/$defs/Local'

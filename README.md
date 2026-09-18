@@ -326,6 +326,52 @@ hurdy-gurdy: 'nullable' is not an OpenAPI 3.1 keyword and is ignored at
 #/components/schemas/Thing/properties/req_nullable; use type: [<type>, "null"] instead
 ```
 
+## OpenAPI 3.1 and JSON Schema 2020-12
+
+A 3.1 document generates the same code as the 3.0 document it was migrated from:
+bumping the version string alone must not change a single byte of output, and a
+test asserts exactly that over the specification corpus.
+
+OpenAPI 3.1 adopted JSON Schema 2020-12, which brings keywords 3.0 could not
+express. They map as follows:
+
+| Keyword | Generated as | Note |
+|---------|--------------|------|
+| `type: [string, "null"]` | `String?` / nullable | see the section above |
+| `const: <value>` | the value's own type | `const: circle` is a `String` |
+| `contentEncoding: base64` (or `base64url`) | `byte[]` / `ByteArray` | the string carries encoded bytes |
+| `contentMediaType` alone | `String` | it describes the *decoded* content; without `contentEncoding` the JSON value is an ordinary string |
+| `type: array` with no `items` | `List<Object>` / `List<Any>` | 3.1 does not require `items` |
+| `prefixItems: [...]` | `List<Object>` / `List<Any>` | no tuple type in Java or Kotlin; reported as a warning. Applies even when `items` is also present, since `items` then constrains only the elements *after* the prefix |
+| `type: [string, integer]` | `Object` / `Any` | a multi-type union has no single target type |
+| `true` / `false` as a schema | `Object` / `Any` | `true` admits any value |
+| `enum` containing `null` | enum without the `null`, schema marked nullable | the `null` is nullability, not a constant — and the nullability is kept |
+| `additionalProperties: true` or `{}` | `Map<String, Object>` / `Map<String, Any?>` | the same free-form dictionary, either spelling, either version |
+| `additionalProperties: false` | no dictionary field | the schema forbids additional properties, either version |
+
+> **Behaviour change.** `additionalProperties: true` in a 3.0 document used to
+> generate `Map<String, String>`. That map cannot hold what the schema permits:
+> Jackson throws `MismatchedInputException` on a nested object or array, and
+> silently retypes a number or boolean (`42` comes back out as `"42"`). It now
+> generates `Map<String, Object>` / `Map<String, Any?>`, matching what
+> `additionalProperties: {}` already generated and what 3.1 already generated.
+> Consuming code that read those values as `String` needs updating. A dictionary
+> with a declared value type — `additionalProperties: {type: string}` — is
+> unaffected and still generates `Map<String, String>`.
+
+Three things are **not** supported:
+
+- **`$ref` into `$defs`.** hurdy-gurdy generates one class per entry in
+  `components/schemas`, so a pointer that walks further in (e.g.
+  `#/components/schemas/Holder/$defs/Local`) has no class to name. Move the
+  schema into `components/schemas` and reference it from there.
+- **`webhooks`.** The 3.1 top-level `webhooks` map is not generated.
+- **3.1-style binary bodies and file parts.** A binary request/response body or
+  multipart file part is still recognised by `format: binary`, the 3.0 spelling.
+  The 3.1 idioms — an `application/octet-stream` media type with no schema, or a
+  part carrying only `contentMediaType` — are not yet mapped to
+  `Resource`/`InputStream`/`MultipartFile`.
+
 ## Client generation (`generate=client`)
 
 With `client` in the `generate` set, the emitted `XxxClient` interfaces are meant to be

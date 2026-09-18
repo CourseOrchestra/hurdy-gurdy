@@ -32,7 +32,9 @@ package com.example.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.lang.Object;
 import java.lang.String;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -41,6 +43,8 @@ public class Thing {
   private String reqNullable;
 
   private String optPlain;
+
+  private List<Object> tupleWithStray;
 
   private String properlyNullable;
 }

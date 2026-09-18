@@ -83,6 +83,15 @@ components:
           nullable: true
         opt_plain:
           type: string
+        # A tuple member is a schema like any other: a stray `nullable`
+        # inside one has to be reported too, which only happens if the
+        # walk descends into `prefixItems`.
+        tuple_with_stray:
+          type: array
+          prefixItems:
+            - type: string
+            - type: integer
+              nullable: true
         # The correct 3.1 spelling, alongside the stray ones: only the
         # `nullable` occurrences are reported.
         properly_nullable:

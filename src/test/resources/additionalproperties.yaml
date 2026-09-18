@@ -1,0 +1,34 @@
+# The three spellings of `additionalProperties`, which must generate the same
+# code in an OpenAPI 3.0 and a 3.1 document alike. They historically did not:
+# swagger-parser hands `true`/`false` over as a java.lang.Boolean for 3.0 but as
+# a schema object for 3.1, so the two versions disagreed, and within 3.0 the
+# boolean spellings disagreed with the empty-schema one. Listed in
+# Oas31ParityTest, which pins the 3.0-versus-3.1 half, and asserted on directly
+# in Oas31KeywordsTest.
+openapi: 3.0.1
+info:
+  title: additionalProperties spellings
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    # "any additional property is allowed, of any type"
+    DictTrue:
+      type: object
+      additionalProperties: true
+    # The same statement, written as the empty schema.
+    DictEmpty:
+      type: object
+      additionalProperties: {}
+    # The opposite statement: no additional properties at all, so no dictionary.
+    DictFalse:
+      type: object
+      properties:
+        known:
+          type: string
+      additionalProperties: false
+    # A typed dictionary, which must keep its value type.
+    DictTyped:
+      type: object
+      additionalProperties:
+        type: boolean

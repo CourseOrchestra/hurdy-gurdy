@@ -1,0 +1,122 @@
+# JSON Schema 2020-12 keywords that an OpenAPI 3.1 document may legally use and
+# that a 3.0 document cannot express at all. Before issue 615 the first three
+# crashed the generator outright and the rest silently produced meaningless
+# types — see Oas31KeywordsTest for the expected mapping of each.
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 keyword coverage
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Keywords:
+      type: object
+      properties:
+
+        # 3.1 does not require `items`; an array with no item schema accepts
+        # anything. (This is also the shape a `prefixItems`-only tuple leaves
+        # behind once the tuple is widened.)
+        loose_array:
+          type: array
+
+        # A tuple. Neither Java nor Kotlin has a heterogeneous fixed-length list
+        # type, so the whole tuple widens to a list of the common supertype.
+        tuple:
+          type: array
+          prefixItems:
+            - type: string
+            - type: integer
+
+        # A tuple that also declares `items`. In JSON Schema 2020-12 `items`
+        # constrains only the elements AFTER the prefix, so it is NOT the common
+        # element type and must not be used as one.
+        tuple_with_items:
+          type: array
+          prefixItems:
+            - type: string
+            - type: integer
+          items:
+            type: boolean
+
+        # `const` replaces the 3.0 idiom of a single-valued `enum`. The value's
+        # own JSON type is the property's type.
+        const_string:
+          const: circle
+        const_int:
+          const: 42
+        const_bool:
+          const: true
+
+        # A genuine multi-type union has no single Java/Kotlin type.
+        multi_type:
+          type: [string, integer]
+
+        # `true` and `false` are legal schemas in their own right: `true` admits
+        # any value.
+        bool_schema: true
+
+        # `contentEncoding` is what says a string carries base64-encoded bytes,
+        # so this is the 3.1 spelling that maps to a byte array.
+        octets_encoded:
+          type: string
+          contentMediaType: application/octet-stream
+          contentEncoding: base64
+        # base64 with no declared media type is still base64.
+        octets_encoding_only:
+          type: string
+          contentEncoding: base64
+        # `contentMediaType` ALONE says what the decoded content is, not that the
+        # JSON string is encoded: without `contentEncoding` the value is a plain
+        # string and must stay one.
+        octets_media_type_only:
+          type: string
+          contentMediaType: application/octet-stream
+        octets_legacy:
+          type: string
+          format: binary
+
+        # A nullable enum spells its null as a member of both the type array and
+        # the enum. The null is nullability, not a constant, and must not become
+        # an enum entry.
+        nullable_enum:
+          type: [string, "null"]
+          title: Colour
+          enum:
+            - red
+            - green
+            - null
+
+        # An enum whose `null` is the ONLY statement of nullability: there is no
+        # type array to carry it. Dropping the member must not drop the fact.
+        typeless_nullable_enum:
+          title: Shade
+          enum:
+            - red
+            - green
+            - null
+
+        # A free-form dictionary. `additionalProperties: true` is the 3.0
+        # spelling and `{}` the 3.1 one; both mean "any value".
+        free_dict_true:
+          type: object
+          additionalProperties: true
+        free_dict_empty:
+          type: object
+          additionalProperties: {}
+
+    # The behavioural half of `typeless_nullable_enum`: a REQUIRED property whose
+    # only statement of nullability is the `null` among its enum members. In
+    # `records` style a required non-nullable component is guarded by
+    # Objects.requireNonNull, so if normalization drops the null without
+    # preserving the nullability, an explicit null here stops being accepted.
+    RequiredNullableEnum:
+      type: object
+      required:
+        - shade
+      properties:
+        shade:
+          title: RequiredShade
+          enum:
+            - red
+            - green
+            - null
