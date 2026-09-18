@@ -636,7 +636,8 @@ class KotlinAPIExtractor(
      * The upload type of a binary multipart part, or null when the part is not
      * binary at all: `MultipartFile` / `FileUpload` for a scalar
      * `format: binary`, a `List` of it for an array of them (a part sent several
-     * times over).
+     * times over), whether that array is spelled out or named by a reusable
+     * alias.
      *
      * An array had to be spelled out here: a bare binary schema means
      * `ByteArray` to the type definer, which is right for a base64 property of a
@@ -646,7 +647,21 @@ class KotlinAPIExtractor(
         if (isBinary(schema)) {
             return multipartPartType()
         }
-        if (schema != null && TypeDefiner.isArraySchema(schema)) {
+        if (schema == null) {
+            return null
+        }
+        val `$ref` = schema.`$ref`
+        if (`$ref` != null) {
+            // A part may NAME the array (files: $ref FileList) rather than spell it
+            // out. A same-file array alias is inlined at every point of use, so such
+            // a part is the same repeated upload and has to be looked through here
+            // as well. Under generateAliasAsModel the alias stays a class of its own
+            // - inlinableArrayAlias returns null and the part keeps that class, as
+            // it does everywhere else.
+            val aliasTarget = typeDefiner.inlinableArrayAlias(`$ref`, openAPI) ?: return null
+            return typeDefiner.inliningAlias<TypeName?>(`$ref`) { uploadType(aliasTarget, openAPI) }
+        }
+        if (TypeDefiner.isArraySchema(schema)) {
             val items = schema.items
             val itemType = uploadType(items, openAPI) ?: return null
             return LIST.parameterizedBy(

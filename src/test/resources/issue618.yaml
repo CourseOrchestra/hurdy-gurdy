@@ -36,11 +36,19 @@ paths:
                   items:
                     type: string
                     format: binary
+                # The same array NAMED by a reusable alias: the alias is
+                # inlined at the point of use, so the part is the same
+                # repeated upload.
+                alias_files:
+                  $ref: '#/components/schemas/FileList'
                 # A non-binary array part is untouched by the fix.
                 tags:
                   type: array
                   items:
                     type: string
+                # ... named by an alias too: still a plain list of strings.
+                alias_tags:
+                  $ref: '#/components/schemas/TagList'
                 meta:
                   $ref: '#/components/schemas/UploadMeta'
       responses:
@@ -53,6 +61,15 @@ paths:
 
 components:
   schemas:
+    FileList:
+      type: array
+      items:
+        type: string
+        format: binary
+    TagList:
+      type: array
+      items:
+        type: string
     UploadMeta:
       type: object
       properties:

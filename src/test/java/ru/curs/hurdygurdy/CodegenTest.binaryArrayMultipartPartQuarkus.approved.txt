@@ -27,8 +27,9 @@ public interface Controller {
   @Produces("application/json")
   @Consumes("multipart/form-data")
   UploadMeta upload(@RestForm("one") FileUpload one, @RestForm("files") List<FileUpload> files,
-      @RestForm("attachments") List<FileUpload> attachments, @RestForm("tags") List<String> tags,
-      @RestForm("meta") UploadMeta meta);
+      @RestForm("attachments") List<FileUpload> attachments,
+      @RestForm("alias_files") List<FileUpload> alias_files, @RestForm("tags") List<String> tags,
+      @RestForm("alias_tags") List<String> alias_tags, @RestForm("meta") UploadMeta meta);
 }
 ---
 /com/example/dto

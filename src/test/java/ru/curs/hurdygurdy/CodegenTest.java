@@ -247,9 +247,25 @@ class CodegenTest {
         // hurdy-gurdy#618: a multipart part that is an ARRAY of `format: binary`
         // is a repeated upload, so it must be List<MultipartFile> - it used to
         // fall through to the DTO mapping of a bare binary schema and come out
-        // List<byte[]>. The snapshot also holds the two neighbours the fix must
-        // not disturb: a non-binary array part, and the binary properties of the
-        // JSON DTO, which stay byte[] / List<byte[]> (base64).
+        // List<byte[]>. An array NAMED by a same-file alias counts: the alias is
+        // inlined at the point of use, so the part is the same repeated upload.
+        // The snapshot also holds the neighbours the fix must not disturb: a
+        // non-binary array part (spelled out and aliased), and the binary
+        // properties of the JSON DTO, which stay byte[] / List<byte[]> (base64).
+        codegen.generate(Path.of("src/test/resources/issue618.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryArrayMultipartPartAliasAsModel() throws IOException {
+        // The boundary of the alias case above: with generateAliasAsModel the
+        // alias is NOT inlined anywhere, so the part keeps the generated class
+        // (FileList extends ArrayList<byte[]>) exactly as every other use of it
+        // does. Turning that class into a list of uploads would be wrong - the
+        // same component may carry base64 in a JSON DTO - so the flag remains
+        // the way to say "this alias is a model", upload part or not.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateAliasAsModel(true));
         codegen.generate(Path.of("src/test/resources/issue618.yaml"), result);
         verify(result);
     }

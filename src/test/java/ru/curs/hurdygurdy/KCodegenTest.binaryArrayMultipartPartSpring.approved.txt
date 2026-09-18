@@ -28,7 +28,9 @@ public interface Controller {
     @RequestPart(name = "one") one: MultipartFile,
     @RequestPart(name = "files") files: List<MultipartFile>,
     @RequestPart(name = "attachments", required = false) attachments: List<MultipartFile>?,
+    @RequestPart(name = "alias_files", required = false) alias_files: List<MultipartFile>?,
     @RequestPart(name = "tags", required = false) tags: List<String>?,
+    @RequestPart(name = "alias_tags", required = false) alias_tags: List<String>?,
     @RequestPart(name = "meta", required = false) meta: UploadMeta?,
     response: HttpServletResponse,
   ): UploadMeta

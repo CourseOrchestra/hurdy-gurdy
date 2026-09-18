@@ -10,8 +10,9 @@
 /com/example/controller/Controller.java
 package com.example.controller;
 
+import com.example.dto.FileList;
+import com.example.dto.TagList;
 import com.example.dto.UploadMeta;
-import jakarta.servlet.http.HttpServletResponse;
 import java.lang.String;
 import java.util.List;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,13 +28,30 @@ public interface Controller {
   UploadMeta upload(@RequestPart(name = "one") MultipartFile one,
       @RequestPart(name = "files") List<MultipartFile> files,
       @RequestPart(name = "attachments") List<MultipartFile> attachments,
-      @RequestPart(name = "alias_files") List<MultipartFile> alias_files,
+      @RequestPart(name = "alias_files") FileList alias_files,
       @RequestPart(name = "tags") List<String> tags,
-      @RequestPart(name = "alias_tags") List<String> alias_tags,
-      @RequestPart(name = "meta") UploadMeta meta, HttpServletResponse response);
+      @RequestPart(name = "alias_tags") TagList alias_tags,
+      @RequestPart(name = "meta") UploadMeta meta);
 }
 ---
 /com/example/dto
+---
+/com/example/dto/FileList.java
+package com.example.dto;
+
+import java.util.ArrayList;
+
+public class FileList extends ArrayList<byte[]> {
+}
+---
+/com/example/dto/TagList.java
+package com.example.dto;
+
+import java.lang.String;
+import java.util.ArrayList;
+
+public class TagList extends ArrayList<String> {
+}
 ---
 /com/example/dto/UploadMeta.java
 package com.example.dto;

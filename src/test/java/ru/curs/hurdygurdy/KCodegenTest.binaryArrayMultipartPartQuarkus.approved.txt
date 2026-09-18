@@ -30,7 +30,9 @@ public interface Controller {
     @RestForm("one") one: FileUpload,
     @RestForm("files") files: List<FileUpload>,
     @RestForm("attachments") attachments: List<FileUpload>?,
+    @RestForm("alias_files") alias_files: List<FileUpload>?,
     @RestForm("tags") tags: List<String>?,
+    @RestForm("alias_tags") alias_tags: List<String>?,
     @RestForm("meta") meta: UploadMeta?,
   ): UploadMeta
 }
