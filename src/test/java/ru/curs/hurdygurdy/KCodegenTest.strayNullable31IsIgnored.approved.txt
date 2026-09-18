@@ -31,11 +31,14 @@ package com.example.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.Any
 import kotlin.String
+import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class Thing(
   public val reqNullable: String,
   public val optPlain: String? = null,
+  public val tupleWithStray: List<Any>? = null,
   public val properlyNullable: String? = null,
 )

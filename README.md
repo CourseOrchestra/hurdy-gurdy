@@ -359,8 +359,7 @@ express. They map as follows:
 > with a declared value type — `additionalProperties: {type: string}` — is
 > unaffected and still generates `Map<String, String>`.
 
-Two things are **not** supported, and both are reported rather than generated
-wrongly:
+Three things are **not** supported:
 
 - **`$ref` into `$defs`.** hurdy-gurdy generates one class per entry in
   `components/schemas`, so a pointer that walks further in (e.g.

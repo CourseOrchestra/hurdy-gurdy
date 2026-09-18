@@ -201,6 +201,23 @@ final class SchemaWalker {
         visitSchemaList(schema.getAnyOf(), path + "/anyOf");
         visitSchemaList(schema.getOneOf(), path + "/oneOf");
         visitSchema(schema.getNot(), path + "/not");
+        // The remaining JSON Schema 2020-12 applicators. hurdy-gurdy generates
+        // nothing from most of them, but "every schema" has to mean every schema:
+        // a construct the walk skips is one the normalizer never canonicalizes and
+        // the stray-`nullable` check never reports, which is a silent hole rather
+        // than an unsupported feature. `prefixItems` is the one that matters
+        // immediately — it carries real subschemas that this generator now reads.
+        visitSchemaList(schema.getPrefixItems(), path + "/prefixItems");
+        visitSchema(schema.getContains(), path + "/contains");
+        visitSchema(schema.getPropertyNames(), path + "/propertyNames");
+        visitSchemaMap(schema.getPatternProperties(), path + "/patternProperties");
+        visitSchemaMap(schema.getDependentSchemas(), path + "/dependentSchemas");
+        visitSchema(schema.getIf(), path + "/if");
+        visitSchema(schema.getThen(), path + "/then");
+        visitSchema(schema.getElse(), path + "/else");
+        visitSchema(schema.getAdditionalItems(), path + "/additionalItems");
+        visitSchema(schema.getUnevaluatedItems(), path + "/unevaluatedItems");
+        visitSchema(schema.getUnevaluatedProperties(), path + "/unevaluatedProperties");
     }
 
     /** Applies {@code visitor} to every entry of a components-style map, keyed by name. */

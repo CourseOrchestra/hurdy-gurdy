@@ -47,6 +47,9 @@ class StrayNullableCheckTest {
         assertThat(locationsIn(SPEC_31)).containsExactlyInAnyOrder(
                 "#/components/schemas/Thing",
                 "#/components/schemas/Thing/properties/req_nullable",
+                // A tuple member is a schema like any other; reporting it proves
+                // the walk descends into `prefixItems`.
+                "#/components/schemas/Thing/properties/tuple_with_stray/prefixItems/1",
                 "#/paths//api/v1/thing/get/parameters/filter",
                 // A response header carries a schema of its own...
                 "#/paths//api/v1/thing/get/responses/200/headers/X-Total",
@@ -73,9 +76,13 @@ class StrayNullableCheckTest {
 
         codegen.generate(Path.of(SPEC_31), result);
 
-        assertThat(warnings).hasSize(6);
-        assertThat(warnings).allMatch(w -> w.contains("not an OpenAPI 3.1 keyword"));
+        // The listener carries every generator warning, not only this check's:
+        // the tuple in the fixture also reports that it widens to a list of any
+        // value. Counting them separately keeps one from masking the other.
+        assertThat(warnings).filteredOn(w -> w.contains("not an OpenAPI 3.1 keyword")).hasSize(7);
         assertThat(warnings).anyMatch(w -> w.contains("#/components/schemas/Thing/properties/req_nullable"));
+        assertThat(warnings).filteredOn(w -> w.contains("'prefixItems' tuple")).hasSize(1);
+        assertThat(warnings).hasSize(8);
     }
 
     private static List<String> locationsIn(String spec) throws IOException {
