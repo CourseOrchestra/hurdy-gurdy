@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,6 +71,7 @@ public abstract class TypeDefiner<T> {
     final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
     private final Map<String, OpenAPI> externalDocuments = new HashMap<>();
+    private Consumer<String> warningListener = message -> { };
     private final Set<String> aliasesBeingInlined = new HashSet<>();
     private Path sourceFile;
 
@@ -315,8 +317,9 @@ public abstract class TypeDefiner<T> {
         throw new IllegalStateException();
     }
 
-    void init(Path currentSourceFile) {
+    void init(Path currentSourceFile, Consumer<String> listener) {
         this.sourceFile = currentSourceFile;
+        this.warningListener = listener;
         externalClasses.clear();
         externalDocuments.clear();
         aliasesBeingInlined.clear();
@@ -372,6 +375,13 @@ public abstract class TypeDefiner<T> {
                     throw new IllegalStateException(
                             String.format("Could not parse externally linked file %s", externalFile));
                 }
+                // The same normalization the root document gets in Codegen.parse.
+                // Without it a schema would mean different things depending on
+                // which file it lives in: a 3.1 `enum: [RED, GREEN, null]`
+                // component is nullable once normalized, and merely a
+                // two-value enum when read raw through a link.
+                SchemaNormalizer.normalize(parsed, message ->
+                        warningListener.accept(String.format("%s [linked file %s]", message, name)));
                 return parsed;
             } catch (IOException e) {
                 throw new IllegalStateException(e);

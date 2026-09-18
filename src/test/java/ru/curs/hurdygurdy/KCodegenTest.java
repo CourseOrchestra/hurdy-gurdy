@@ -367,6 +367,23 @@ class KCodegenTest {
     }
 
     @Test
+    void linkedDocumentIsNormalizedLikeTheRoot() throws IOException {
+        // PR #621 review: only the root document was normalized, so a schema's
+        // meaning depended on which file it lived in - a 3.1
+        // `enum: [RED, GREEN, null]` is nullable once normalized, but read raw
+        // through a link it looked like a plain two-value enum and generated
+        // non-null. The spec writes the same schema twice, locally and in a
+        // linked file; the snapshot's worth is that the two signatures match.
+        // Snapshot only: the linked type lives in another package and is not
+        // generated here.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/externalnorm31.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void externalRefNullabilityAndDefaults() throws IOException {
         // PR #621 review: a $ref into another file was looked up in the CURRENT
         // document, where it is never found, so the "says nothing" default won
