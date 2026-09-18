@@ -365,6 +365,47 @@ public abstract class TypeDefiner<T> {
         return schema == null || schema.getNullable() == null ? defaultValue : schema.getNullable();
     }
 
+    /**
+     * Whether a schema used as a parameter, request-body or response type says
+     * of itself that it admits {@code null} — {@code nullable: true}, a 3.1
+     * {@code "null"} among its types, or the {@code anyOf: [X, null]} wrapper;
+     * for a {@code $ref} the question is asked of the referenced component
+     * schema (which, declaring nothing, is NOT nullable).
+     *
+     * <p>Deliberately separate from whether the value may be <em>absent</em> —
+     * an optional parameter, a request body that is not {@code required}. A
+     * Kotlin type is nullable when either holds, and the two are decided by
+     * different parts of the document, so they are asked separately. Absence is
+     * why a {@code $ref} <em>property</em> defaults to nullable while a list
+     * <em>element</em> does not: the property may be left out, the element
+     * cannot. Both ask this method the null question and answer the absence
+     * question themselves.
+     *
+     * <p>This is the single answer to that question, for every position —
+     * property, array element, parameter, request body, response. It used to be
+     * asked in three slightly different ways, and that disagreement is what
+     * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/620">issue 620</a>
+     * surfaced; keep it here rather than growing a fourth copy.
+     *
+     * <p>In OpenAPI 3.0 a {@code $ref} can only ever be answered for by the
+     * component it names, never at the point of use: 3.0 ignores keywords
+     * written beside a {@code $ref}, so {@code {$ref: X, nullable: false}} says
+     * nothing at all. A 3.1 document states it at the site instead, with
+     * {@code anyOf: [{$ref: X}, {type: "null"}]}.
+     *
+     * @see StrayNullableCheck
+     */
+    final boolean isNullableType(Schema<?> schema, OpenAPI openAPI) {
+        if (schema == null) {
+            return false;
+        }
+        String ref = schema.get$ref();
+        if (ref == null) {
+            return isNullableSchema(schema);
+        }
+        return getNullable(openAPI, extractGroup(ref, CLASS_NAME_PATTERN), false);
+    }
+
     protected String getDefault(OpenAPI currentOpenAPI, String className) {
         return Optional.ofNullable(currentOpenAPI.getComponents())
                 .map(Components::getSchemas)

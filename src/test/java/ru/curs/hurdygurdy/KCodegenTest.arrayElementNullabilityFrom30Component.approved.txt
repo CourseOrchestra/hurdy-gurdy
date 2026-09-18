@@ -1,0 +1,55 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.Holder
+import org.springframework.web.bind.`annotation`.GetMapping
+
+public interface Controller {
+  @GetMapping(
+    value = ["/holders"],
+    produces = ["application/json"],
+  )
+  public fun getHolder(): Holder
+}
+---
+/com/example/dto
+---
+/com/example/dto/Holder.kt
+package com.example.dto
+
+import kotlin.collections.List
+
+public data class Holder(
+  public val tags: List<SensitivityTag?>? = null,
+  public val tagsSiblingFalse: List<SensitivityTag?>? = null,
+  public val plain: List<PlainTag>? = null,
+  public val oneTag: SensitivityTag? = null,
+  public val onePlain: PlainTag? = null,
+  public val tagsRequired: List<PlainTag>,
+  public val plainRequired: PlainTag,
+)
+---
+/com/example/dto/PlainTag.kt
+package com.example.dto
+
+public enum class PlainTag {
+  LOW,
+  HIGH,
+}
+---
+/com/example/dto/SensitivityTag.kt
+package com.example.dto
+
+public enum class SensitivityTag {
+  LOW,
+  HIGH,
+}

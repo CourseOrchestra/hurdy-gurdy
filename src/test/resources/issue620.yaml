@@ -1,0 +1,75 @@
+openapi: 3.0.1
+info:
+  title: "Array element nullability in a 3.0 document (hurdy-gurdy#620)"
+  description: |
+    In OpenAPI 3.0 an array element's nullability can only come from the
+    component the `$ref` names: 3.0 ignores keywords written beside a `$ref`,
+    so there is no way to say it at the point of use. This spec locks every
+    consequence of that.
+  version: "0.1"
+
+paths:
+  /holders:
+    get:
+      operationId: getHolder
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holder'
+
+components:
+  schemas:
+    # The reporter's shape: a component that declares itself nullable.
+    SensitivityTag:
+      type: string
+      nullable: true
+      enum: [LOW, HIGH]
+    # The same enum without the flag, for contrast.
+    PlainTag:
+      type: string
+      enum: [LOW, HIGH]
+
+    Holder:
+      type: object
+      required: [tagsRequired, plainRequired]
+      properties:
+        # The component admits null, so null is a valid ELEMENT: List<SensitivityTag?>.
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/SensitivityTag'
+        # `nullable: false` beside a $ref is IGNORED in 3.0 (the parser drops
+        # keywords written next to a $ref), so this is identical to `tags` —
+        # there is no per-site opt-out. Locking it stops anyone "fixing" the
+        # generator to honour a keyword the document format does not carry.
+        tagsSiblingFalse:
+          type: array
+          items:
+            $ref: '#/components/schemas/SensitivityTag'
+            nullable: false
+        # A component that declares nothing yields non-null elements.
+        plain:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlainTag'
+
+        # An OPTIONAL property is nullable whether or not the component says so
+        # — which is why a spec should not carry `nullable: true` on a component
+        # merely to make its optional properties nullable. Removing the flag is
+        # the documented way back to List<PlainTag>.
+        oneTag:
+          $ref: '#/components/schemas/SensitivityTag'
+        onePlain:
+          $ref: '#/components/schemas/PlainTag'
+
+        # A REQUIRED property of a plain component is non-null: the only case
+        # where `nullable: true` on the component is genuinely needed.
+        tagsRequired:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlainTag'
+        plainRequired:
+          $ref: '#/components/schemas/PlainTag'

@@ -1,0 +1,133 @@
+openapi: 3.0.1
+info:
+  title: "Kotlin nullability (hurdy-gurdy#617)"
+  description: |
+    Every combination that decides whether a generated Kotlin parameter,
+    request body or return type is nullable.
+  version: "0.1"
+
+paths:
+  /items/{id}:
+    put:
+      operationId: updateItem
+      # A required body: the argument is always there.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemRequest'
+      parameters:
+        # A path variable is part of the URL, so it is never absent.
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        # Optional, no default: genuinely absent when not passed.
+        - name: code
+          in: query
+          schema:
+            type: string
+        # Optional but with a default: the framework substitutes "false".
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+        # Explicitly required query parameter.
+        - name: reason
+          in: query
+          required: true
+          schema:
+            type: string
+        # Required, but the schema itself admits null.
+        - name: note
+          in: query
+          required: true
+          schema:
+            type: string
+            nullable: true
+        - name: X-Trace-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+  /items:
+    post:
+      operationId: createItem
+      # `required` omitted: OpenAPI defaults it to false, so the body may be
+      # left out of the call altogether and stays nullable.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemRequest'
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemResponse'
+  /items/nullable:
+    get:
+      operationId: findItem
+      # A reply whose schema says it may be null stays nullable.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableItem'
+  /items/nothing:
+    delete:
+      operationId: deleteItem
+      responses:
+        "204":
+          description: no content
+
+components:
+  schemas:
+    ItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+    ItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+    NullableItem:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: integer
+          format: int64

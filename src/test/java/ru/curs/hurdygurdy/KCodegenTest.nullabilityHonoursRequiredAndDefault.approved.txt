@@ -1,0 +1,151 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.kt
+package com.example.controller
+
+import com.example.dto.ItemRequest
+import com.example.dto.ItemResponse
+import com.example.dto.NullableItem
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+import org.springframework.web.service.`annotation`.DeleteExchange
+import org.springframework.web.service.`annotation`.GetExchange
+import org.springframework.web.service.`annotation`.PostExchange
+import org.springframework.web.service.`annotation`.PutExchange
+
+public interface Client {
+  @PutExchange(
+    value = "/items/{id}",
+    accept = ["application/json"],
+  )
+  public fun updateItem(
+    @RequestBody request: ItemRequest,
+    @PathVariable(name = "id") id: Long,
+    @RequestParam(required = false, name = "code") code: String?,
+    @RequestParam(required = false, name = "force", defaultValue = "false") force: Boolean,
+    @RequestParam(required = true, name = "reason") reason: String,
+    @RequestParam(required = true, name = "note") note: String?,
+    @RequestHeader(required = true, name = "X-Trace-Id") `x-TraceId`: String,
+    @RequestHeader(required = false, name = "X-Correlation-Id") `x-CorrelationId`: String?,
+  ): ItemResponse
+
+  @GetExchange(
+    value = "/items",
+    accept = ["application/json"],
+  )
+  public fun listItems(): List<ItemResponse>
+
+  @PostExchange(
+    value = "/items",
+    accept = ["application/json"],
+  )
+  public fun createItem(@RequestBody(required = false) request: ItemRequest?): ItemResponse
+
+  @GetExchange(
+    value = "/items/nullable",
+    accept = ["application/json"],
+  )
+  public fun findItem(): NullableItem?
+
+  @DeleteExchange(value = "/items/nothing")
+  public fun deleteItem()
+}
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.ItemRequest
+import com.example.dto.ItemResponse
+import com.example.dto.NullableItem
+import kotlin.Boolean
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.DeleteMapping
+import org.springframework.web.bind.`annotation`.GetMapping
+import org.springframework.web.bind.`annotation`.PathVariable
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.PutMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+import org.springframework.web.bind.`annotation`.RequestHeader
+import org.springframework.web.bind.`annotation`.RequestParam
+
+public interface Controller {
+  @PutMapping(
+    value = ["/items/{id}"],
+    produces = ["application/json"],
+  )
+  public fun updateItem(
+    @RequestBody request: ItemRequest,
+    @PathVariable(name = "id") id: Long,
+    @RequestParam(required = false, name = "code") code: String?,
+    @RequestParam(required = false, name = "force", defaultValue = "false") force: Boolean,
+    @RequestParam(required = true, name = "reason") reason: String,
+    @RequestParam(required = true, name = "note") note: String?,
+    @RequestHeader(required = true, name = "X-Trace-Id") `x-TraceId`: String,
+    @RequestHeader(required = false, name = "X-Correlation-Id") `x-CorrelationId`: String?,
+  ): ItemResponse
+
+  @GetMapping(
+    value = ["/items"],
+    produces = ["application/json"],
+  )
+  public fun listItems(): List<ItemResponse>
+
+  @PostMapping(
+    value = ["/items"],
+    produces = ["application/json"],
+  )
+  public fun createItem(@RequestBody(required = false) request: ItemRequest?): ItemResponse
+
+  @GetMapping(
+    value = ["/items/nullable"],
+    produces = ["application/json"],
+  )
+  public fun findItem(): NullableItem?
+
+  @DeleteMapping(value = ["/items/nothing"])
+  public fun deleteItem()
+}
+---
+/com/example/dto
+---
+/com/example/dto/ItemRequest.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class ItemRequest(
+  public val name: String? = null,
+)
+---
+/com/example/dto/ItemResponse.kt
+package com.example.dto
+
+import kotlin.Long
+
+public data class ItemResponse(
+  public val id: Long? = null,
+)
+---
+/com/example/dto/NullableItem.kt
+package com.example.dto
+
+import kotlin.Long
+
+public data class NullableItem(
+  public val id: Long? = null,
+)

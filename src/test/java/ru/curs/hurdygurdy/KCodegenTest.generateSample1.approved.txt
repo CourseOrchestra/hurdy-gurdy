@@ -29,7 +29,7 @@ public interface Controller {
     value = ["/menu"],
     produces = ["application/json"],
   )
-  public fun getMenu(response: HttpServletResponse): MenuDTO?
+  public fun getMenu(response: HttpServletResponse): MenuDTO
 
   @DeleteMapping(value = ["/menu"])
   public fun deleteMenu(response: HttpServletResponse)
@@ -39,28 +39,28 @@ public interface Controller {
     produces = ["text/csv"],
   )
   public fun affiliatePlayerActivitiesCSV(
-    @PathVariable(name = "id") id: Int?,
+    @PathVariable(name = "id") id: Int,
     @RequestParam(required = false, name = "status") status: Boolean?,
     response: HttpServletResponse,
-  ): String?
+  ): String
 
   @GetMapping(
     value = ["/api/v1/bills"],
     produces = ["application/json"],
   )
-  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42") affiliateId: Int?, response: HttpServletResponse): Int?
+  public fun getBills(@RequestParam(required = false, name = "affiliate_id", defaultValue = "42") affiliateId: Int, response: HttpServletResponse): Int
 
   @PutMapping(
     value = ["/api/v1/external"],
     produces = ["text/csv"],
   )
-  public fun `external`(@RequestBody request: DatabaseConnectionRequest, response: HttpServletResponse): Int?
+  public fun `external`(@RequestBody(required = false) request: DatabaseConnectionRequest?, response: HttpServletResponse): Int
 
   @PutMapping(
     value = ["/api/v1/external2"],
     produces = ["text/csv"],
   )
-  public fun external2(@RequestBody request: NullableType?, response: HttpServletResponse): String?
+  public fun external2(@RequestBody(required = false) request: NullableType?, response: HttpServletResponse): String
 }
 ---
 /com/example/dto

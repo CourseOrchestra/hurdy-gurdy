@@ -55,193 +55,193 @@ public interface APIV1Controller {
     value = ["/api/v1/run-task"],
     produces = ["application/json"],
   )
-  public fun runTaskApiV1RunTaskPost(@RequestBody request: RunTaskRequest?, response: HttpServletResponse): TaskCreatedResponse?
+  public fun runTaskApiV1RunTaskPost(@RequestBody request: RunTaskRequest, response: HttpServletResponse): TaskCreatedResponse
 
   @PutMapping(
     value = ["/api/v1/stop-task"],
     produces = ["application/json"],
   )
-  public fun stopTaskApiV1StopTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+  public fun stopTaskApiV1StopTaskPut(@RequestParam(required = true, name = "task_id") taskId: String, response: HttpServletResponse): Any
 
   @PutMapping(
     value = ["/api/v1/pause-task"],
     produces = ["application/json"],
   )
-  public fun pauseTaskApiV1PauseTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+  public fun pauseTaskApiV1PauseTaskPut(@RequestParam(required = true, name = "task_id") taskId: String, response: HttpServletResponse): Any
 
   @PutMapping(
     value = ["/api/v1/resume-task"],
     produces = ["application/json"],
   )
-  public fun resumeTaskApiV1ResumeTaskPut(@RequestParam(required = true, name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+  public fun resumeTaskApiV1ResumeTaskPut(@RequestParam(required = true, name = "task_id") taskId: String, response: HttpServletResponse): Any
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}"],
     produces = ["application/json"],
   )
-  public fun getTaskApiV1TaskTaskIdGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskResponse?
+  public fun getTaskApiV1TaskTaskIdGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): TaskResponse
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}/status"],
     produces = ["application/json"],
   )
-  public fun getTaskStatusApiV1TaskTaskIdStatusGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskStatusEnum?
+  public fun getTaskStatusApiV1TaskTaskIdStatusGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): TaskStatusEnum
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}/media"],
     produces = ["application/json"],
   )
-  public fun getTaskMediaApiV1TaskTaskIdMediaGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskMediaResponse?
+  public fun getTaskMediaApiV1TaskTaskIdMediaGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): TaskMediaResponse
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}/screenshots"],
     produces = ["application/json"],
   )
-  public fun getTaskScreenshotsApiV1TaskTaskIdScreenshotsGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskScreenshotsResponse?
+  public fun getTaskScreenshotsApiV1TaskTaskIdScreenshotsGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): TaskScreenshotsResponse
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}/gif"],
     produces = ["application/json"],
   )
-  public fun getTaskGifApiV1TaskTaskIdGifGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): TaskGifResponse?
+  public fun getTaskGifApiV1TaskTaskIdGifGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): TaskGifResponse
 
   @GetMapping(
     value = ["/api/v1/task/{task_id}/output-file/{file_name}"],
     produces = ["application/json"],
   )
   public fun getTaskOutputFileApiV1TaskTaskIdOutputFileFileNameGet(
-    @PathVariable(name = "task_id") taskId: String?,
-    @PathVariable(name = "file_name") fileName: String?,
+    @PathVariable(name = "task_id") taskId: String,
+    @PathVariable(name = "file_name") fileName: String,
     response: HttpServletResponse,
-  ): TaskOutputFileResponse?
+  ): TaskOutputFileResponse
 
   @GetMapping(
     value = ["/api/v1/tasks"],
     produces = ["application/json"],
   )
   public fun listTasksApiV1TasksGet(
-    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
-    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int,
     response: HttpServletResponse,
-  ): ListTasksResponse?
+  ): ListTasksResponse
 
   @PostMapping(
     value = ["/api/v1/uploads/presigned-url"],
     produces = ["application/json"],
   )
-  public fun uploadFilePresignedUrlApiV1UploadsPresignedUrlPost(@RequestBody request: UploadFileRequest?, response: HttpServletResponse): UploadFileResponse?
+  public fun uploadFilePresignedUrlApiV1UploadsPresignedUrlPost(@RequestBody request: UploadFileRequest, response: HttpServletResponse): UploadFileResponse
 
   @PostMapping(
     value = ["/api/v1/scheduled-task"],
     produces = ["application/json"],
   )
-  public fun createScheduledTaskApiV1ScheduledTaskPost(@RequestBody request: ScheduledTaskRequest?, response: HttpServletResponse): TaskCreatedResponse?
+  public fun createScheduledTaskApiV1ScheduledTaskPost(@RequestBody request: ScheduledTaskRequest, response: HttpServletResponse): TaskCreatedResponse
 
   @GetMapping(
     value = ["/api/v1/scheduled-tasks"],
     produces = ["application/json"],
   )
   public fun listScheduledTasksApiV1ScheduledTasksGet(
-    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
-    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int,
     response: HttpServletResponse,
-  ): ListScheduledTasksResponse?
+  ): ListScheduledTasksResponse
 
   @GetMapping(
     value = ["/api/v1/scheduled-task/{task_id}"],
     produces = ["application/json"],
   )
-  public fun getScheduledTaskApiV1ScheduledTaskTaskIdGet(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): ScheduledTaskResponse?
+  public fun getScheduledTaskApiV1ScheduledTaskTaskIdGet(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): ScheduledTaskResponse
 
   @PutMapping(
     value = ["/api/v1/scheduled-task/{task_id}"],
     produces = ["application/json"],
   )
   public fun updateScheduledTaskApiV1ScheduledTaskTaskIdPut(
-    @RequestBody request: UpdateScheduledTaskRequest?,
-    @PathVariable(name = "task_id") taskId: String?,
+    @RequestBody request: UpdateScheduledTaskRequest,
+    @PathVariable(name = "task_id") taskId: String,
     response: HttpServletResponse,
-  ): ScheduledTaskResponse?
+  ): ScheduledTaskResponse
 
   @DeleteMapping(
     value = ["/api/v1/scheduled-task/{task_id}"],
     produces = ["application/json"],
   )
-  public fun deleteScheduledTaskApiV1ScheduledTaskTaskIdDelete(@PathVariable(name = "task_id") taskId: String?, response: HttpServletResponse): Any?
+  public fun deleteScheduledTaskApiV1ScheduledTaskTaskIdDelete(@PathVariable(name = "task_id") taskId: String, response: HttpServletResponse): Any
 
   @GetMapping(
     value = ["/api/v1/browser-profiles"],
     produces = ["application/json"],
   )
   public fun listBrowserProfilesApiV1BrowserProfilesGet(
-    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int?,
-    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int?,
+    @RequestParam(required = false, name = "page", defaultValue = "1") page: Int,
+    @RequestParam(required = false, name = "limit", defaultValue = "10") limit: Int,
     response: HttpServletResponse,
-  ): ListBrowserProfilesResponse?
+  ): ListBrowserProfilesResponse
 
   @PostMapping(
     value = ["/api/v1/browser-profiles"],
     produces = ["application/json"],
   )
-  public fun createBrowserProfileApiV1BrowserProfilesPost(@RequestBody request: CreateBrowserProfileRequest?, response: HttpServletResponse): CreateBrowserProfileResponse?
+  public fun createBrowserProfileApiV1BrowserProfilesPost(@RequestBody request: CreateBrowserProfileRequest, response: HttpServletResponse): CreateBrowserProfileResponse
 
   @GetMapping(
     value = ["/api/v1/browser-profiles/{profile_id}"],
     produces = ["application/json"],
   )
-  public fun getBrowserProfileApiV1BrowserProfilesProfileIdGet(@PathVariable(name = "profile_id") profileId: String?, response: HttpServletResponse): GetBrowserProfileResponse?
+  public fun getBrowserProfileApiV1BrowserProfilesProfileIdGet(@PathVariable(name = "profile_id") profileId: String, response: HttpServletResponse): GetBrowserProfileResponse
 
   @PutMapping(
     value = ["/api/v1/browser-profiles/{profile_id}"],
     produces = ["application/json"],
   )
   public fun updateBrowserProfileApiV1BrowserProfilesProfileIdPut(
-    @RequestBody request: UpdateBrowserProfileRequest?,
-    @PathVariable(name = "profile_id") profileId: String?,
+    @RequestBody request: UpdateBrowserProfileRequest,
+    @PathVariable(name = "profile_id") profileId: String,
     response: HttpServletResponse,
-  ): UpdateBrowserProfileResponse?
+  ): UpdateBrowserProfileResponse
 
   @DeleteMapping(
     value = ["/api/v1/browser-profiles/{profile_id}"],
     produces = ["application/json"],
   )
-  public fun deleteBrowserProfileApiV1BrowserProfilesProfileIdDelete(@PathVariable(name = "profile_id") profileId: String?, response: HttpServletResponse): DeleteBrowserProfileResponse?
+  public fun deleteBrowserProfileApiV1BrowserProfilesProfileIdDelete(@PathVariable(name = "profile_id") profileId: String, response: HttpServletResponse): DeleteBrowserProfileResponse
 
   @PostMapping(
     value = ["/api/v1/simple-search"],
     produces = ["application/json"],
   )
-  public fun simpleSearchApiV1SimpleSearchPost(@RequestBody request: SimpleSearchRequest?, response: HttpServletResponse): SimpleSearchResponse?
+  public fun simpleSearchApiV1SimpleSearchPost(@RequestBody request: SimpleSearchRequest, response: HttpServletResponse): SimpleSearchResponse
 
   @PostMapping(
     value = ["/api/v1/search-url"],
     produces = ["application/json"],
   )
-  public fun searchUrlApiV1SearchUrlPost(@RequestBody request: SearchUrlRequest?, response: HttpServletResponse): UrlResponse?
+  public fun searchUrlApiV1SearchUrlPost(@RequestBody request: SearchUrlRequest, response: HttpServletResponse): UrlResponse
 
   @GetMapping(
     value = ["/api/v1/balance"],
     produces = ["application/json"],
   )
-  public fun checkBalanceApiV1BalanceGet(response: HttpServletResponse): CheckUserBalanceResponse?
+  public fun checkBalanceApiV1BalanceGet(response: HttpServletResponse): CheckUserBalanceResponse
 
   @GetMapping(
     value = ["/api/v1/me"],
     produces = ["application/json"],
   )
-  public fun meApiV1MeGet(response: HttpServletResponse): Boolean?
+  public fun meApiV1MeGet(response: HttpServletResponse): Boolean
 
   @GetMapping(
     value = ["/api/v1/ping"],
     produces = ["application/json"],
   )
-  public fun pingApiV1PingGet(response: HttpServletResponse): Any?
+  public fun pingApiV1PingGet(response: HttpServletResponse): Any
 
   @GetMapping(
     value = ["/api/v1/browser-use-version"],
     produces = ["application/json"],
   )
-  public fun getBrowserUseVersionApiV1BrowserUseVersionGet(response: HttpServletResponse): String?
+  public fun getBrowserUseVersionApiV1BrowserUseVersionGet(response: HttpServletResponse): String
 }
 ---
 /com/example/dto

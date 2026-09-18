@@ -326,6 +326,159 @@ hurdy-gurdy: 'nullable' is not an OpenAPI 3.1 keyword and is ignored at
 #/components/schemas/Thing/properties/req_nullable; use type: [<type>, "null"] instead
 ```
 
+### Parameters, request bodies and return types
+
+The same rule decides the Kotlin signature of an operation: a value is nullable
+when it may be **absent**, or when its schema says it may be **null**.
+
+| Position | Non-null when |
+|----------|---------------|
+| path parameter | always — it is part of the URL |
+| query / header parameter | `required: true`, **or** the schema carries a `default` (the framework substitutes it) |
+| request body | the operation says `required: true` |
+| multipart part | the body is `required: true` **and** the multipart schema lists the part in its `required` |
+| return type | always — a documented response body is what the endpoint sends back |
+
+```yaml
+put:
+  operationId: updateItem
+  requestBody:
+    required: true
+    content: {application/json: {schema: {$ref: '#/components/schemas/ItemRequest'}}}
+  parameters:
+    - {name: id,    in: path,  required: true, schema: {type: integer, format: int64}}
+    - {name: code,  in: query,                 schema: {type: string}}
+    - {name: force, in: query,                 schema: {type: boolean, default: false}}
+  responses:
+    "200":
+      description: OK
+      content: {application/json: {schema: {$ref: '#/components/schemas/ItemResponse'}}}
+```
+
+```kotlin
+public fun updateItem(
+  @RequestBody request: ItemRequest,
+  @PathVariable(name = "id") id: Long,
+  @RequestParam(required = false, name = "code") code: String?,
+  @RequestParam(required = false, name = "force", defaultValue = "false") force: Boolean,
+): ItemResponse
+```
+
+A schema that admits null keeps its `?` even where the value is always present,
+so a `required` parameter whose schema is `nullable: true` (3.0) or
+`type: [string, "null"]` (3.1) still generates as `String?`.
+
+A request body that is not `required` also gets `@RequestBody(required = false)`
+(and an optional multipart part `@RequestPart(..., required = false)`): Spring
+defaults both to `required = true` and would reject the missing body before the
+nullable parameter could ever be null.
+
+> **Changed in 4.0.** Kotlin previously marked *every* parameter, request body
+> and return type nullable ([#617](https://github.com/CourseOrchestra/hurdy-gurdy/issues/617)).
+> See [Upgrading from 3.x to 4.x](#upgrading-from-3x-to-4x). Java output is unaffected.
+
+## Upgrading from 3.x to 4.x
+
+4.0 makes the **Kotlin** generator read parts of the specification it used to
+ignore. Nothing in the Java output changes, and nothing changes until you bump
+the version.
+
+The specification is the source of truth, so every change below has two answers:
+accept the more precise types and adjust your Kotlin, or state what you actually
+meant in the spec and keep the types you had. Both are listed.
+
+These are **source**-breaking, not binary-breaking: Kotlin nullability is
+metadata, not part of the JVM descriptor, so already-compiled code keeps
+linking. You will see it when you recompile against regenerated sources.
+
+### 1. Parameters, request bodies and return types are no longer always nullable
+
+See [Parameters, request bodies and return types](#parameters-request-bodies-and-return-types)
+for the full rule ([#617](https://github.com/CourseOrchestra/hurdy-gurdy/issues/617)).
+
+**Expect this to touch nearly every method.** On two real-world 3.0 specs in the
+test corpus, 100% of generated methods changed signature — a path parameter or a
+response body is enough, and most operations have one.
+
+```kotlin
+// 3.x                                              // 4.0
+fun getItem(id: Long?): Item?                       fun getItem(id: Long): Item
+fun createItem(@RequestBody r: ItemRequest?): Item? fun createItem(@RequestBody r: ItemRequest): Item
+```
+
+**Adjust your code:** delete the `?`. An `override` whose nullability differs
+matches nothing, so the compiler names every site. Callers of a generated
+`client` interface mostly get warnings ("unnecessary safe call") rather than
+errors.
+
+**Or adjust your spec**, if a position really is nullable:
+
+| To keep `T?` | Write |
+|--------------|-------|
+| path / query / header parameter | `nullable: true` on the parameter's schema — works even with `required: true` |
+| request body | `required: false`, or omit `required` (OpenAPI's default) |
+| response with an inline schema | `nullable: true` on that schema |
+| response with a `$ref` | `nullable: true` on the **component** — affects every use of it |
+| response with a `$ref`, at this site only | not expressible in 3.0 — see below |
+
+### 2. Array elements follow the component's `nullable`
+
+An array whose `items` is a `$ref` to a component declaring `nullable: true`
+now generates `List<Tag?>` rather than `List<Tag>`
+([#620](https://github.com/CourseOrchestra/hurdy-gurdy/issues/620)). That is
+what the document says: in OpenAPI 3.0 `nullable: true` on a schema means null
+is a valid value **everywhere that schema is referenced**, array elements
+included.
+
+**Adjust your spec — usually by deleting a flag you did not need.** A component
+carrying `nullable: true` so that its *optional properties* come out nullable is
+carrying it for nothing: an optional property is nullable either way.
+
+```yaml
+SensitivityTag:
+  type: string
+  nullable: true     # <- delete this, and List<SensitivityTag?> becomes List<SensitivityTag>
+  enum: [LOW, HIGH]
+```
+
+```kotlin
+// with the flag removed, optional properties are STILL nullable:
+public data class Holder(
+  public val tags: List<SensitivityTag>? = null,   // elements no longer nullable
+  public val oneTag: SensitivityTag? = null,       // optional, so nullable regardless
+  public val tagsRequired: List<SensitivityTag>,   // required, so non-null
+)
+```
+
+`nullable: true` on a component is only genuinely needed when a **required**
+property of it must accept null — and then nullable elements are correct.
+
+**Adjust your code** instead if you do mean it: the elements really can be null,
+so `List<Tag?>` is the honest type.
+
+### The one thing OpenAPI 3.0 cannot say
+
+There is **no per-site opt-out** for a `$ref` in a 3.0 document. Keywords written
+beside a `$ref` are ignored by the format itself, so this does nothing at all:
+
+```yaml
+items:
+  $ref: '#/components/schemas/SensitivityTag'
+  nullable: false        # silently ignored - 3.0 ignores siblings of $ref
+```
+
+If you need a component nullable in one place and not another, you have three
+options:
+
+* **split the component** into two (`Tag` and `NullableTag`) — works in 3.0;
+* **wrap it** in `allOf` at the site, which does carry the keyword, at the cost
+  of an extra generated subclass:
+  ```yaml
+  schema: {title: MaybeTag, nullable: true, allOf: [{$ref: '#/components/schemas/Tag'}]}
+  ```
+* **move to 3.1**, which states it at the site:
+  `items: {anyOf: [{$ref: '#/components/schemas/Tag'}, {type: 'null'}]}`.
+
 ## OpenAPI 3.1 and JSON Schema 2020-12
 
 A 3.1 document generates the same code as the 3.0 document it was migrated from:

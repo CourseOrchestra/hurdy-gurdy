@@ -349,6 +349,55 @@ class KCodegenTest {
         verify(result);
     }
 
+    @Test
+    void nullabilityHonoursRequiredAndDefault() throws IOException {
+        // hurdy-gurdy#617: Kotlin used to mark every parameter, request body and
+        // return type nullable, because the type definer defaults to nullable and
+        // the API extractor never told it otherwise. The snapshot locks the rule:
+        // a value is nullable only when it may be ABSENT (an optional parameter
+        // with no default, a request body that is not `required: true`) or when
+        // its schema itself admits null. Controller and client together, since
+        // each builds its parameters separately.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void arrayElementNullabilityFrom30Component() throws IOException {
+        // hurdy-gurdy#620: in a 3.0 document an array element's nullability can
+        // only come from the component the $ref names, because 3.0 ignores
+        // keywords written beside a $ref. The snapshot locks all of it:
+        // List<SensitivityTag?> for the nullable component, the IGNORED
+        // `nullable: false` at the item site (no per-site opt-out exists), and
+        // the fact that an optional property is nullable with or without the
+        // component flag - which is why dropping the flag is the documented way
+        // back to List<PlainTag>. Previously only a 3.1 spec covered element
+        // nullability, so nothing held the 3.0 path.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/issue620.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void quarkusNullabilityHonoursRequiredAndDefault() throws IOException {
+        // The Quarkus resource builds its own parameter list (@PathParam /
+        // @QueryParam / @DefaultValue), so #617 needs its own coverage here:
+        // in particular `force` is non-null because @DefaultValue supplies it.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .framework(Framework.QUARKUS)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
     @ParameterizedTest
     @EnumSource(Framework.class)
     void youtrackOpenapiCompiles(Framework framework) throws IOException {

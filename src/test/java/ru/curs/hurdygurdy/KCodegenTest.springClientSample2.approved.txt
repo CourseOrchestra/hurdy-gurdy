@@ -24,7 +24,7 @@ import org.springframework.web.service.`annotation`.PostExchange
 
 public interface Client {
   @PostExchange(value = "/api/v1/activity")
-  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO?): ResponseEntity<Unit>
+  public fun syncPlayerActivities(@RequestBody request: PlayerActivitiesDTO): ResponseEntity<Unit>
 
   @GetExchange(
     value = "/api/v1/hello",
@@ -37,10 +37,10 @@ public interface Client {
     accept = ["*/*"],
   )
   public fun hello(
-    @PathVariable(name = "id") id: Int?,
+    @PathVariable(name = "id") id: Int,
     @RequestParam(required = false, name = "foo") foo: String?,
-    @RequestParam(required = true, name = "bar") bar: Int?,
-    @RequestHeader(required = true, name = "baz") baz: String?,
+    @RequestParam(required = true, name = "bar") bar: Int,
+    @RequestHeader(required = true, name = "baz") baz: String,
   ): ResponseEntity<String>
 }
 ---
@@ -55,7 +55,7 @@ import org.springframework.web.service.`annotation`.PostExchange
 
 public interface PlayerClient {
   @PostExchange(value = "/api/v1/players")
-  public fun syncPlayers(@RequestBody request: PlayersDTO?): ResponseEntity<Unit>
+  public fun syncPlayers(@RequestBody request: PlayersDTO): ResponseEntity<Unit>
 }
 ---
 /com/example/dto

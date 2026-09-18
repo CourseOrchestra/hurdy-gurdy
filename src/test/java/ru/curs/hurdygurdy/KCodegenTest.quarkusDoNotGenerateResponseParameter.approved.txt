@@ -24,13 +24,13 @@ public interface Controller {
   @GET
   @Path("/api/v1/tove/{id}")
   @Produces("application/json")
-  public fun getTove(@PathParam("id") id: Int?): ToveDTO?
+  public fun getTove(@PathParam("id") id: Int): ToveDTO
 
   @PUT
   @Path("/api/v1/tove/{id}")
   @Produces("application/json")
   @Consumes("application/json")
-  public fun updateTove(request: ToveDTO?, @PathParam("id") id: Int?): ToveDTO?
+  public fun updateTove(request: ToveDTO, @PathParam("id") id: Int): ToveDTO
 }
 ---
 /com/example/dto
