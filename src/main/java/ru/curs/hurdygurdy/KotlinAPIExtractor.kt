@@ -41,11 +41,10 @@ import kotlin.reflect.KClass
 import kotlin.streams.asSequence
 
 class KotlinAPIExtractor(
-    typeDefiner: TypeDefiner<TypeSpec>,
+    private val typeDefiner: KotlinTypeDefiner,
     params: GeneratorParams
 ) :
     APIExtractor<TypeSpec, TypeSpec.Builder>(
-        typeDefiner,
         params,
         { name, role ->
             val b = TypeSpec.interfaceBuilder(normalizeToCamel(name))
@@ -629,7 +628,7 @@ class KotlinAPIExtractor(
         if (schema == null) {
             return false
         }
-        return "string" == TypeDefiner.effectiveType(schema) && "binary" == schema.format
+        return "string" == SchemaSemantics.effectiveType(schema) && "binary" == schema.format
     }
 
     /**
@@ -661,7 +660,7 @@ class KotlinAPIExtractor(
             val aliasTarget = typeDefiner.inlinableArrayAlias(`$ref`, openAPI) ?: return null
             return typeDefiner.inliningAlias<TypeName?>(`$ref`) { uploadType(aliasTarget, openAPI) }
         }
-        if (TypeDefiner.isArraySchema(schema)) {
+        if (SchemaSemantics.isArraySchema(schema)) {
             val items = schema.items
             val itemType = uploadType(items, openAPI) ?: return null
             return LIST.parameterizedBy(

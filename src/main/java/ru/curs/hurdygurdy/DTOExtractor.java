@@ -25,12 +25,24 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-public abstract class DTOExtractor<T> implements TypeSpecExtractor<T> {
+/**
+ * Generates one class per entry in {@code components/schemas}.
+ *
+ * <p>Language-neutral: which schemas become classes is a question about the
+ * specification and the configuration, and the {@link TypeDefiner} handed in
+ * answers the only language-dependent part. There used to be an empty subclass
+ * per language whose whole body was a constructor calling {@code super}.
+ *
+ * @param <T> the generated type
+ */
+public class DTOExtractor<T> implements TypeSpecExtractor<T> {
 
     private final TypeDefiner<T> typeDefiner;
+    private final GeneratorParams params;
 
-    public DTOExtractor(TypeDefiner<T> typeDefiner) {
+    public DTOExtractor(TypeDefiner<T> typeDefiner, GeneratorParams params) {
         this.typeDefiner = typeDefiner;
+        this.params = params;
     }
 
     @Override
@@ -41,8 +53,8 @@ public abstract class DTOExtractor<T> implements TypeSpecExtractor<T> {
         for (Map.Entry<String, Schema> schemaEntry : stringSchemaMap.entrySet()) {
             // An array alias has no class of its own unless generateAliasAsModel
             // is set: it is inlined (List<...>) at every point of use instead.
-            if (TypeDefiner.isArraySchema(schemaEntry.getValue())
-                    && !typeDefiner.params.isGenerateAliasAsModel()) {
+            if (SchemaSemantics.isArraySchema(schemaEntry.getValue())
+                    && !params.isGenerateAliasAsModel()) {
                 continue;
             }
             T dto = typeDefiner.getDTO(schemaEntry.getKey(), schemaEntry.getValue(), openAPI);

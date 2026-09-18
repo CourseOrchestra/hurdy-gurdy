@@ -38,18 +38,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
-    final TypeDefiner<T> typeDefiner;
     private final GeneratorParams params;
 
     private final Map<String, B> builders = new HashMap<>();
     private final BiFunction<String, Role, B> builderSupplier;
     private final Function<B, T> buildInvoker;
 
-    protected APIExtractor(TypeDefiner<T> typeDefiner,
-                           GeneratorParams params,
+    protected APIExtractor(GeneratorParams params,
                            BiFunction<String, Role, B> builderSupplier,
                            Function<B, T> buildInvoker) {
-        this.typeDefiner = typeDefiner;
         this.params = params;
         this.builderSupplier = builderSupplier;
         this.buildInvoker = buildInvoker;

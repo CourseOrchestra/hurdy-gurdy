@@ -122,7 +122,7 @@ public final class ExternalRefs {
     }
 
     private static void addRefFileName(String ref, Set<String> result) {
-        Matcher matcher = TypeDefiner.FILE_NAME_PATTERN.matcher(ref);
+        Matcher matcher = SchemaSemantics.FILE_NAME_PATTERN.matcher(ref);
         if (!matcher.find()) {
             return;
         }

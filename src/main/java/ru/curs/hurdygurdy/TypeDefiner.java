@@ -17,40 +17,49 @@
 package ru.curs.hurdygurdy;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.parser.core.models.ParseOptions;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN;
+import static ru.curs.hurdygurdy.SchemaSemantics.FILE_NAME_PATTERN;
+import static ru.curs.hurdygurdy.SchemaSemantics.checkReferenceIsGeneratable;
+import static ru.curs.hurdygurdy.SchemaSemantics.extractGroup;
+import static ru.curs.hurdygurdy.SchemaSemantics.isArraySchema;
+import static ru.curs.hurdygurdy.SchemaSemantics.isNullableSchema;
+
+/**
+ * Turns a schema into the generated type for one target language.
+ *
+ * <p>What is left here is everything that needs the generator's
+ * <em>configuration</em> to answer — the root package a {@code $ref} resolves
+ * into, whether an array alias is inlined, whether a property name must be
+ * pinned with {@code @JsonProperty}. Questions answerable from the
+ * specification alone live in {@link SchemaSemantics}, and the parsing and
+ * caching of linked documents in {@link LinkedDocuments}.
+ *
+ * <p>The class is deliberately free of any code-generation library: a subclass
+ * produces {@code T} and nothing here knows what {@code T} is. It used to
+ * declare both {@code defineJavaType} and {@code defineKotlinType}, whose base
+ * implementations threw — so this class imported JavaPoet <em>and</em>
+ * KotlinPoet, and {@code <T>} constrained nothing. Each definer now declares its
+ * own, and the extractors hold the definer they actually need.
+ *
+ * @param <T> the generated type: a JavaPoet or KotlinPoet {@code TypeSpec}
+ */
 public abstract class TypeDefiner<T> {
-    protected static final Pattern CLASS_NAME_PATTERN = Pattern.compile("/([^/$]+)$");
-    protected static final Pattern FILE_NAME_PATTERN = Pattern.compile("^([^#]*)#");
-    /**
-     * The only {@code $ref} shape that names a generated class:
-     * {@code #/components/schemas/<Name>}, optionally prefixed by another
-     * file — see {@link #checkReferenceIsGeneratable(String)}.
-     */
-    private static final Pattern COMPONENT_SCHEMA_REF =
-            Pattern.compile("^[^#]*#/components/schemas/[^/]+$");
+
     /**
      * A property name accepted by {@code forceSnakeCaseForProperties}: lower-case
      * snake_case, optionally prefixed by underscores (and {@code $}, for backwards compatibility).
@@ -70,10 +79,8 @@ public abstract class TypeDefiner<T> {
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
-    private final Map<String, OpenAPI> externalDocuments = new HashMap<>();
-    private Consumer<String> warningListener = message -> { };
+    private final LinkedDocuments linkedDocuments = new LinkedDocuments();
     private final Set<String> aliasesBeingInlined = new HashSet<>();
-    private Path sourceFile;
 
     TypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         this.params = params;
@@ -91,107 +98,15 @@ public abstract class TypeDefiner<T> {
     }
 
     /**
-     * The single JSON type of a schema, whichever way the document spells it.
-     *
-     * <p>An OpenAPI 3.0 document fills {@code type}; a 3.1 document always leaves
-     * {@code type} null and fills the {@code types} set instead (JSON Schema
-     * 2020-12 allows a union). {@code "null"} is stripped from that set, because
-     * a 3.1 {@code type: [string, "null"]} is simply how the spec spells
-     * "nullable string": the type is {@code string} and the nullability is
-     * reported separately by {@link #isNullableSchema(Schema)}.
-     *
-     * <p>Returns null for a typeless schema and for a genuine multi-type union
-     * (say {@code [string, integer]}), neither of which has a single Java/Kotlin
-     * type; a schema that is <em>only</em> {@code type: "null"} keeps
-     * {@code "null"}, which is how the {@code anyOf: [X, null]} unwrap
-     * recognises its null member.
-     */
-    static String effectiveType(Schema<?> schema) {
-        if (schema == null) {
-            return null;
-        }
-        if (schema.getType() != null) {
-            return schema.getType();
-        }
-        Set<String> types = schema.getTypes();
-        if (types == null) {
-            return null;
-        }
-        List<String> named = types.stream().filter(t -> !"null".equals(t)).toList();
-        if (named.size() == 1) {
-            return named.get(0);
-        }
-        return named.isEmpty() && types.contains("null") ? "null" : null;
-    }
-
-    /**
-     * Whether a schema admits an explicit {@code null}: an OpenAPI 3.0
-     * {@code nullable: true}, a 3.1 {@code type} array containing {@code "null"},
-     * or the 3.1 nullable wrapper {@code anyOf: [X, {type: "null"}]} — all three
-     * spellings of the same thing, so every caller deciding nullability must
-     * treat them alike.
-     *
-     * <p>The 3.1 {@code nullable} keyword is deliberately <em>not</em> consulted.
-     * OpenAPI 3.1 removed it outright (JSON Schema 2020-12 has no such keyword),
-     * so swagger-parser does not populate {@code getNullable()} for a 3.1
-     * document — it drops the stray keyword into the schema's extension map
-     * along with every other unrecognised keyword. Honouring it there would
-     * revive a keyword the spec deleted and make hurdy-gurdy disagree with every
-     * other 3.1 tool; {@link StrayNullableCheck} warns about it instead.
-     */
-    static boolean isNullableSchema(Schema<?> schema) {
-        if (schema == null) {
-            return false;
-        }
-        if (Boolean.TRUE.equals(schema.getNullable())) {
-            return true;
-        }
-        Set<String> types = schema.getTypes();
-        return types != null && types.contains("null") || isNullableAnyOf(schema);
-    }
-
-    /**
-     * Whether a schema is the two-member nullable wrapper
-     * {@code anyOf: [X, {type: "null"}]} — the form the type definers unwrap to
-     * the type of {@code X}. A {@code oneOf} is not treated this way: the
-     * generator reads {@code oneOf} as a polymorphic base, not as a wrapper.
-     */
-    @SuppressWarnings("rawtypes")
-    private static boolean isNullableAnyOf(Schema<?> schema) {
-        List<Schema> anyOf = schema.getAnyOf();
-        return anyOf != null && anyOf.size() == 2
-                && anyOf.stream().anyMatch(member -> "null".equals(effectiveType(member)));
-    }
-
-    /**
-     * Whether a schema that declares no single JSON type nevertheless describes
-     * an object — it has properties, a dictionary, composition or a
-     * discriminator. A schema with none of those admits any value, and must map
-     * to {@code Object}/{@code Any} rather than to a class invented from
-     * whatever name happened to be in scope.
-     *
-     * <p>Only consulted for a schema with no effective type; an explicit
-     * {@code type: object} is a class whether or not it declares anything.
-     */
-    static boolean describesObject(Schema<?> schema) {
-        return schema.getProperties() != null && !schema.getProperties().isEmpty()
-                || schema.getAdditionalProperties() != null
-                || schema.getAllOf() != null
-                || schema.getOneOf() != null
-                || schema.getAnyOf() != null
-                || schema.getDiscriminator() != null;
-    }
-
-    static boolean isArraySchema(Schema<?> schema) {
-        return "array".equals(effectiveType(schema));
-    }
-
-    /**
      * The schema behind a same-file reference to an array alias (a named
      * component schema that is a plain {@code type: array}), or null when the
      * reference must stay a class reference: {@code generateAliasAsModel} is
      * set, the reference points into another file (whose schemas are not
      * visible here), or the referenced schema is not an array.
+     *
+     * @param ref     the reference to inspect
+     * @param openAPI the document the reference was written in
+     * @return the aliased array schema, or null
      */
     final Schema<?> inlinableArrayAlias(String ref, OpenAPI openAPI) {
         if (params.isGenerateAliasAsModel() || !extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
@@ -208,6 +123,11 @@ public abstract class TypeDefiner<T> {
      * Runs {@code action} (the recursive type definition that inlines the alias
      * {@code ref} points to) guarding against alias cycles, which cannot be
      * inlined and would otherwise recurse forever.
+     *
+     * @param ref    the alias being inlined
+     * @param action the recursive type definition to guard
+     * @param <R>    whatever {@code action} produces
+     * @return the result of {@code action}
      */
     final <R> R inliningAlias(String ref, Supplier<R> action) {
         String name = extractGroup(ref, CLASS_NAME_PATTERN);
@@ -221,32 +141,6 @@ public abstract class TypeDefiner<T> {
         } finally {
             aliasesBeingInlined.remove(name);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    final List<String> getExtendsList(Schema<?> schema) {
-        List<String> extendsList = new ArrayList<>();
-        Optional.ofNullable(schema.getExtensions()).map(e -> e.get("x-extends"))
-                .ifPresent(e -> {
-                            if (e instanceof String s) {
-                                extendsList.add(s);
-                            } else if (e instanceof List) {
-                                extendsList.addAll((List<String>) e);
-                            }
-                        }
-                );
-        return extendsList;
-    }
-
-    final String getEnumName(Schema<?> schema, String typeNameFallback) {
-        String simpleName = schema.getTitle();
-        if (simpleName == null) {
-            simpleName = typeNameFallback;
-        }
-        if (simpleName == null) {
-            throw new IllegalStateException("Inline enum schema must have a title");
-        }
-        return simpleName;
     }
 
     final void checkPropertyName(String name, String propertyName) {
@@ -275,6 +169,7 @@ public abstract class TypeDefiner<T> {
      *
      * @param key          the property name as written in the specification
      * @param propertyName the generated Java/Kotlin property identifier
+     * @return the name to pin, or null when none is needed
      */
     final String jsonNameOverride(String key, String propertyName) {
         if (!params.isForceSnakeCaseForProperties()) {
@@ -282,11 +177,6 @@ public abstract class TypeDefiner<T> {
             return null;
         }
         return SNAKE_CASE_STRATEGY.translate(propertyName).equals(key) ? null : key;
-    }
-
-    final Map<String, String> getSubclassMapping(Schema<?> schema) {
-        return Optional.ofNullable(schema.getDiscriminator())
-                .map(Discriminator::getMapping).orElse(Collections.emptyMap());
     }
 
     abstract T getEnum(String name, Schema<?> schema, OpenAPI openAPI);
@@ -299,32 +189,19 @@ public abstract class TypeDefiner<T> {
      * {@code ArrayList<Item>} (mirroring openapi-generator's
      * {@code generateAliasAsModel} output), so it serializes as a plain JSON
      * array.
+     *
+     * @param name    the component name the alias was declared under
+     * @param schema  the array schema
+     * @param openAPI the document it was declared in
+     * @return the generated model
      */
     abstract T getArrayAlias(String name, Schema<?> schema, OpenAPI openAPI);
 
-    com.palantir.javapoet.TypeName defineJavaType(Schema<?> schema,
-                                                  OpenAPI openAPI,
-                                                  com.palantir.javapoet.TypeSpec.Builder parent,
-                                                  String typeNameFallback) {
-        throw new IllegalStateException();
-    }
-
-    com.squareup.kotlinpoet.TypeName defineKotlinType(Schema<?> schema,
-                                                      OpenAPI openAPI,
-                                                      com.squareup.kotlinpoet.TypeSpec.Builder parent,
-                                                      String typeNameFallback,
-                                                      Boolean nullableOverride) {
-        throw new IllegalStateException();
-    }
-
     void init(Path currentSourceFile, Consumer<String> listener) {
-        this.sourceFile = currentSourceFile;
-        this.warningListener = listener;
+        linkedDocuments.reset(currentSourceFile, listener);
         externalClasses.clear();
-        externalDocuments.clear();
         aliasesBeingInlined.clear();
     }
-
 
     DTOMeta getReferencedTypeInfo(OpenAPI currentOpenAPI, String ref) {
         checkReferenceIsGeneratable(ref);
@@ -334,7 +211,7 @@ public abstract class TypeDefiner<T> {
             return new DTOMeta(className,
                     params.getRootPackage(),
                     fileName,
-                    getNullable(currentOpenAPI, className, true));
+                    SchemaSemantics.nullableOf(currentOpenAPI, className, true));
         } else {
             return externalClasses.computeIfAbsent(ref, f -> {
                 OpenAPI openAPI = definingDocument(currentOpenAPI, ref);
@@ -343,62 +220,23 @@ public abstract class TypeDefiner<T> {
                         .map(String.class::cast)
                         .orElseThrow(() -> new IllegalStateException(
                                 String.format("x-package not defined for externally linked file %s ",
-                                        sourceFile.resolveSibling(fileName))));
-                return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
+                                        linkedDocuments.sourceFile().resolveSibling(fileName))));
+                return new DTOMeta(className, packageName, fileName,
+                        SchemaSemantics.nullableOf(openAPI, className, true));
             });
         }
     }
 
     /**
-     * The document that defines what {@code ref} points at: the current one for
-     * a same-file reference, or the linked file, parsed once and cached.
+     * The document that defines what {@code ref} points at.
      *
-     * <p>Every question about a referenced component — is it nullable, does it
-     * carry a default, is it an enum — has to be asked of the document that
-     * declares it. Asking the current document about {@code other.yaml#/...}
-     * finds nothing and quietly returns the caller's default, which reads as
-     * "the component says nothing" when in truth it was never consulted.
+     * @param currentOpenAPI the document the reference was written in
+     * @param ref            the reference to follow
+     * @return the declaring document
+     * @see LinkedDocuments
      */
-    private OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
-        Matcher matcher = FILE_NAME_PATTERN.matcher(ref);
-        String fileName = matcher.find() ? matcher.group(1) : "";
-        if (fileName.isBlank()) {
-            return currentOpenAPI;
-        }
-        return externalDocuments.computeIfAbsent(fileName, name -> {
-            Path externalFile = sourceFile.resolveSibling(name);
-            try {
-                OpenAPI parsed = new OpenAPIParser()
-                        .readContents(Files.readString(externalFile), null, new ParseOptions())
-                        .getOpenAPI();
-                if (parsed == null) {
-                    throw new IllegalStateException(
-                            String.format("Could not parse externally linked file %s", externalFile));
-                }
-                // The same normalization the root document gets in Codegen.parse.
-                // Without it a schema would mean different things depending on
-                // which file it lives in: a 3.1 `enum: [RED, GREEN, null]`
-                // component is nullable once normalized, and merely a
-                // two-value enum when read raw through a link.
-                SchemaNormalizer.normalize(parsed, message ->
-                        warningListener.accept(String.format("%s [linked file %s]", message, name)));
-                return parsed;
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-        });
-    }
-
-    protected boolean getNullable(OpenAPI currentOpenAPI, String className, Boolean defaultValue) {
-        Schema<?> schema = Optional.ofNullable(currentOpenAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(map -> map.get(className))
-                .orElse(null);
-        if (isNullableSchema(schema)) {
-            // 3.0 `nullable: true`, or a 3.1 `type: [..., "null"]` component.
-            return true;
-        }
-        return schema == null || schema.getNullable() == null ? defaultValue : schema.getNullable();
+    final OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
+        return linkedDocuments.documentOf(currentOpenAPI, ref);
     }
 
     /**
@@ -429,6 +267,9 @@ public abstract class TypeDefiner<T> {
      * nothing at all. A 3.1 document states it at the site instead, with
      * {@code anyOf: [{$ref: X}, {type: "null"}]}.
      *
+     * @param schema  the schema at the point of use
+     * @param openAPI the document it was written in
+     * @return whether a null value is permitted there
      * @see StrayNullableCheck
      */
     final boolean isNullableType(Schema<?> schema, OpenAPI openAPI) {
@@ -439,7 +280,8 @@ public abstract class TypeDefiner<T> {
         if (ref == null) {
             return isNullableSchema(schema);
         }
-        return getNullable(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN), false);
+        return SchemaSemantics.nullableOf(
+                definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN), false);
     }
 
     /**
@@ -452,6 +294,10 @@ public abstract class TypeDefiner<T> {
      * ({@code @RequestParam(defaultValue = ...)}, {@code @DefaultValue}) and the
      * framework substitutes it. The two must be decided from the same answer, so
      * both the annotation and the nullability read this method.
+     *
+     * @param schema  the schema at the point of use
+     * @param openAPI the document it was written in
+     * @return the default, rendered as a string, or null
      */
     final String effectiveDefault(Schema<?> schema, OpenAPI openAPI) {
         if (schema == null) {
@@ -463,58 +309,7 @@ public abstract class TypeDefiner<T> {
         String ref = schema.get$ref();
         return ref == null
                 ? null
-                : getDefault(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN));
-    }
-
-    protected String getDefault(OpenAPI currentOpenAPI, String className) {
-        return Optional.ofNullable(currentOpenAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(map -> map.get(className))
-                .map(Schema::getDefault)
-                .map(Object::toString)
-                .orElse(null);
-    }
-
-    protected boolean isEnum(OpenAPI currentOpenAPI, String className) {
-        return Optional.ofNullable(currentOpenAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(map -> map.get(className))
-                .map(Schema::getEnum)
-                .map(l -> !l.isEmpty())
-                .orElse(false);
-
-    }
-
-    /**
-     * Rejects a {@code $ref} that does not name a component schema.
-     *
-     * <p>hurdy-gurdy generates one class per entry in
-     * {@code components/schemas}, so that is the only pointer it can turn into a
-     * type name. JSON Schema 2020-12 — and therefore OpenAPI 3.1 — allows a
-     * pointer to walk further in, most usefully into a schema's private
-     * {@code $defs}. Such a reference has no generated class to name, and
-     * {@link #CLASS_NAME_PATTERN} would quietly reduce it to the pointer's last
-     * segment: the output then refers to a class nobody generated and does not
-     * compile, which the user meets as a compiler error in their own build about
-     * a name they never wrote. Saying so here, naming the offending pointer, is
-     * the whole improvement.
-     */
-    private static void checkReferenceIsGeneratable(String ref) {
-        if (!COMPONENT_SCHEMA_REF.matcher(ref).matches()) {
-            throw new IllegalStateException(String.format(
-                    "Unsupported $ref '%s': hurdy-gurdy generates a class per component schema, so a "
-                            + "reference must point at '#/components/schemas/<Name>' (optionally "
-                            + "prefixed by another file). Move the schema into components/schemas "
-                            + "and reference it from there.", ref));
-        }
-    }
-
-    protected String extractGroup(String ref, Pattern pattern) {
-        Matcher matcher = pattern.matcher(ref);
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            throw new IllegalStateException("Illegal ref:" + ref);
-        }
+                : SchemaSemantics.defaultOf(
+                        definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN));
     }
 }

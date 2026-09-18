@@ -48,10 +48,12 @@ public abstract class Codegen<T> {
     private Consumer<String> warningListener = System.err::println;
 
 
-    public Codegen(GeneratorParams params, TypeProducersFactory<T> typeProducersFactory) {
+    public <D extends TypeDefiner<T>> Codegen(GeneratorParams params,
+                                              TypeProducersFactory<T, D> typeProducersFactory) {
         this.params = params;
-        typeDefiner = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
-        typeSpecExtractors = typeProducersFactory.typeSpecExtractors(typeDefiner);
+        D definer = typeProducersFactory.createTypeDefiner(this::addTypeSpec);
+        typeDefiner = definer;
+        typeSpecExtractors = typeProducersFactory.typeSpecExtractors(definer);
     }
 
     private void parse(Path sourceFile) throws IOException {

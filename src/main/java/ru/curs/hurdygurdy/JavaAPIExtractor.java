@@ -100,9 +100,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             ClassName.get("org.springframework.core.io", "Resource");
     private static final ClassName INPUT_STREAM = ClassName.get(java.io.InputStream.class);
 
-    public JavaAPIExtractor(TypeDefiner<TypeSpec> typeDefiner,
+    private final JavaTypeDefiner typeDefiner;
+
+    public JavaAPIExtractor(JavaTypeDefiner typeDefiner,
                             GeneratorParams params) {
-        super(typeDefiner, params,
+        super(params,
                 (name, role) -> {
                     TypeSpec.Builder b = TypeSpec.interfaceBuilder(normalizeToCamel(name));
                     if (params.getFramework() == Framework.QUARKUS) {
@@ -118,6 +120,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     b.addModifiers(Modifier.PUBLIC);
                     return b.build();
                 });
+        this.typeDefiner = typeDefiner;
     }
 
     @Override
@@ -447,7 +450,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
      * declares legal, and unlike a path variable a body may genuinely be absent.
      */
     private static TypeName bodyTypeName(Schema<?> schema, TypeName name) {
-        return TypeDefiner.isNullableSchema(schema) ? safeBox(name) : safeUnbox(name);
+        return SchemaSemantics.isNullableSchema(schema) ? safeBox(name) : safeUnbox(name);
     }
 
     private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI, TypeSpec.Builder parent) {
@@ -558,7 +561,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     ? null
                     : typeDefiner.inliningAlias(ref, () -> uploadType(aliasTarget, openAPI));
         }
-        if (TypeDefiner.isArraySchema(schema)) {
+        if (SchemaSemantics.isArraySchema(schema)) {
             TypeName itemType = uploadType(schema.getItems(), openAPI);
             if (itemType != null) {
                 return ParameterizedTypeName.get(ClassName.get(List.class), itemType);
@@ -569,7 +572,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
     /** Whether a schema is {@code type: string, format: binary} (OpenAPI 3.0 or 3.1). */
     private static boolean isBinary(Schema<?> schema) {
-        return schema != null && "string".equals(TypeDefiner.effectiveType(schema))
+        return schema != null && "string".equals(SchemaSemantics.effectiveType(schema))
                 && "binary".equals(schema.getFormat());
     }
 

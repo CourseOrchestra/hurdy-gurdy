@@ -26,15 +26,15 @@ import java.util.function.BiConsumer;
 
 public class KotlinCodegen extends Codegen<TypeSpec> {
     public KotlinCodegen(GeneratorParams params) {
-        super(params, new TypeProducersFactory<>() {
+        super(params, new TypeProducersFactory<TypeSpec, KotlinTypeDefiner>() {
             @Override
-            public TypeDefiner<TypeSpec> createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+            public KotlinTypeDefiner createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
                 return new KotlinTypeDefiner(params, typeSpecBiConsumer);
             }
 
             @Override
-            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(TypeDefiner<TypeSpec> typeDefiner) {
-                return List.of(new KotlinDTOExtractor(typeDefiner),
+            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(KotlinTypeDefiner typeDefiner) {
+                return List.of(new DTOExtractor<>(typeDefiner, params),
                         new KotlinAPIExtractor(typeDefiner, params));
             }
         });

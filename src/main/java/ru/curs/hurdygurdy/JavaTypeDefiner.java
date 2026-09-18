@@ -66,6 +66,17 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 
 import static ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake;
+import static ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN;
+import static ru.curs.hurdygurdy.SchemaSemantics.FILE_NAME_PATTERN;
+import static ru.curs.hurdygurdy.SchemaSemantics.describesObject;
+import static ru.curs.hurdygurdy.SchemaSemantics.effectiveType;
+import static ru.curs.hurdygurdy.SchemaSemantics.extractGroup;
+import static ru.curs.hurdygurdy.SchemaSemantics.getEnumName;
+import static ru.curs.hurdygurdy.SchemaSemantics.getExtendsList;
+import static ru.curs.hurdygurdy.SchemaSemantics.getSubclassMapping;
+import static ru.curs.hurdygurdy.SchemaSemantics.isNullableSchema;
+import static ru.curs.hurdygurdy.SchemaSemantics.isPolymorphicInterface;
+import static ru.curs.hurdygurdy.SchemaSemantics.polymorphicMembers;
 
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
@@ -79,9 +90,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return internalType == null ? "unknown" : internalType;
     }
 
-    @Override
-    public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
-                                   String typeNameFallback) {
+    TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
+                            String typeNameFallback) {
         return defineJavaType(schema, openAPI, parent, typeNameFallback, false);
     }
 
@@ -208,33 +218,6 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private ClassName referencedClassName(OpenAPI openAPI, String ref) {
         DTOMeta meta = getReferencedTypeInfo(openAPI, ref);
         return ClassName.get(String.join(".", meta.getPackageName(), "dto"), meta.getClassName());
-    }
-
-    /**
-     * The member subschemas of a polymorphic container — a {@code oneOf}, or a
-     * top-level {@code anyOf} of two-or-more non-null {@code $ref}s (treated the
-     * same way). Returns an empty list for a plain schema, a nullable
-     * {@code anyOf:[X,null]}, or a single-ref anyOf. This is the single predicate
-     * for "is this schema a DEDUCTION-based polymorphic interface".
-     */
-    private List<Schema> polymorphicMembers(Schema<?> schema) {
-        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
-            return schema.getOneOf();
-        }
-        List<Schema> anyOf = schema.getAnyOf();
-        if (anyOf != null) {
-            List<Schema> refs = anyOf.stream()
-                    .filter(s -> s.get$ref() != null)
-                    .collect(java.util.stream.Collectors.toList());
-            if (refs.size() >= 2) {
-                return refs;
-            }
-        }
-        return List.of();
-    }
-
-    private boolean isPolymorphicInterface(Schema<?> schema) {
-        return !polymorphicMembers(schema).isEmpty();
     }
 
     private void ensureJsonZonedDateTimeDeserializer() {
@@ -708,13 +691,21 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * {@code nullable: true}, a 3.1 {@code type: [X, "null"]} union, a same-file
      * {@code $ref} to a nullable schema, or a 3.1 {@code anyOf:[X, null]}
      * nullable wrapper.
+     *
+     * <p>Note that this answers the same question as
+     * {@link TypeDefiner#isNullableType(Schema, OpenAPI)} but only for a
+     * <em>same-file</em> {@code $ref}: it asks the current document rather than
+     * the one that declares the component. Collapsing the two is a behaviour
+     * change for cross-file references and so is left for the step that
+     * introduces the model.
      */
     private boolean isNullable(Schema<?> schema, OpenAPI openAPI) {
         if (isNullableSchema(schema)) {
             return true;
         }
         return schema.get$ref() != null
-                && getNullable(openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
+                && SchemaSemantics.nullableOf(
+                        openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
     }
 
     private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,

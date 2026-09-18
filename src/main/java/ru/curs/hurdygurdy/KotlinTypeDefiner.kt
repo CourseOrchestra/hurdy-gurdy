@@ -54,6 +54,15 @@ import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
+import ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN
+import ru.curs.hurdygurdy.SchemaSemantics.FILE_NAME_PATTERN
+import ru.curs.hurdygurdy.SchemaSemantics.defaultOf
+import ru.curs.hurdygurdy.SchemaSemantics.describesObject
+import ru.curs.hurdygurdy.SchemaSemantics.extractGroup
+import ru.curs.hurdygurdy.SchemaSemantics.getEnumName
+import ru.curs.hurdygurdy.SchemaSemantics.getExtendsList
+import ru.curs.hurdygurdy.SchemaSemantics.getSubclassMapping
+import ru.curs.hurdygurdy.SchemaSemantics.isEnumComponent
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -84,7 +93,7 @@ class KotlinTypeDefiner internal constructor(
         }
     }
 
-    private fun Schema<*>.getInternalType() = TypeDefiner.effectiveType(this)
+    private fun Schema<*>.getInternalType() = SchemaSemantics.effectiveType(this)
 
     /**
      * Whether this schema is nullable: true when it says so (3.0 `nullable: true`
@@ -92,9 +101,9 @@ class KotlinTypeDefiner internal constructor(
      * when the schema says nothing at all, leaving the choice to the caller.
      */
     private fun Schema<*>.nullableOrNull(): Boolean? =
-        if (TypeDefiner.isNullableSchema(this)) true else nullable
+        if (SchemaSemantics.isNullableSchema(this)) true else nullable
 
-    public override fun defineKotlinType(
+    internal fun defineKotlinType(
         outerSchema: Schema<*>, openAPI: OpenAPI,
         parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
     ): TypeName {
@@ -256,13 +265,11 @@ class KotlinTypeDefiner internal constructor(
      * anyOf. Single predicate for "is this schema a DEDUCTION-based polymorphic
      * interface".
      */
-    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> {
-        if (!schema.oneOf.isNullOrEmpty()) return schema.oneOf
-        val refs = schema.anyOf?.filter { it.`$ref` != null } ?: emptyList()
-        return if (refs.size >= 2) refs else emptyList()
-    }
+    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> =
+        SchemaSemantics.polymorphicMembers(schema)
 
-    private fun isPolymorphicInterface(schema: Schema<*>): Boolean = polymorphicMembers(schema).isNotEmpty()
+    private fun isPolymorphicInterface(schema: Schema<*>): Boolean =
+        SchemaSemantics.isPolymorphicInterface(schema)
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         return if (schema.oneOf == null && schema.allOf != null) {
@@ -601,7 +608,7 @@ class KotlinTypeDefiner internal constructor(
 
         val default = if (value.`$ref` == null) {
             value.default
-        } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
+        } else defaultOf(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
         if (default != null) {
             when {
                 value.getInternalType() == "array" -> {
@@ -614,7 +621,7 @@ class KotlinTypeDefiner internal constructor(
                     paramSpec.defaultValue("%S", default.toString())
                 }
 
-                value.`$ref` != null && isEnum(
+                value.`$ref` != null && isEnumComponent(
                     openAPI,
                     extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
                 )
