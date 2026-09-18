@@ -88,6 +88,7 @@ class Oas31ParityTest {
             "inlineenum",
             "issue23988",
             "issue566",
+            "issue618",
             "nestedpolyrecord",
             "oneofdiscriminator",
             "polyrecord",

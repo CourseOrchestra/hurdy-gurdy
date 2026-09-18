@@ -1,0 +1,70 @@
+openapi: 3.0.1
+info:
+  title: "Arrays of binary multipart parts (hurdy-gurdy#618)"
+  description: |
+    A multipart part declared as an array of `format: binary` is a part sent
+    several times over, so it carries the framework's upload type just as a
+    scalar binary part does. The same schema used as a JSON property keeps its
+    base64 mapping (byte[] / ByteArray) - that is what the DTO below pins down.
+  version: "0.1"
+
+paths:
+  /upload:
+    post:
+      operationId: upload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [one, files]
+              properties:
+                # A single binary part: already an upload type before #618.
+                one:
+                  type: string
+                  format: binary
+                # An array of them: the case #618 is about.
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                # Optional, to keep the Kotlin nullability of the list visible.
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                # A non-binary array part is untouched by the fix.
+                tags:
+                  type: array
+                  items:
+                    type: string
+                meta:
+                  $ref: '#/components/schemas/UploadMeta'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadMeta'
+
+components:
+  schemas:
+    UploadMeta:
+      type: object
+      properties:
+        comment:
+          type: string
+        # A binary property of a JSON DTO stays base64: byte[] / ByteArray,
+        # scalar and array alike.
+        thumbnail:
+          type: string
+          format: binary
+        blobs:
+          type: array
+          items:
+            type: string
+            format: binary

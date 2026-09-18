@@ -451,13 +451,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .entrySet()
                         .stream()
                         .map(e -> new RequestPartParams(
-                                // A binary part is an uploaded file (MultipartFile /
-                                // FileUpload); other parts resolve normally.
-                                isBinary(e.getValue())
-                                        ? multipartPartType()
-                                        : JavaAPIExtractor.bodyTypeName(e.getValue(),
-                                                typeDefiner.defineJavaType(e.getValue(),
-                                                        openAPI, parent, null)),
+                                multipartPartTypeName(e.getValue(), openAPI, parent),
                                 e.getKey(),
                                 quarkus
                                         ? AnnotationSpec.builder(QUARKUS_REST_FORM)
@@ -483,6 +477,41 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                                         .build()));
             }
         }
+    }
+
+    /**
+     * The type of a single multipart part: an uploaded file when the part is
+     * binary, the part's own type otherwise.
+     */
+    private TypeName multipartPartTypeName(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
+        TypeName upload = uploadType(schema);
+        return upload != null
+                ? upload
+                : JavaAPIExtractor.bodyTypeName(schema,
+                        typeDefiner.defineJavaType(schema, openAPI, parent, null));
+    }
+
+    /**
+     * The upload type of a binary multipart part, or null when the part is not
+     * binary at all: {@code MultipartFile} / {@code FileUpload} for a scalar
+     * {@code format: binary}, a {@code List} of it for an array of them (a part
+     * sent several times over).
+     *
+     * <p>An array had to be spelled out here: a bare binary schema means
+     * {@code byte[]} to the type definer, which is right for a base64 property
+     * of a JSON DTO but never for a multipart part.
+     */
+    private TypeName uploadType(Schema<?> schema) {
+        if (isBinary(schema)) {
+            return multipartPartType();
+        }
+        if (schema != null && TypeDefiner.isArraySchema(schema)) {
+            TypeName itemType = uploadType(schema.getItems());
+            if (itemType != null) {
+                return ParameterizedTypeName.get(ClassName.get(List.class), itemType);
+            }
+        }
+        return null;
     }
 
     /** Whether a schema is {@code type: string, format: binary} (OpenAPI 3.0 or 3.1). */
