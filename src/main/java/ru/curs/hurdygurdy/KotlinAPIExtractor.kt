@@ -20,6 +20,7 @@ import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
@@ -569,10 +570,11 @@ class KotlinAPIExtractor(
                         val nullable = !present || typeDefiner.isNullableType(schema, openAPI)
                         RequestPartParams(
                             name = name,
-                            // A binary part is an uploaded file (MultipartFile /
-                            // FileUpload); other parts resolve normally.
-                            typeName = if (isBinary(schema)) multipartPartType().copy(nullable = nullable)
-                            else typeDefiner.defineKotlinType(schema, openAPI, parent, null, nullable),
+                            // A binary part, or an array of them, is an uploaded
+                            // file (MultipartFile / FileUpload); other parts
+                            // resolve normally.
+                            typeName = uploadType(schema, openAPI)?.copy(nullable = nullable)
+                                ?: typeDefiner.defineKotlinType(schema, openAPI, parent, null, nullable),
                             annotation = if (quarkus)
                                 AnnotationSpec.builder(QUARKUS_REST_FORM)
                                     .addMember("%S", name).build()
@@ -628,6 +630,45 @@ class KotlinAPIExtractor(
             return false
         }
         return "string" == TypeDefiner.effectiveType(schema) && "binary" == schema.format
+    }
+
+    /**
+     * The upload type of a binary multipart part, or null when the part is not
+     * binary at all: `MultipartFile` / `FileUpload` for a scalar
+     * `format: binary`, a `List` of it for an array of them (a part sent several
+     * times over), whether that array is spelled out or named by a reusable
+     * alias.
+     *
+     * An array had to be spelled out here: a bare binary schema means
+     * `ByteArray` to the type definer, which is right for a base64 property of a
+     * JSON DTO but never for a multipart part.
+     */
+    private fun uploadType(schema: Schema<*>?, openAPI: OpenAPI): TypeName? {
+        if (isBinary(schema)) {
+            return multipartPartType()
+        }
+        if (schema == null) {
+            return null
+        }
+        val `$ref` = schema.`$ref`
+        if (`$ref` != null) {
+            // A part may NAME the array (files: $ref FileList) rather than spell it
+            // out. A same-file array alias is inlined at every point of use, so such
+            // a part is the same repeated upload and has to be looked through here
+            // as well. Under generateAliasAsModel the alias stays a class of its own
+            // - inlinableArrayAlias returns null and the part keeps that class, as
+            // it does everywhere else.
+            val aliasTarget = typeDefiner.inlinableArrayAlias(`$ref`, openAPI) ?: return null
+            return typeDefiner.inliningAlias<TypeName?>(`$ref`) { uploadType(aliasTarget, openAPI) }
+        }
+        if (TypeDefiner.isArraySchema(schema)) {
+            val items = schema.items
+            val itemType = uploadType(items, openAPI) ?: return null
+            return LIST.parameterizedBy(
+                itemType.copy(nullable = typeDefiner.isNullableType(items, openAPI))
+            )
+        }
+        return null
     }
 
     // Keyed on the actual framework (not the annotation-context flag, which a

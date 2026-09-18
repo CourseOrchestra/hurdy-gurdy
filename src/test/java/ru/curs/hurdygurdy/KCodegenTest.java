@@ -167,6 +167,30 @@ class KCodegenTest {
     }
 
     @Test
+    void binaryArrayMultipartPartSpring() throws IOException {
+        // hurdy-gurdy#618: a multipart part that is an ARRAY of `format: binary`
+        // is a repeated upload, so it must be List<MultipartFile> - it used to
+        // fall through to the DTO mapping of a bare binary schema and come out
+        // List<ByteArray>. An array NAMED by a same-file alias counts: the
+        // alias is inlined at the point of use, so the part is the same
+        // repeated upload. The snapshot also holds the neighbours the fix must
+        // not disturb: a non-binary array part (spelled out and aliased), and
+        // the binary properties of the JSON DTO, which stay ByteArray /
+        // List<ByteArray> (base64).
+        codegen.generate(Path.of("src/test/resources/issue618.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void binaryArrayMultipartPartQuarkus() throws IOException {
+        // Same part, Quarkus upload type: List<FileUpload>.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(Framework.QUARKUS).generateResponseParameter(false));
+        codegen.generate(Path.of("src/test/resources/issue618.yaml"), result);
+        verify(result);
+    }
+
+    @Test
     void generateCommonParameters() throws IOException {
         codegen.generate(Path.of("src/test/resources/commonparam.yaml"), result);
         verify(result);

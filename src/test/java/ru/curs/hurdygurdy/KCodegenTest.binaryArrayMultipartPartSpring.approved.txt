@@ -1,0 +1,55 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.UploadMeta
+import jakarta.servlet.http.HttpServletResponse
+import kotlin.String
+import kotlin.collections.List
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestPart
+import org.springframework.web.multipart.MultipartFile
+
+public interface Controller {
+  @PostMapping(
+    value = ["/upload"],
+    produces = ["application/json"],
+    consumes = ["multipart/form-data"],
+  )
+  public fun upload(
+    @RequestPart(name = "one") one: MultipartFile,
+    @RequestPart(name = "files") files: List<MultipartFile>,
+    @RequestPart(name = "attachments", required = false) attachments: List<MultipartFile>?,
+    @RequestPart(name = "alias_files", required = false) alias_files: List<MultipartFile>?,
+    @RequestPart(name = "tags", required = false) tags: List<String>?,
+    @RequestPart(name = "alias_tags", required = false) alias_tags: List<String>?,
+    @RequestPart(name = "meta", required = false) meta: UploadMeta?,
+    response: HttpServletResponse,
+  ): UploadMeta
+}
+---
+/com/example/dto
+---
+/com/example/dto/UploadMeta.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.ByteArray
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UploadMeta(
+  public val comment: String? = null,
+  public val thumbnail: ByteArray? = null,
+  public val blobs: List<ByteArray>? = null,
+)

@@ -1,0 +1,56 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.UploadMeta
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.Produces
+import kotlin.String
+import kotlin.collections.List
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
+
+@Path("")
+public interface Controller {
+  @POST
+  @Path("/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun upload(
+    @RestForm("one") one: FileUpload,
+    @RestForm("files") files: List<FileUpload>,
+    @RestForm("attachments") attachments: List<FileUpload>?,
+    @RestForm("alias_files") alias_files: List<FileUpload>?,
+    @RestForm("tags") tags: List<String>?,
+    @RestForm("alias_tags") alias_tags: List<String>?,
+    @RestForm("meta") meta: UploadMeta?,
+  ): UploadMeta
+}
+---
+/com/example/dto
+---
+/com/example/dto/UploadMeta.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+import kotlin.ByteArray
+import kotlin.String
+import kotlin.collections.List
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public data class UploadMeta(
+  public val comment: String? = null,
+  public val thumbnail: ByteArray? = null,
+  public val blobs: List<ByteArray>? = null,
+)
