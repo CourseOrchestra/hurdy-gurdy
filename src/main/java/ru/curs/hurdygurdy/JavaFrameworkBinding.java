@@ -20,10 +20,6 @@ import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeName;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.parameters.Parameter;
-
 import java.util.List;
 
 /**
@@ -59,12 +55,10 @@ interface JavaFrameworkBinding {
      * {@link JavaAPIExtractor#buildMethod} reports as an error rather than
      * emitting an unmapped method.
      *
-     * @param httpMethod the HTTP verb
-     * @param path       the path the operation is declared under
-     * @param operation  the operation, for its media types
+     * @param operation the operation being generated
      * @return the method-level annotations, empty when the verb is unsupported
      */
-    List<AnnotationSpec> methodAnnotations(PathItem.HttpMethod httpMethod, String path, Operation operation);
+    List<AnnotationSpec> methodAnnotations(OperationModel operation);
 
     /**
      * The annotations binding a path parameter. A path variable is part of the
@@ -73,25 +67,23 @@ interface JavaFrameworkBinding {
      * @param parameter the parameter as declared
      * @return its annotations
      */
-    List<AnnotationSpec> pathParamAnnotations(Parameter parameter);
+    List<AnnotationSpec> pathParamAnnotations(ParameterModel parameter);
 
     /**
      * The annotations binding a query parameter.
      *
-     * @param parameter    the parameter as declared
-     * @param defaultValue its effective default, or null when it has none
+     * @param parameter the parameter as declared
      * @return its annotations
      */
-    List<AnnotationSpec> queryParamAnnotations(Parameter parameter, String defaultValue);
+    List<AnnotationSpec> queryParamAnnotations(ParameterModel parameter);
 
     /**
      * The annotations binding a header parameter.
      *
-     * @param parameter    the parameter as declared
-     * @param defaultValue its effective default, or null when it has none
+     * @param parameter the parameter as declared
      * @return its annotations
      */
-    List<AnnotationSpec> headerParamAnnotations(Parameter parameter, String defaultValue);
+    List<AnnotationSpec> headerParamAnnotations(ParameterModel parameter);
 
     /**
      * The annotation marking the single-part request body, or null when the
@@ -104,10 +96,10 @@ interface JavaFrameworkBinding {
     /**
      * The annotation binding one part of a multipart request body.
      *
-     * @param partName the part's name on the wire
+     * @param part the part being bound
      * @return its annotation
      */
-    AnnotationSpec multipartPartAnnotation(String partName);
+    AnnotationSpec multipartPartAnnotation(PartModel part);
 
     /**
      * The type of a binary multipart part: an uploaded file.
@@ -139,10 +131,10 @@ interface JavaFrameworkBinding {
      * handles a server-side method may want.
      *
      * @param method                   the method being built
-     * @param operation                the operation, for {@code x-include-request}
+     * @param includeRequest           whether the operation asked for the raw request
      * @param role                     the interface being generated
      * @param generateResponseParameter whether response-related artifacts were requested
      */
-    void addContextParameters(MethodSpec.Builder method, Operation operation, Role role,
+    void addContextParameters(MethodSpec.Builder method, boolean includeRequest, Role role,
                               boolean generateResponseParameter);
 }

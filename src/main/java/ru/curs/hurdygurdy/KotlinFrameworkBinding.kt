@@ -23,9 +23,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
-import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
-import io.swagger.v3.oas.models.parameters.Parameter
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -37,7 +35,6 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
-import java.util.Optional
 import kotlin.reflect.KClass
 
 /**
@@ -55,20 +52,16 @@ internal interface KotlinFrameworkBinding {
      * The annotations mapping the function to an HTTP endpoint, in order. An
      * empty list means the framework has no mapping for this verb.
      */
-    fun methodAnnotations(
-        httpMethod: PathItem.HttpMethod,
-        path: String,
-        operation: Operation
-    ): List<AnnotationSpec>
+    fun methodAnnotations(operation: OperationModel): List<AnnotationSpec>
 
     /** The annotations binding a path parameter, which never carries a default. */
-    fun pathParamAnnotations(parameter: Parameter): List<AnnotationSpec>
+    fun pathParamAnnotations(parameter: ParameterModel): List<AnnotationSpec>
 
     /** The annotations binding a query parameter. */
-    fun queryParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec>
+    fun queryParamAnnotations(parameter: ParameterModel): List<AnnotationSpec>
 
     /** The annotations binding a header parameter. */
-    fun headerParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec>
+    fun headerParamAnnotations(parameter: ParameterModel): List<AnnotationSpec>
 
     /**
      * The annotation marking the single-part request body, or null when the
@@ -80,7 +73,7 @@ internal interface KotlinFrameworkBinding {
     fun bodyAnnotation(present: Boolean): AnnotationSpec?
 
     /** The annotation binding one part of a multipart request body. */
-    fun multipartPartAnnotation(partName: String, present: Boolean): AnnotationSpec
+    fun multipartPartAnnotation(part: PartModel): AnnotationSpec
 
     /** The type of a binary multipart part: an uploaded file. */
     fun multipartPartType(): TypeName
@@ -94,7 +87,7 @@ internal interface KotlinFrameworkBinding {
     /** Adds the framework's server-side context parameters. */
     fun addContextParameters(
         method: FunSpec.Builder,
-        operation: Operation,
+        includeRequest: Boolean,
         role: Role,
         generateResponseParameter: Boolean
     )
@@ -105,12 +98,8 @@ internal interface KotlinFrameworkBinding {
  */
 internal open class KotlinSpringBinding : KotlinFrameworkBinding {
 
-    override fun methodAnnotations(
-        httpMethod: PathItem.HttpMethod,
-        path: String,
-        operation: Operation
-    ): List<AnnotationSpec> {
-        val annotationClass: KClass<out Annotation> = when (httpMethod) {
+    override fun methodAnnotations(operation: OperationModel): List<AnnotationSpec> {
+        val annotationClass: KClass<out Annotation> = when (operation.httpMethod()) {
             PathItem.HttpMethod.GET -> GetMapping::class
             PathItem.HttpMethod.POST -> PostMapping::class
             PathItem.HttpMethod.PUT -> PutMapping::class
@@ -118,32 +107,28 @@ internal open class KotlinSpringBinding : KotlinFrameworkBinding {
             PathItem.HttpMethod.DELETE -> DeleteMapping::class
             else -> return listOf()
         }
-        val builder = AnnotationSpec.builder(annotationClass).addMember("value = [%S]", path)
-        APIExtractor.getSuccessfulReply(operation)
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
-            .ifPresent { builder.addMember("produces = [%S]", it) }
-        Optional.ofNullable(operation.requestBody)
-            .map { it.content }
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
+        val builder = AnnotationSpec.builder(annotationClass)
+            .addMember("value = [%S]", operation.path())
+        operation.response()?.mediaType()
+            ?.let { builder.addMember("produces = [%S]", it) }
+        operation.body()?.mediaType()
             // application/json is Spring's own default, so saying it adds nothing.
-            .filter { it.isNotBlank() && it != "application/json" }
-            .ifPresent { builder.addMember("consumes = [%S]", it) }
+            ?.takeIf { it.isNotBlank() && it != "application/json" }
+            ?.let { builder.addMember("consumes = [%S]", it) }
         return listOf(builder.build())
     }
 
-    override fun pathParamAnnotations(parameter: Parameter): List<AnnotationSpec> =
+    override fun pathParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
         listOf(
             AnnotationSpec.builder(PathVariable::class)
-                .addMember("name = %S", parameter.name).build()
+                .addMember("name = %S", parameter.specName()).build()
         )
 
-    override fun queryParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec> =
-        listOf(springParam(RequestParam::class, parameter, defaultValue))
+    override fun queryParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
+        listOf(springParam(RequestParam::class, parameter))
 
-    override fun headerParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec> =
-        listOf(springParam(RequestHeader::class, parameter, defaultValue))
+    override fun headerParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
+        listOf(springParam(RequestHeader::class, parameter))
 
     /**
      * Spring states everything about a bound parameter in one annotation: whether
@@ -151,13 +136,12 @@ internal open class KotlinSpringBinding : KotlinFrameworkBinding {
      */
     private fun springParam(
         annotationClass: KClass<out Annotation>,
-        parameter: Parameter,
-        defaultValue: String?
+        parameter: ParameterModel
     ): AnnotationSpec {
         val builder = AnnotationSpec.builder(annotationClass)
-            .addMember("required = %L", parameter.required == true)
-            .addMember("name = %S", parameter.name)
-        defaultValue?.let { builder.addMember("defaultValue = %S", it) }
+            .addMember("required = %L", parameter.required())
+            .addMember("name = %S", parameter.specName())
+        parameter.defaultValue()?.let { builder.addMember("defaultValue = %S", it) }
         return builder.build()
     }
 
@@ -165,10 +149,10 @@ internal open class KotlinSpringBinding : KotlinFrameworkBinding {
         AnnotationSpec.builder(org.springframework.web.bind.annotation.RequestBody::class)
             .optional(present).build()
 
-    override fun multipartPartAnnotation(partName: String, present: Boolean): AnnotationSpec =
+    override fun multipartPartAnnotation(part: PartModel): AnnotationSpec =
         AnnotationSpec.builder(RequestPart::class)
-            .addMember("name = %S", partName)
-            .optional(present).build()
+            .addMember("name = %S", part.name())
+            .optional(part.present()).build()
 
     /**
      * Spells out `required = false` on a Spring `@RequestBody` / `@RequestPart`
@@ -195,14 +179,14 @@ internal open class KotlinSpringBinding : KotlinFrameworkBinding {
 
     override fun addContextParameters(
         method: FunSpec.Builder,
-        operation: Operation,
+        includeRequest: Boolean,
         role: Role,
         generateResponseParameter: Boolean
     ) {
         if (!generateResponseParameter) {
             return
         }
-        if (APIExtractor.isIncludeRequest(operation)) {
+        if (includeRequest) {
             method.addParameter(ParameterSpec.builder("request", HttpServletRequest::class).build())
         }
         method.addParameter(ParameterSpec.builder("response", HttpServletResponse::class).build())
@@ -221,12 +205,8 @@ internal open class KotlinSpringBinding : KotlinFrameworkBinding {
  */
 internal class KotlinSpringClientBinding : KotlinSpringBinding() {
 
-    override fun methodAnnotations(
-        httpMethod: PathItem.HttpMethod,
-        path: String,
-        operation: Operation
-    ): List<AnnotationSpec> {
-        val annotationClass = when (httpMethod) {
+    override fun methodAnnotations(operation: OperationModel): List<AnnotationSpec> {
+        val annotationClass = when (operation.httpMethod()) {
             PathItem.HttpMethod.GET -> SPRING_GET_EXCHANGE
             PathItem.HttpMethod.POST -> SPRING_POST_EXCHANGE
             PathItem.HttpMethod.PUT -> SPRING_PUT_EXCHANGE
@@ -234,19 +214,15 @@ internal class KotlinSpringClientBinding : KotlinSpringBinding() {
             PathItem.HttpMethod.DELETE -> SPRING_DELETE_EXCHANGE
             else -> return listOf()
         }
-        val builder = AnnotationSpec.builder(annotationClass).addMember("value = %S", path)
+        val builder = AnnotationSpec.builder(annotationClass)
+            .addMember("value = %S", operation.path())
         // The client states what it will accept, where the server states what it
         // produces: the same media type read from the other end.
-        APIExtractor.getSuccessfulReply(operation)
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
-            .ifPresent { builder.addMember("accept = [%S]", it) }
-        Optional.ofNullable(operation.requestBody)
-            .map { it.content }
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
-            .filter { it.isNotBlank() && it != "application/json" }
-            .ifPresent { builder.addMember("contentType = %S", it) }
+        operation.response()?.mediaType()
+            ?.let { builder.addMember("accept = [%S]", it) }
+        operation.body()?.mediaType()
+            ?.takeIf { it.isNotBlank() && it != "application/json" }
+            ?.let { builder.addMember("contentType = %S", it) }
         return listOf(builder.build())
     }
 
@@ -262,7 +238,7 @@ internal class KotlinSpringClientBinding : KotlinSpringBinding() {
 
     override fun addContextParameters(
         method: FunSpec.Builder,
-        operation: Operation,
+        includeRequest: Boolean,
         role: Role,
         generateResponseParameter: Boolean
     ) {
@@ -286,12 +262,8 @@ internal class KotlinSpringClientBinding : KotlinSpringBinding() {
  */
 internal class KotlinQuarkusBinding : KotlinFrameworkBinding {
 
-    override fun methodAnnotations(
-        httpMethod: PathItem.HttpMethod,
-        path: String,
-        operation: Operation
-    ): List<AnnotationSpec> {
-        val verb = when (httpMethod) {
+    override fun methodAnnotations(operation: OperationModel): List<AnnotationSpec> {
+        val verb = when (operation.httpMethod()) {
             PathItem.HttpMethod.GET -> JAXRS_GET
             PathItem.HttpMethod.POST -> JAXRS_POST
             PathItem.HttpMethod.PUT -> JAXRS_PUT
@@ -301,34 +273,29 @@ internal class KotlinQuarkusBinding : KotlinFrameworkBinding {
         }
         val result = mutableListOf(
             AnnotationSpec.builder(verb).build(),
-            AnnotationSpec.builder(JAXRS_PATH).addMember("%S", path).build()
+            AnnotationSpec.builder(JAXRS_PATH).addMember("%S", operation.path()).build()
         )
-        APIExtractor.getSuccessfulReply(operation)
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
-            .ifPresent { result.add(AnnotationSpec.builder(JAXRS_PRODUCES).addMember("%S", it).build()) }
+        operation.response()?.mediaType()
+            ?.let { result.add(AnnotationSpec.builder(JAXRS_PRODUCES).addMember("%S", it).build()) }
         // Unlike Spring's `consumes`, application/json is NOT filtered out: JAX-RS
         // has no such default, so leaving it out would widen what the resource accepts.
-        Optional.ofNullable(operation.requestBody)
-            .map { it.content }
-            .flatMap { APIExtractor.getMediaType(it) }
-            .map { it.key }
-            .filter { it.isNotBlank() }
-            .ifPresent { result.add(AnnotationSpec.builder(JAXRS_CONSUMES).addMember("%S", it).build()) }
+        operation.body()?.mediaType()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { result.add(AnnotationSpec.builder(JAXRS_CONSUMES).addMember("%S", it).build()) }
         return result
     }
 
-    override fun pathParamAnnotations(parameter: Parameter): List<AnnotationSpec> =
+    override fun pathParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
         listOf(jaxrsParam(JAXRS_PATH_PARAM, parameter))
 
-    override fun queryParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec> =
-        withDefault(jaxrsParam(JAXRS_QUERY_PARAM, parameter), defaultValue)
+    override fun queryParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
+        withDefault(jaxrsParam(JAXRS_QUERY_PARAM, parameter), parameter.defaultValue())
 
-    override fun headerParamAnnotations(parameter: Parameter, defaultValue: String?): List<AnnotationSpec> =
-        withDefault(jaxrsParam(JAXRS_HEADER_PARAM, parameter), defaultValue)
+    override fun headerParamAnnotations(parameter: ParameterModel): List<AnnotationSpec> =
+        withDefault(jaxrsParam(JAXRS_HEADER_PARAM, parameter), parameter.defaultValue())
 
-    private fun jaxrsParam(annotationClass: ClassName, parameter: Parameter): AnnotationSpec =
-        AnnotationSpec.builder(annotationClass).addMember("%S", parameter.name).build()
+    private fun jaxrsParam(annotationClass: ClassName, parameter: ParameterModel): AnnotationSpec =
+        AnnotationSpec.builder(annotationClass).addMember("%S", parameter.specName()).build()
 
     /**
      * JAX-RS has no `defaultValue` member; the default is a separate annotation on
@@ -344,8 +311,8 @@ internal class KotlinQuarkusBinding : KotlinFrameworkBinding {
     // JAX-RS infers the entity from the signature: the one unannotated parameter.
     override fun bodyAnnotation(present: Boolean): AnnotationSpec? = null
 
-    override fun multipartPartAnnotation(partName: String, present: Boolean): AnnotationSpec =
-        AnnotationSpec.builder(QUARKUS_REST_FORM).addMember("%S", partName).build()
+    override fun multipartPartAnnotation(part: PartModel): AnnotationSpec =
+        AnnotationSpec.builder(QUARKUS_REST_FORM).addMember("%S", part.name()).build()
 
     override fun multipartPartType(): TypeName = QUARKUS_FILE_UPLOAD
 
@@ -367,11 +334,11 @@ internal class KotlinQuarkusBinding : KotlinFrameworkBinding {
 
     override fun addContextParameters(
         method: FunSpec.Builder,
-        operation: Operation,
+        includeRequest: Boolean,
         role: Role,
         generateResponseParameter: Boolean
     ) {
-        if (generateResponseParameter && APIExtractor.isIncludeRequest(operation) && role == Role.CONTROLLER) {
+        if (generateResponseParameter && includeRequest && role == Role.CONTROLLER) {
             method.addParameter(
                 ParameterSpec.builder("requestContext", JAXRS_REQUEST_CONTEXT)
                     .addAnnotation(JAXRS_CONTEXT)

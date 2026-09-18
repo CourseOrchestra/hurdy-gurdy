@@ -21,12 +21,8 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -57,9 +53,8 @@ final class JavaSpringClientBinding implements JavaFrameworkBinding {
     private final JavaSpringBinding parameters = new JavaSpringBinding();
 
     @Override
-    public List<AnnotationSpec> methodAnnotations(PathItem.HttpMethod httpMethod, String path,
-                                                  Operation operation) {
-        ClassName annotationClass = switch (httpMethod) {
+    public List<AnnotationSpec> methodAnnotations(OperationModel operation) {
+        ClassName annotationClass = switch (operation.httpMethod()) {
             case GET -> SPRING_GET_EXCHANGE;
             case POST -> SPRING_POST_EXCHANGE;
             case PUT -> SPRING_PUT_EXCHANGE;
@@ -71,37 +66,32 @@ final class JavaSpringClientBinding implements JavaFrameworkBinding {
             return List.of();
         }
         AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
-                .addMember("value", "$S", path);
+                .addMember("value", "$S", operation.path());
         // The client states what it will accept, where the server states what it
         // produces: the same media type read from the other end.
-        APIExtractor.getSuccessfulReply(operation)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
+        Optional.ofNullable(operation.response())
+                .map(BodyModel::mediaType)
                 .ifPresent(mt -> builder.addMember("accept", "$S", mt));
-        Optional.ofNullable(operation.getRequestBody())
-                .map(RequestBody::getContent)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .filter(s -> !s.isBlank() && !s.equals("application/json"))
+        Optional.ofNullable(operation.body())
+                .map(BodyModel::mediaType)
+                .filter(mt -> !mt.isBlank() && !mt.equals("application/json"))
                 .ifPresent(mt -> builder.addMember("contentType", "$S", mt));
         return List.of(builder.build());
     }
 
     @Override
-    public List<AnnotationSpec> pathParamAnnotations(io.swagger.v3.oas.models.parameters.Parameter parameter) {
+    public List<AnnotationSpec> pathParamAnnotations(ParameterModel parameter) {
         return parameters.pathParamAnnotations(parameter);
     }
 
     @Override
-    public List<AnnotationSpec> queryParamAnnotations(io.swagger.v3.oas.models.parameters.Parameter parameter,
-                                                      String defaultValue) {
-        return parameters.queryParamAnnotations(parameter, defaultValue);
+    public List<AnnotationSpec> queryParamAnnotations(ParameterModel parameter) {
+        return parameters.queryParamAnnotations(parameter);
     }
 
     @Override
-    public List<AnnotationSpec> headerParamAnnotations(io.swagger.v3.oas.models.parameters.Parameter parameter,
-                                                       String defaultValue) {
-        return parameters.headerParamAnnotations(parameter, defaultValue);
+    public List<AnnotationSpec> headerParamAnnotations(ParameterModel parameter) {
+        return parameters.headerParamAnnotations(parameter);
     }
 
     @Override
@@ -110,8 +100,8 @@ final class JavaSpringClientBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public AnnotationSpec multipartPartAnnotation(String partName) {
-        return parameters.multipartPartAnnotation(partName);
+    public AnnotationSpec multipartPartAnnotation(PartModel part) {
+        return parameters.multipartPartAnnotation(part);
     }
 
     @Override
@@ -138,7 +128,7 @@ final class JavaSpringClientBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public void addContextParameters(MethodSpec.Builder method, Operation operation, Role role,
+    public void addContextParameters(MethodSpec.Builder method, boolean includeRequest, Role role,
                                      boolean generateResponseParameter) {
         // A client interface takes no server-side context handles.
     }

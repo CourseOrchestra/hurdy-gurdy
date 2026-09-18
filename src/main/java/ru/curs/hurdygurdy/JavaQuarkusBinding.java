@@ -21,14 +21,9 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeName;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -67,9 +62,8 @@ final class JavaQuarkusBinding implements JavaFrameworkBinding {
     private static final ClassName INPUT_STREAM = ClassName.get(java.io.InputStream.class);
 
     @Override
-    public List<AnnotationSpec> methodAnnotations(PathItem.HttpMethod httpMethod, String path,
-                                                  Operation operation) {
-        ClassName verb = switch (httpMethod) {
+    public List<AnnotationSpec> methodAnnotations(OperationModel operation) {
+        ClassName verb = switch (operation.httpMethod()) {
             case GET -> JAXRS_GET;
             case POST -> JAXRS_POST;
             case PUT -> JAXRS_PUT;
@@ -82,42 +76,40 @@ final class JavaQuarkusBinding implements JavaFrameworkBinding {
         }
         List<AnnotationSpec> result = new ArrayList<>();
         result.add(AnnotationSpec.builder(verb).build());
-        result.add(AnnotationSpec.builder(JAXRS_PATH).addMember("value", "$S", path).build());
-        APIExtractor.getSuccessfulReply(operation)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
+        result.add(AnnotationSpec.builder(JAXRS_PATH)
+                .addMember("value", "$S", operation.path()).build());
+        Optional.ofNullable(operation.response())
+                .map(BodyModel::mediaType)
                 .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_PRODUCES)
                         .addMember("value", "$S", mt).build()));
         // Unlike Spring's `consumes`, application/json is NOT filtered out: JAX-RS
         // has no such default, so leaving it out would widen what the resource accepts.
-        Optional.ofNullable(operation.getRequestBody())
-                .map(RequestBody::getContent)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .filter(s -> !s.isBlank())
+        Optional.ofNullable(operation.body())
+                .map(BodyModel::mediaType)
+                .filter(mt -> !mt.isBlank())
                 .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_CONSUMES)
                         .addMember("value", "$S", mt).build()));
         return result;
     }
 
     @Override
-    public List<AnnotationSpec> pathParamAnnotations(Parameter parameter) {
+    public List<AnnotationSpec> pathParamAnnotations(ParameterModel parameter) {
         return List.of(jaxrsParam(JAXRS_PATH_PARAM, parameter));
     }
 
     @Override
-    public List<AnnotationSpec> queryParamAnnotations(Parameter parameter, String defaultValue) {
-        return withDefault(jaxrsParam(JAXRS_QUERY_PARAM, parameter), defaultValue);
+    public List<AnnotationSpec> queryParamAnnotations(ParameterModel parameter) {
+        return withDefault(jaxrsParam(JAXRS_QUERY_PARAM, parameter), parameter.defaultValue());
     }
 
     @Override
-    public List<AnnotationSpec> headerParamAnnotations(Parameter parameter, String defaultValue) {
-        return withDefault(jaxrsParam(JAXRS_HEADER_PARAM, parameter), defaultValue);
+    public List<AnnotationSpec> headerParamAnnotations(ParameterModel parameter) {
+        return withDefault(jaxrsParam(JAXRS_HEADER_PARAM, parameter), parameter.defaultValue());
     }
 
-    private static AnnotationSpec jaxrsParam(ClassName annotationClass, Parameter parameter) {
+    private static AnnotationSpec jaxrsParam(ClassName annotationClass, ParameterModel parameter) {
         return AnnotationSpec.builder(annotationClass)
-                .addMember("value", "$S", parameter.getName()).build();
+                .addMember("value", "$S", parameter.specName()).build();
     }
 
     /**
@@ -140,8 +132,9 @@ final class JavaQuarkusBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public AnnotationSpec multipartPartAnnotation(String partName) {
-        return AnnotationSpec.builder(QUARKUS_REST_FORM).addMember("value", "$S", partName).build();
+    public AnnotationSpec multipartPartAnnotation(PartModel part) {
+        return AnnotationSpec.builder(QUARKUS_REST_FORM)
+                .addMember("value", "$S", part.name()).build();
     }
 
     @Override
@@ -170,10 +163,9 @@ final class JavaQuarkusBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public void addContextParameters(MethodSpec.Builder method, Operation operation, Role role,
+    public void addContextParameters(MethodSpec.Builder method, boolean includeRequest, Role role,
                                      boolean generateResponseParameter) {
-        if (generateResponseParameter && APIExtractor.isIncludeRequest(operation)
-                && role == Role.CONTROLLER) {
+        if (generateResponseParameter && includeRequest && role == Role.CONTROLLER) {
             method.addParameter(ParameterSpec.builder(JAXRS_REQUEST_CONTEXT, "requestContext")
                     .addAnnotation(JAXRS_CONTEXT).build());
         }

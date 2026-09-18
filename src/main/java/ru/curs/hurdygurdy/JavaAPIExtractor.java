@@ -24,22 +24,13 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 
 import javax.lang.model.element.Modifier;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
@@ -64,6 +55,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     public JavaAPIExtractor(JavaTypeDefiner typeDefiner,
                             GeneratorParams params) {
         super(params,
+                new ApiModelBuilder(typeDefiner),
                 (name, role) -> {
                     TypeSpec.Builder b = TypeSpec.interfaceBuilder(normalizeToCamel(name));
                     if (params.getFramework() == Framework.QUARKUS) {
@@ -96,36 +88,25 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     }
 
     @Override
-    void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
-                     Map.Entry<String, PathItem> stringPathItemEntry,
-                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                     String operationId,
-                     Role role,
-                     boolean generateResponseParameter) {
+    void buildMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder, OperationModel operation,
+                     Role role, boolean generateResponseParameter) {
         JavaFrameworkBinding binding = binding(role);
-        PathItem pathItem = stringPathItemEntry.getValue();
-        String path = stringPathItemEntry.getKey();
-        PathItem.HttpMethod httpMethod = operationEntry.getKey();
-        Operation operation = operationEntry.getValue();
 
-        List<AnnotationSpec> methodAnnotations = binding.methodAnnotations(httpMethod, path, operation);
+        List<AnnotationSpec> methodAnnotations = binding.methodAnnotations(operation);
         if (methodAnnotations.isEmpty()) {
-            throw new IllegalStateException(unsupportedHttpMethod(httpMethod, path));
+            throw new IllegalStateException(unsupportedHttpMethod(operation));
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec
-                .methodBuilder(operationId)
+                .methodBuilder(operation.id())
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
         methodAnnotations.forEach(methodBuilder::addAnnotation);
         //we are deriving the returning type from the schema of the successful result
         binding.applyReturn(methodBuilder,
-                determineReturnJavaType(operation, openAPI, classBuilder, binding),
+                determineReturnJavaType(operation.response(), openAPI, classBuilder, binding),
                 generateResponseParameter);
 
-        Optional.ofNullable(operation.getRequestBody())
-                .map(RequestBody::getContent)
-                .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, binding))
+        bodyParameters(operation.body(), openAPI, classBuilder, binding)
                 .forEach(paramSpec -> {
                     ParameterSpec.Builder pb = ParameterSpec.builder(
                             paramSpec.typeName, CaseUtils.toIdentifier(paramSpec.name));
@@ -135,69 +116,37 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     methodBuilder.addParameter(pb.build());
                 });
 
-        // Order is part of the generated contract: body, then path, query, header.
-        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.PATH,
-                (parameter, defaultValue) -> binding.pathParamAnnotations(parameter));
-        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.QUERY,
-                binding::queryParamAnnotations);
-        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.HEADER,
-                binding::headerParamAnnotations);
+        // The model has already put these in the order the signature declares
+        // them: path, then query, then header.
+        for (ParameterModel parameter : operation.parameters()) {
+            methodBuilder.addParameter(parameter(parameter, openAPI, classBuilder, binding));
+        }
 
-        binding.addContextParameters(methodBuilder, operation, role, generateResponseParameter);
+        binding.addContextParameters(methodBuilder, operation.includeRequest(), role,
+                generateResponseParameter);
         classBuilder.addMethod(methodBuilder.build());
     }
 
     /**
-     * A position a parameter can be declared in, and what that position implies
-     * for the generated signature.
+     * One bound parameter.
      *
      * <p>A path variable is part of the URL and therefore always present, so it
      * is unboxed to keep the signature compact; a query or header parameter may
-     * be absent and must be able to arrive null, so it is boxed. A header name is
-     * kebab-case by convention ({@code X-Trace-Id}), the others snake_case.
-     *
-     * @param in         the {@code in} value in the specification
-     * @param identifier how the spec name becomes an identifier
-     * @param boxing     how the parameter type is boxed or unboxed
+     * be absent and must be able to arrive null, so it is boxed.
      */
-    private record ParameterKind(String in, UnaryOperator<String> identifier,
-                                 UnaryOperator<TypeName> boxing) {
-        static final ParameterKind PATH =
-                new ParameterKind("path", CaseUtils::snakeToCamel, JavaAPIExtractor::safeUnbox);
-        static final ParameterKind QUERY =
-                new ParameterKind("query", CaseUtils::snakeToCamel, JavaAPIExtractor::safeBox);
-        static final ParameterKind HEADER =
-                new ParameterKind("header", CaseUtils::kebabToCamel, JavaAPIExtractor::safeBox);
-    }
-
-    /**
-     * Adds every parameter declared in the given position.
-     *
-     * @param methodBuilder the method being built
-     * @param openAPI       the document being generated
-     * @param classBuilder  the interface being built, which receives any nested
-     *                      enum a parameter's schema defines
-     * @param pathItem      the path the operation belongs to, for its shared parameters
-     * @param operation     the operation
-     * @param kind          the position being added
-     * @param annotations   the binding's annotations for this position
-     */
-    private void addParameters(MethodSpec.Builder methodBuilder, OpenAPI openAPI,
-                               TypeSpec.Builder classBuilder, PathItem pathItem, Operation operation,
-                               ParameterKind kind,
-                               BiFunction<Parameter, String, List<AnnotationSpec>> annotations) {
-        getParameterStream(pathItem, operation)
-                .filter(parameter -> kind.in().equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> {
-                    ParameterSpec.Builder pb = ParameterSpec.builder(
-                            kind.boxing().apply(typeDefiner.defineJavaType(
-                                    parameter.getSchema(), openAPI, classBuilder, null)),
-                            CaseUtils.toIdentifier(kind.identifier().apply(parameter.getName())));
-                    annotations.apply(parameter,
-                                    typeDefiner.effectiveDefault(parameter.getSchema(), openAPI))
-                            .forEach(pb::addAnnotation);
-                    methodBuilder.addParameter(pb.build());
-                });
+    private ParameterSpec parameter(ParameterModel parameter, OpenAPI openAPI,
+                                    TypeSpec.Builder classBuilder, JavaFrameworkBinding binding) {
+        TypeName type = typeDefiner.defineJavaType(parameter.schema(), openAPI, classBuilder, null);
+        ParameterSpec.Builder pb = ParameterSpec.builder(
+                parameter.in() == ParameterModel.In.PATH ? safeUnbox(type) : safeBox(type),
+                parameter.identifier());
+        switch (parameter.in()) {
+            case PATH -> binding.pathParamAnnotations(parameter).forEach(pb::addAnnotation);
+            case QUERY -> binding.queryParamAnnotations(parameter).forEach(pb::addAnnotation);
+            case HEADER -> binding.headerParamAnnotations(parameter).forEach(pb::addAnnotation);
+            default -> throw new IllegalStateException("Unknown parameter position " + parameter.in());
+        }
+        return pb.build();
     }
 
     /**
@@ -211,12 +160,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
      * does not have yet, and saying so is what lets the user either drop the
      * operation or add it.
      */
-    private static String unsupportedHttpMethod(PathItem.HttpMethod httpMethod, String path) {
+    private static String unsupportedHttpMethod(OperationModel operation) {
         return String.format(
                 "Unsupported HTTP method '%s' at path '%s': hurdy-gurdy generates methods for "
                         + "get, post, put, patch and delete. Remove the operation from the "
                         + "specification, or add support for the verb.",
-                httpMethod.name().toLowerCase(Locale.ROOT), path);
+                operation.httpMethod().name().toLowerCase(Locale.ROOT), operation.path());
     }
 
     private static TypeName safeBox(TypeName name) {
@@ -238,11 +187,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         return SchemaSemantics.isNullableSchema(schema) ? safeBox(name) : safeUnbox(name);
     }
 
-    private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI,
+    private TypeName determineReturnJavaType(BodyModel response, OpenAPI openAPI,
                                              TypeSpec.Builder parent, JavaFrameworkBinding binding) {
-        return getSuccessfulReply(operation)
-                .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, parent, binding))
+        return bodyParameters(response, openAPI, parent, binding)
                 .map(p -> p.typeName)
                 .findFirst()
                 .orElse(TypeName.VOID);
@@ -260,38 +207,32 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         }
     }
 
-    private Stream<RequestPartParams> getContentTypes(Content content, OpenAPI openAPI,
-                                                      TypeSpec.Builder parent,
-                                                      JavaFrameworkBinding binding) {
-        final Optional<Map.Entry<String, MediaType>> mediaTypeEntry =
-                Optional.ofNullable(content)
-                        .flatMap(APIExtractor::getMediaType);
-        if (mediaTypeEntry.isEmpty()) {
+    /**
+     * The parameters a body contributes to the signature: one per part when it is
+     * multipart, otherwise the single {@code request} parameter — or none at all
+     * when the media type declares no schema.
+     */
+    private Stream<RequestPartParams> bodyParameters(BodyModel body, OpenAPI openAPI,
+                                                     TypeSpec.Builder parent,
+                                                     JavaFrameworkBinding binding) {
+        if (body == null) {
             return Stream.of();
-        } else {
-            Map.Entry<String, MediaType> entry = mediaTypeEntry.get();
-            if ("multipart/form-data".equalsIgnoreCase(entry.getKey())) {
-                //Multipart
-                return ((Schema<?>) entry.getValue().getSchema())
-                        .getProperties()
-                        .entrySet()
-                        .stream()
-                        .map(e -> new RequestPartParams(
-                                multipartPartTypeName(e.getValue(), openAPI, parent, binding),
-                                e.getKey(),
-                                binding.multipartPartAnnotation(e.getKey())));
-            } else {
-                //Single-part
-                return Optional.ofNullable(entry.getValue().getSchema()).stream()
-                        // A binary single-part body/response is a converter-backed
-                        // body type (Resource / InputStream), not a multipart part.
-                        .map(s -> isBinary(s)
-                                ? binding.binaryBodyType()
-                                : JavaAPIExtractor.bodyTypeName(s,
-                                        typeDefiner.defineJavaType(s, openAPI, parent, null)))
-                        .map(t -> new RequestPartParams(t, "request", binding.bodyAnnotation()));
-            }
         }
+        if (body.multipart()) {
+            return body.parts().stream()
+                    .map(part -> new RequestPartParams(
+                            multipartPartTypeName(part.schema(), openAPI, parent, binding),
+                            part.name(),
+                            binding.multipartPartAnnotation(part)));
+        }
+        return Optional.ofNullable(body.schema()).stream()
+                // A binary single-part body/response is a converter-backed
+                // body type (Resource / InputStream), not a multipart part.
+                .map(s -> isBinary(s)
+                        ? binding.binaryBodyType()
+                        : JavaAPIExtractor.bodyTypeName(s,
+                                typeDefiner.defineJavaType(s, openAPI, parent, null)))
+                .map(t -> new RequestPartParams(t, "request", binding.bodyAnnotation()));
     }
 
     /**

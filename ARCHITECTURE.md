@@ -959,8 +959,8 @@ stop
 | Finding | Severity | Fixed by |
 |---|---|---|
 | F1 `<T>` does not type anything; base class imports both poets | 🔴 | ✅ Step 1 |
-| F2 one operation-emission algorithm in six copies | 🔴 | ◐ Step 2 (six → two); Step 3 (two → one) |
-| F3 **`effectiveDefault` not applied on the Java path — `$ref` defaults silently dropped** | 🔴 *defect* | ✅ Step 0 |
+| F2 one operation-emission algorithm in six copies | 🔴 | ✅ Steps 2 + 3 — one reader, two emitters |
+| F3 **`effectiveDefault` not applied on the Java path — `$ref` defaults silently dropped** | 🔴 *defect* | ✅ Step 0 (fixed); Step 3 (made unrepresentable) |
 | F4 two traversal mechanisms with different coverage and cycle guards | 🟡 | Steps 3 + 4 |
 | F5 type resolution and type emission are the same call; no dedup on output | 🔴 | Step 4 |
 | F6 spec semantics duplicated per language | 🟠 | ◐ Step 1 (schema predicates); Step 4 (the rest) |
@@ -1068,6 +1068,48 @@ pin it.
 **Still two bindings per framework, not one.** Every method on a binding returns a JavaPoet or
 KotlinPoet object, so the interface cannot be shared until `TypeRef` and an annotation model exist.
 That is Step 3; at that point the six binding classes become three.
+
+
+### 7.4 Step 3, as executed
+
+Output-identical again: 430 tests, every snapshot untouched.
+
+`ApiModelBuilder` is now the only code on the API path that touches
+`io.swagger.*`. It reads each operation once into `OperationModel` — parameters with their
+position, identifier, `required`, resolved default and presence; the body as either a single value
+or a list of parts, each with whether it is always there; the successful reply; and the
+`x-include-request` flag. Both extractors consume that and never see a `Parameter`, a
+`RequestBody` or a `Content` again.
+
+| | before | after |
+|---|---|---|
+| readers of the spec's operations | 2 (one per language) | **1** |
+| `APIExtractor` | 131 lines | **87** |
+| `JavaAPIExtractor` | 355 | 296 |
+| `KotlinAPIExtractor` | 367 | 287 |
+| `ApiModelBuilder` | — | 240 |
+
+What the extractors still pass to their type definers is a `Schema` and the `OpenAPI` it came from,
+because turning a schema into a type is the one genuinely per-language step —
+`byte[]` against `ByteArray`, a boxed Java type against a nullable Kotlin one. That is Step 4's
+subject, and it is why the two `buildMethod` implementations survive: what merged is the
+*reading*, not the *writing*.
+
+**Deduplicated in passing**, each of which had been written out twice: `isIncludeRequest`, the
+path-plus-operation parameter merge, the 2xx-reply lookup, the first-media-type lookup, the
+identifier casing per position, and the presence rule (path, or required, or has a default) that
+only the Kotlin side had.
+
+**Two unifications that changed no snapshot.** A parameter's `required` is now the specification's
+`boolean` rather than swagger-parser's `Boolean`, so a document that left it unset can no longer
+produce `required = null` in Java where Kotlin produced `required = false`. And a multipart body
+with no `properties` now yields no parts in both languages, where Java threw a
+`NullPointerException` and Kotlin produced none. Neither is reachable from any fixture; both were
+divergences waiting to be found.
+
+**The model records are `public`.** A Kotlin `override` of a Java package-private method cannot
+expose package-private parameter types, and `APIExtractor` is public. Accepted as the price of the
+step, per the agreement to revisit visibility once the package layout is settled.
 
 ---
 

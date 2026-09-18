@@ -21,10 +21,6 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeName;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,7 +34,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -59,9 +54,8 @@ final class JavaSpringBinding implements JavaFrameworkBinding {
             ClassName.get("org.springframework.core.io", "Resource");
 
     @Override
-    public List<AnnotationSpec> methodAnnotations(PathItem.HttpMethod httpMethod, String path,
-                                                  Operation operation) {
-        Class<?> annotationClass = switch (httpMethod) {
+    public List<AnnotationSpec> methodAnnotations(OperationModel operation) {
+        Class<?> annotationClass = switch (operation.httpMethod()) {
             case GET -> GetMapping.class;
             case POST -> PostMapping.class;
             case PUT -> PutMapping.class;
@@ -73,35 +67,32 @@ final class JavaSpringBinding implements JavaFrameworkBinding {
             return List.of();
         }
         AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
-                .addMember("value", "$S", path);
-        APIExtractor.getSuccessfulReply(operation)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
+                .addMember("value", "$S", operation.path());
+        Optional.ofNullable(operation.response())
+                .map(BodyModel::mediaType)
                 .ifPresent(mt -> builder.addMember("produces", "$S", mt));
-        Optional.ofNullable(operation.getRequestBody())
-                .map(RequestBody::getContent)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
+        Optional.ofNullable(operation.body())
+                .map(BodyModel::mediaType)
                 // application/json is Spring's own default, so saying it adds nothing.
-                .filter(s -> !s.isBlank() && !s.equals("application/json"))
+                .filter(mt -> !mt.isBlank() && !mt.equals("application/json"))
                 .ifPresent(mt -> builder.addMember("consumes", "$S", mt));
         return List.of(builder.build());
     }
 
     @Override
-    public List<AnnotationSpec> pathParamAnnotations(Parameter parameter) {
+    public List<AnnotationSpec> pathParamAnnotations(ParameterModel parameter) {
         return List.of(AnnotationSpec.builder(PathVariable.class)
-                .addMember("name", "$S", parameter.getName()).build());
+                .addMember("name", "$S", parameter.specName()).build());
     }
 
     @Override
-    public List<AnnotationSpec> queryParamAnnotations(Parameter parameter, String defaultValue) {
-        return List.of(springParam(RequestParam.class, parameter, defaultValue));
+    public List<AnnotationSpec> queryParamAnnotations(ParameterModel parameter) {
+        return List.of(springParam(RequestParam.class, parameter));
     }
 
     @Override
-    public List<AnnotationSpec> headerParamAnnotations(Parameter parameter, String defaultValue) {
-        return List.of(springParam(RequestHeader.class, parameter, defaultValue));
+    public List<AnnotationSpec> headerParamAnnotations(ParameterModel parameter) {
+        return List.of(springParam(RequestHeader.class, parameter));
     }
 
     /**
@@ -109,12 +100,12 @@ final class JavaSpringBinding implements JavaFrameworkBinding {
      * whether it is required, its name on the wire, and its default when it has
      * one.
      */
-    static AnnotationSpec springParam(Class<?> annotationClass, Parameter parameter, String defaultValue) {
+    static AnnotationSpec springParam(Class<?> annotationClass, ParameterModel parameter) {
         AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
-                .addMember("required", "$L", parameter.getRequired())
-                .addMember("name", "$S", parameter.getName());
-        if (defaultValue != null) {
-            builder.addMember("defaultValue", "$S", defaultValue);
+                .addMember("required", "$L", parameter.required())
+                .addMember("name", "$S", parameter.specName());
+        if (parameter.defaultValue() != null) {
+            builder.addMember("defaultValue", "$S", parameter.defaultValue());
         }
         return builder.build();
     }
@@ -125,8 +116,9 @@ final class JavaSpringBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public AnnotationSpec multipartPartAnnotation(String partName) {
-        return AnnotationSpec.builder(RequestPart.class).addMember("name", "$S", partName).build();
+    public AnnotationSpec multipartPartAnnotation(PartModel part) {
+        return AnnotationSpec.builder(RequestPart.class)
+                .addMember("name", "$S", part.name()).build();
     }
 
     @Override
@@ -148,12 +140,12 @@ final class JavaSpringBinding implements JavaFrameworkBinding {
     }
 
     @Override
-    public void addContextParameters(MethodSpec.Builder method, Operation operation, Role role,
+    public void addContextParameters(MethodSpec.Builder method, boolean includeRequest, Role role,
                                      boolean generateResponseParameter) {
         if (!generateResponseParameter) {
             return;
         }
-        if (APIExtractor.isIncludeRequest(operation)) {
+        if (includeRequest) {
             method.addParameter(ParameterSpec.builder(HttpServletRequest.class, "request").build());
         }
         method.addParameter(ParameterSpec.builder(HttpServletResponse.class, "response").build());

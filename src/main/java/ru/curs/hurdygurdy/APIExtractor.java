@@ -17,43 +17,37 @@
 package ru.curs.hurdygurdy;
 
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.Paths;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.parameters.Parameter;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * Turns the API model into one generated interface per tag.
+ *
+ * <p>The reading of the document happens once, in {@link ApiModelBuilder}, and
+ * what is left here is the walk over its result. A subclass supplies
+ * {@link #buildMethod} for its own language; nothing below this class reads
+ * {@code io.swagger.*} except the type definers, which still resolve a schema to
+ * a type.
+ *
+ * @param <T> the generated type
+ * @param <B> the builder that produces it
+ */
 public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     private final GeneratorParams params;
-
-    private final Map<String, B> builders = new HashMap<>();
+    private final ApiModelBuilder modelBuilder;
     private final BiFunction<String, Role, B> builderSupplier;
     private final Function<B, T> buildInvoker;
 
     protected APIExtractor(GeneratorParams params,
+                           ApiModelBuilder modelBuilder,
                            BiFunction<String, Role, B> builderSupplier,
                            Function<B, T> buildInvoker) {
         this.params = params;
+        this.modelBuilder = modelBuilder;
         this.builderSupplier = builderSupplier;
         this.buildInvoker = buildInvoker;
-    }
-
-    private B builder(String className, Role role) {
-        return builders.computeIfAbsent(className, k -> builderSupplier.apply(className, role));
     }
 
     protected Framework getFramework() {
@@ -61,88 +55,33 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     }
 
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
-        Paths paths = openAPI.getPaths();
-        if (paths == null) return;
         for (Role role : params.getGenerate()) {
-            builders.clear();
             //the Api interface never carries response-related artifacts
-            generateClass(openAPI, paths, role,
-                    role != Role.API && params.isGenerateResponseParameter());
-            builders.values().stream().map(buildInvoker).forEach(t ->
-                    typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, t));
-        }
-    }
-
-    private void generateClass(OpenAPI openAPI, Paths paths, Role role, boolean responseParameter) {
-        for (Map.Entry<String, PathItem> stringPathItemEntry : paths.entrySet()) {
-            for (Map.Entry<PathItem.HttpMethod, Operation> operationEntry
-                    : stringPathItemEntry.getValue().readOperationsMap().entrySet()) {
-                List<String> tags = operationEntry.getValue().getTags();
-                String typeName = CaseUtils.snakeToCamel(tags != null && !tags.isEmpty() ? tags.get(0) : "", true)
-                        + role.getSuffix();
-                String operationId = CaseUtils.snakeToCamel(operationEntry.getValue().getOperationId());
-                if (operationId == null) {
-                    operationId = CaseUtils.pathToCamel(stringPathItemEntry.getKey())
-                            + CaseUtils.snakeToCamel(operationEntry.getKey().name().toLowerCase(), true);
+            boolean responseParameter = role != Role.API && params.isGenerateResponseParameter();
+            for (InterfaceModel generatedInterface : modelBuilder.build(openAPI, role)) {
+                B classBuilder = builderSupplier.apply(generatedInterface.name(), role);
+                for (OperationModel operation : generatedInterface.operations()) {
+                    buildMethod(openAPI, classBuilder, operation, role, responseParameter);
                 }
-                buildMethod(openAPI, builder(typeName, role), stringPathItemEntry,
-                        operationEntry, operationId, role, responseParameter);
+                typeSpecBiConsumer.accept(ClassCategory.CONTROLLER, buildInvoker.apply(classBuilder));
             }
         }
     }
 
+    /**
+     * Emits one method for one operation.
+     *
+     * @param openAPI                   the document, still needed to resolve a
+     *                                  schema to a type
+     * @param classBuilder              the interface being built
+     * @param operation                 the operation to emit
+     * @param role                      the kind of interface being generated
+     * @param generateResponseParameter whether response-related artifacts were
+     *                                  requested
+     */
     abstract void buildMethod(OpenAPI openAPI,
-                              B builder,
-                              Map.Entry<String, PathItem> stringPathItemEntry,
-                              Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                              String operationId,
+                              B classBuilder,
+                              OperationModel operation,
                               Role role,
                               boolean generateResponseParameter);
-
-    static Optional<Content> getSuccessfulReply(Operation operation) {
-        return operation.getResponses().entrySet().stream()
-                .filter(r -> r.getKey().matches("2\\d\\d"))
-                .map(r -> r.getValue().getContent())
-                .filter(Objects::nonNull)
-                .findFirst();
-    }
-
-    static Optional<Map.Entry<String, MediaType>> getMediaType(Content content) {
-        return content.entrySet().stream().findFirst();
-    }
-
-    static Stream<Parameter> getParameterStream(PathItem path, Operation operation) {
-        return Stream.concat(
-                Optional.ofNullable(path.getParameters()).stream(),
-                Optional.ofNullable(operation.getParameters()).stream())
-                .flatMap(Collection::stream)
-                //Parameters with the same name defined in operation have priority
-                .collect(Collectors.toMap(
-                        Parameter::getName,
-                        p -> p,
-                        (a, b) -> b,
-                        //We must respect the order of declaration
-                        LinkedHashMap::new))
-                .values().stream();
-    }
-
-    /**
-     * Whether the operation asked, with {@code x-include-request}, to be handed
-     * the raw request object in addition to its declared parameters.
-     *
-     * <p>Language-neutral, and read identically by both extractors: it is a
-     * question about the specification, not about Java or Kotlin.
-     *
-     * @param operation the operation to read
-     * @return whether the raw request was asked for
-     */
-    static boolean isIncludeRequest(Operation operation) {
-        return Optional.ofNullable(operation.getExtensions())
-                .map(m -> m.get("x-include-request"))
-                .map(v -> {
-                    if (v instanceof Boolean b) return b;
-                    if (v instanceof String str) return Boolean.parseBoolean(str);
-                    return false;
-                }).orElse(false);
-    }
 }

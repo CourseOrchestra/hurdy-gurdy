@@ -27,11 +27,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
 import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
-import io.swagger.v3.oas.models.media.Content
 import io.swagger.v3.oas.models.media.Schema
-import io.swagger.v3.oas.models.parameters.Parameter
 import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
 import java.util.Locale
 import java.util.Optional
@@ -52,6 +49,7 @@ class KotlinAPIExtractor(
 ) :
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         params,
+        ApiModelBuilder(typeDefiner),
         { name, role ->
             val b = TypeSpec.interfaceBuilder(normalizeToCamel(name))
             if (params.framework == Framework.QUARKUS) {
@@ -83,83 +81,65 @@ class KotlinAPIExtractor(
     public override fun buildMethod(
         openAPI: OpenAPI,
         classBuilder: TypeSpec.Builder,
-        stringPathItemEntry: Map.Entry<String, PathItem>,
-        operationEntry: Map.Entry<PathItem.HttpMethod, Operation>,
-        operationId: String,
+        operation: OperationModel,
         role: Role,
         generateResponseParameter: Boolean
     ) {
         val binding = binding(role)
-        val pathItem = stringPathItemEntry.value
-        val path = stringPathItemEntry.key
-        val httpMethod = operationEntry.key
-        val operation = operationEntry.value
 
-        val methodAnnotations = binding.methodAnnotations(httpMethod, path, operation)
-        check(methodAnnotations.isNotEmpty()) { unsupportedHttpMethod(httpMethod, path) }
+        val methodAnnotations = binding.methodAnnotations(operation)
+        check(methodAnnotations.isNotEmpty()) { unsupportedHttpMethod(operation) }
 
         val methodBuilder = FunSpec
-            .builder(operationId)
+            .builder(operation.id())
             .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
         methodAnnotations.forEach(methodBuilder::addAnnotation)
         //we are deriving the returning type from the schema of the successful result
         binding.applyReturn(
             methodBuilder,
-            determineReturnKotlinType(operation, openAPI, classBuilder, binding),
+            determineReturnKotlinType(operation.response(), openAPI, classBuilder, binding),
             generateResponseParameter
         )
 
-        requestBodyParams(operation, openAPI, classBuilder, binding)
+        bodyParameters(operation.body(), openAPI, classBuilder, binding)
             .forEach { paramSpec: RequestPartParams ->
                 val pb = ParameterSpec.builder(CaseUtils.toIdentifier(paramSpec.name), paramSpec.typeName)
                 paramSpec.annotation?.let(pb::addAnnotation)
                 methodBuilder.addParameter(pb.build())
             }
 
-        // Order is part of the generated contract: body, then path, query, header.
-        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, "path") { parameter, _ ->
-            binding.pathParamAnnotations(parameter)
-        }
-        addParameters(
-            methodBuilder, openAPI, classBuilder, pathItem, operation, "query", CaseUtils::snakeToCamel
-        ) { parameter, defaultValue ->
-            binding.queryParamAnnotations(parameter, defaultValue)
-        }
-        addParameters(
-            methodBuilder, openAPI, classBuilder, pathItem, operation, "header", CaseUtils::kebabToCamel
-        ) { parameter, defaultValue ->
-            binding.headerParamAnnotations(parameter, defaultValue)
+        // The model has already put these in the order the signature declares
+        // them: path, then query, then header.
+        operation.parameters().forEach { parameter ->
+            methodBuilder.addParameter(parameter(parameter, openAPI, classBuilder, binding))
         }
 
-        binding.addContextParameters(methodBuilder, operation, role, generateResponseParameter)
+        binding.addContextParameters(
+            methodBuilder, operation.includeRequest(), role, generateResponseParameter
+        )
         classBuilder.addFunction(methodBuilder.build())
     }
 
-    /**
-     * Adds every parameter declared `in` the given position, with the annotations
-     * the binding gives it.
-     */
-    private fun addParameters(
-        methodBuilder: FunSpec.Builder,
+    /** One bound parameter, with the annotations the binding gives its position. */
+    private fun parameter(
+        parameter: ParameterModel,
         openAPI: OpenAPI,
         classBuilder: TypeSpec.Builder,
-        pathItem: PathItem,
-        operation: Operation,
-        `in`: String,
-        identifier: (String) -> String = CaseUtils::snakeToCamel,
-        annotations: (Parameter, String?) -> List<AnnotationSpec>
-    ) {
-        getParameterStream(pathItem, operation)
-            .filter { parameter: Parameter -> `in`.equals(parameter.getIn(), ignoreCase = true) }
-            .forEach { parameter: Parameter ->
-                val pb = ParameterSpec.builder(
-                    CaseUtils.toIdentifier(identifier(parameter.name)),
-                    parameterType(parameter, openAPI, classBuilder),
-                )
-                annotations(parameter, typeDefiner.effectiveDefault(parameter.schema, openAPI))
-                    .forEach(pb::addAnnotation)
-                methodBuilder.addParameter(pb.build())
-            }
+        binding: KotlinFrameworkBinding
+    ): ParameterSpec {
+        val pb = ParameterSpec.builder(
+            parameter.identifier(),
+            typeDefiner.defineKotlinType(
+                parameter.schema(), openAPI, classBuilder, null, !parameter.present()
+                    || typeDefiner.isNullableType(parameter.schema(), openAPI)
+            ),
+        )
+        when (parameter.`in`()) {
+            ParameterModel.In.PATH -> binding.pathParamAnnotations(parameter)
+            ParameterModel.In.QUERY -> binding.queryParamAnnotations(parameter)
+            ParameterModel.In.HEADER -> binding.headerParamAnnotations(parameter)
+        }.forEach(pb::addAnnotation)
+        return pb.build()
     }
 
     /**
@@ -173,8 +153,9 @@ class KotlinAPIExtractor(
      * does not have yet, and saying so is what lets the user either drop the
      * operation or add it.
      */
-    private fun unsupportedHttpMethod(httpMethod: PathItem.HttpMethod, path: String): String =
-        "Unsupported HTTP method '${httpMethod.name.lowercase(Locale.ROOT)}' at path '$path': " +
+    private fun unsupportedHttpMethod(operation: OperationModel): String =
+        "Unsupported HTTP method '${operation.httpMethod().name.lowercase(Locale.ROOT)}' " +
+            "at path '${operation.path()}': " +
             "hurdy-gurdy generates methods for get, post, put, patch and delete. Remove the " +
             "operation from the specification, or add support for the verb."
 
@@ -188,14 +169,12 @@ class KotlinAPIExtractor(
      * [isNullableParameter] for the same distinction on the way in.
      */
     private fun determineReturnKotlinType(
-        operation: Operation,
+        response: BodyModel?,
         openAPI: OpenAPI,
         parent: TypeSpec.Builder,
         binding: KotlinFrameworkBinding
     ): TypeName =
-        getSuccessfulReply(operation)
-            .stream().asSequence()
-            .flatMap { c: Content -> getContentType(c, openAPI, parent, binding, true) }
+        bodyParameters(response, openAPI, parent, binding)
             .map { it.typeName }
             .firstOrNull() ?: UNIT
 
@@ -206,79 +185,47 @@ class KotlinAPIExtractor(
     )
 
     /**
-     * The request-body parameters of an operation, if it has a body at all.
-     *
-     * The body is non-null only when the operation declares `required: true`:
-     * OpenAPI defaults `requestBody.required` to false, and a body that may be
-     * omitted from the call is exactly a nullable argument.
+     * The parameters a body contributes to the signature: one per part when it is
+     * multipart, otherwise the single `request` parameter — or none at all when
+     * the media type declares no schema.
      */
-    private fun requestBodyParams(
-        operation: Operation,
+    private fun bodyParameters(
+        body: BodyModel?,
         openAPI: OpenAPI,
         parent: TypeSpec.Builder,
         binding: KotlinFrameworkBinding
     ): Sequence<RequestPartParams> {
-        val body = operation.requestBody ?: return sequenceOf()
-        val content = body.content ?: return sequenceOf()
-        return getContentType(content, openAPI, parent, binding, body.required == true)
-    }
-
-    /**
-     * @param required the value is always present — a `required` request body,
-     *                 or a response body. When false the resulting type is
-     *                 nullable whatever the schema says.
-     */
-    private fun getContentType(
-        content: Content,
-        openAPI: OpenAPI,
-        parent: TypeSpec.Builder,
-        binding: KotlinFrameworkBinding,
-        required: Boolean
-    ): Sequence<RequestPartParams> {
-        val mediaTypeEntry = Optional.ofNullable(content)
-            .flatMap { getMediaType(it) }
-        if (mediaTypeEntry.isEmpty) {
+        if (body == null) {
             return sequenceOf()
-        } else {
-            val entry = mediaTypeEntry.get()
-            return if ("multipart/form-data".equals(entry.key, ignoreCase = true)) {
-                //Multipart
-                // A part is present only if the body itself is required AND the
-                // multipart object lists that part in its own `required`.
-                val requiredParts = entry.value.schema?.required?.toSet().orEmpty()
-                entry.value.schema?.properties?.asSequence().orEmpty()
-                    .map { (name, schema) ->
-                        val present = required && name in requiredParts
-                        val nullable = !present || typeDefiner.isNullableType(schema, openAPI)
-                        RequestPartParams(
-                            name = name,
-                            // A binary part, or an array of them, is an uploaded
-                            // file (MultipartFile / FileUpload); other parts
-                            // resolve normally.
-                            typeName = uploadType(schema, openAPI, binding)?.copy(nullable = nullable)
-                                ?: typeDefiner.defineKotlinType(schema, openAPI, parent, null, nullable),
-                            annotation = binding.multipartPartAnnotation(name, present)
-                        )
-                    }
-            } else {
-                //Single-part
-                Optional.ofNullable(entry.value.schema).stream().asSequence()
-                    // A binary single-part body/response is a converter-backed body
-                    // type (Resource / InputStream), not a multipart part.
-                    .map {
-                        val nullable = !required || typeDefiner.isNullableType(it, openAPI)
-                        if (isBinary(it)) binding.binaryBodyType().copy(nullable = nullable)
-                        else typeDefiner.defineKotlinType(it, openAPI, parent, null, nullable)
-                    }
-                    .map {
-                        RequestPartParams(
-                            name = "request",
-                            typeName = it,
-                            annotation = binding.bodyAnnotation(required)
-                        )
-                    }
+        }
+        if (body.multipart()) {
+            return body.parts().asSequence().map { part ->
+                val nullable = !part.present() || typeDefiner.isNullableType(part.schema(), openAPI)
+                RequestPartParams(
+                    name = part.name(),
+                    // A binary part, or an array of them, is an uploaded file
+                    // (MultipartFile / FileUpload); other parts resolve normally.
+                    typeName = uploadType(part.schema(), openAPI, binding)?.copy(nullable = nullable)
+                        ?: typeDefiner.defineKotlinType(part.schema(), openAPI, parent, null, nullable),
+                    annotation = binding.multipartPartAnnotation(part)
+                )
             }
         }
+        return Optional.ofNullable(body.schema()).stream().asSequence()
+            // A binary single-part body/response is a converter-backed body type
+            // (Resource / InputStream), not a multipart part.
+            .map {
+                val nullable = !body.required() || typeDefiner.isNullableType(it, openAPI)
+                if (isBinary(it)) binding.binaryBodyType().copy(nullable = nullable)
+                else typeDefiner.defineKotlinType(it, openAPI, parent, null, nullable)
+            }
+            .map {
+                RequestPartParams(
+                    name = "request",
+                    typeName = it,
+                    annotation = binding.bodyAnnotation(body.required())
+                )
+            }
     }
 
     /** Whether a schema is `type: string, format: binary` (OpenAPI 3.0 or 3.1). */
@@ -332,33 +279,6 @@ class KotlinAPIExtractor(
         return null
     }
 
-    /**
-     * Whether the Kotlin type of `parameter` must admit null.
-     *
-     * A value is nullable when it may be ABSENT, or when its schema says it may
-     * be null — two independent questions, both asked here. A path variable is
-     * part of the URL and so is always present; a query or header parameter is
-     * present when it is `required`, and also when a `default` applies, because
-     * the generator emits that default into the annotation
-     * (`@RequestParam(defaultValue = ...)`, `@RequestHeader(defaultValue = ...)`,
-     * `@DefaultValue`) and the framework substitutes it.
-     *
-     * The default is read with [TypeDefiner.effectiveDefault], the same call the
-     * annotations are built from, so "assumed present" and "default emitted"
-     * cannot drift apart: claiming presence without emitting the default would
-     * hand the caller a non-null parameter that the framework fills with null.
-     */
-    private fun isNullableParameter(parameter: Parameter, openAPI: OpenAPI): Boolean {
-        val present = "path".equals(parameter.getIn(), ignoreCase = true)
-                || parameter.required == true
-                || typeDefiner.effectiveDefault(parameter.schema, openAPI) != null
-        return !present || typeDefiner.isNullableType(parameter.schema, openAPI)
-    }
-
-    private fun parameterType(parameter: Parameter, openAPI: OpenAPI, parent: TypeSpec.Builder): TypeName =
-        typeDefiner.defineKotlinType(
-            parameter.schema, openAPI, parent, null, isNullableParameter(parameter, openAPI)
-        )
 
     private companion object {
         val MP_REGISTER_REST_CLIENT =
