@@ -1131,9 +1131,7 @@ return is that a fix lands once, not three times.
 
 **Still to do in Step 4:**
 
-- **4b — `DtoStyle` strategies.** Five `if (javaDtoStyle == …)` sites in `JavaTypeDefiner`
-  guarding roughly 280 lines of Lombok, POJO and record emission. Splitting them into three
-  strategies is the change that actually breaks up the 800-line class. Java only; low risk.
+- **4c — the `TypeModel` IR** (see below).
 - **4c — the `TypeModel` IR.** The DTO half of the model, and with it F5: type *resolution* and
   type *emission* are still the same call, so `defineJavaType` emits nested enums and inline DTOs
   as a side effect, and `Codegen.addTypeSpec` still appends without deduplication. This is the
@@ -1142,6 +1140,32 @@ return is that a fix lands once, not three times.
 **Deliberately left for 4c:** `JavaTypeDefiner.isNullable` is still a fourth answer to the
 nullability question, asking the current document about a cross-file `$ref` rather than the one
 that declares it. Collapsing it into `isNullableType` is a behaviour change, not a move.
+
+
+### 7.6 Step 4b, as executed
+
+Output-identical: 430 tests, no snapshot touched.
+
+`JavaClassMembers` now carries the difference between the two class styles, behind three hooks —
+what the class is annotated with, what the `additionalProperties` field is annotated with, and what
+members follow the fields. `JavaLombokMembers` answers the first two and nothing else, because
+`@Data` writes the rest; `JavaPojoMembers` writes out every accessor plus
+equals/hashCode/toString. Neither touches a `Schema`: they take builders and field specs, which is
+why this seam survives 4c untouched.
+
+Scattered style tests in `JavaTypeDefiner`: **5 → 1**. What is left is the records-versus-class
+dispatch, which is a choice of shape rather than a branch on style, plus the one line that picks the
+strategy. `JavaTypeDefiner` is down from 828 code lines to 629, and no longer imports Lombok at
+all.
+
+**The records path was deliberately not extracted.** It is the other large block — `buildRecordDto`
+through `permittedSubtypes`, about 226 lines — but unlike the class members it is soaked in schema
+reading: moving it now would mean widening nine private members of `JavaTypeDefiner`
+(`defineJavaType`, `ancestorInterfaces`, `discriminatorTypeInfo`,
+`addOneOfDeductionAnnotations`, `referencedClassName`, `ensureJsonZonedDateTimeDeserializer`,
+`checkPropertyName`, `jsonNameOverride`, `params`) into an implicit interface that exists only to
+serve the emitter — and 4c removes the need for all of it by handing the emitter a `TypeModel`
+instead of a `Schema`. Same reasoning that deferred `TypeRef` out of step 3.
 
 ---
 

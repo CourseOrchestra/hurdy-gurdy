@@ -44,9 +44,6 @@ import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.time.DateTimeException;
@@ -85,9 +82,11 @@ import static ru.curs.hurdygurdy.SchemaSemantics.polymorphicMembers;
 
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
+    private final JavaClassMembers classMembers;
 
     public JavaTypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
         super(params, typeSpecBiConsumer);
+        this.classMembers = JavaClassMembers.of(params.getJavaDtoStyle());
     }
 
     private String getInternalType(Schema<?> schema) {
@@ -363,18 +362,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         } else {
             classBuilder = TypeSpec.classBuilder(name)
                     .superclass(baseClass);
-            if (params.getJavaDtoStyle() == JavaDtoStyle.LOMBOK) {
-                classBuilder.addAnnotation(Data.class);
-                // @Data's implicit @EqualsAndHashCode is callSuper = false, so a
-                // subtype would silently drop inherited fields from equals/hashCode
-                // (two subtypes differing only in an inherited field would compare
-                // equal). Base/standalone classes (superclass Object) keep plain
-                // @Data — callSuper there would wrongly mix in Object's identity.
-                if (hasParent) {
-                    classBuilder.addAnnotation(AnnotationSpec.builder(EqualsAndHashCode.class)
-                            .addMember("callSuper", "$L", true).build());
-                }
-            }
+            classMembers.decorateClass(classBuilder, hasParent);
         }
         classBuilder.addModifiers(Modifier.PUBLIC);
         if (params.isForceSnakeCaseForProperties()) {
@@ -418,8 +406,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         //Dictionary support
         addAdditionalPropertiesField(schema, openAPI, classBuilder);
 
-        if (isPojoClassSchema(schema)) {
-            addPojoMembers(classBuilder, hasParent);
+        // A polymorphic container is an interface and has no fields of its own.
+        if (!isPolymorphicInterface(schema)) {
+            classMembers.addMembers(classBuilder, hasParent);
         }
         return classBuilder.build();
     }
@@ -802,136 +791,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         FieldSpec.Builder fieldSpecBuilder = FieldSpec.builder(mapType,
                         "additionalProperties", Modifier.PRIVATE)
                 .initializer("new $T<>()", HashMap.class);
-        if (params.getJavaDtoStyle() == JavaDtoStyle.LOMBOK) {
-            fieldSpecBuilder.addAnnotation(JsonAnySetter.class)
-                    .addAnnotation(AnnotationSpec.builder(Getter.class)
-                            .addMember("onMethod_", "@$T", JsonAnyGetter.class).build());
-        } else if (params.getJavaDtoStyle() == JavaDtoStyle.POJO) {
-            // POJO: annotate the FIELD with @JsonAnySetter (like LOMBOK). Jackson
-            // does NOT treat a single-Map-parameter setter that also matches the
-            // setXxx bean convention as a catch-all on readValue, so the explicit
-            // setter (added by addPojoMembers) must NOT carry @JsonAnySetter or
-            // unknown properties are dropped on deserialization. @JsonAnyGetter
-            // stays on the explicit getter.
-            fieldSpecBuilder.addAnnotation(JsonAnySetter.class);
-        }
+        classMembers.decorateAdditionalProperties(fieldSpecBuilder);
         classBuilder.addField(fieldSpecBuilder.build());
-    }
-
-    /**
-     * Whether {@code schema} should get explicit POJO accessors and value
-     * methods: the style is {@link JavaDtoStyle#POJO} and this is a class
-     * (not a {@code oneOf}/{@code anyOf} interface, which has no fields of its own).
-     */
-    private boolean isPojoClassSchema(Schema<?> schema) {
-        return params.getJavaDtoStyle() == JavaDtoStyle.POJO
-                && !isPolymorphicInterface(schema);
-    }
-
-    /**
-     * Emits JavaBean getters/setters plus value-semantic equals/hashCode/toString
-     * for every declared field of a POJO-style DTO. {@code equals}/{@code hashCode}
-     * chain {@code super} when the class extends a generated parent
-     * ({@code hasParent}), so inherited fields participate; {@code toString} covers
-     * own fields only (matching Lombok {@code @Data}'s toString default).
-     */
-    private void addPojoMembers(TypeSpec.Builder classBuilder, boolean hasParent) {
-        TypeSpec built = classBuilder.build();
-        List<FieldSpec> fields = built.fieldSpecs().stream()
-                .filter(f -> f.modifiers().contains(Modifier.PRIVATE)
-                        && !f.modifiers().contains(Modifier.STATIC))
-                .toList();
-        for (FieldSpec field : fields) {
-            String capital = CaseUtils.snakeToCamel(field.name(), true);
-            boolean isAdditionalProperties = "additionalProperties".equals(field.name());
-            MethodSpec.Builder getter = MethodSpec.methodBuilder("get" + capital)
-                    .addModifiers(Modifier.PUBLIC)
-                    .returns(field.type())
-                    .addStatement("return this.$N", field.name());
-            if (isAdditionalProperties) {
-                getter.addAnnotation(JsonAnyGetter.class);
-            }
-            classBuilder.addMethod(getter.build());
-            MethodSpec.Builder setter = MethodSpec.methodBuilder("set" + capital)
-                    .addModifiers(Modifier.PUBLIC)
-                    .addParameter(field.type(), field.name())
-                    .addStatement("this.$N = $N", field.name(), field.name());
-            // The additionalProperties setter is deliberately left un-annotated:
-            // @JsonAnySetter sits on the field (see addAdditionalPropertiesField)
-            // because Jackson ignores a setXxx-named single-Map @JsonAnySetter on
-            // readValue, which would drop unknown properties on deserialization.
-            classBuilder.addMethod(setter.build());
-        }
-        addValueMethods(classBuilder, fields, hasParent);
-    }
-
-    private void addValueMethods(TypeSpec.Builder classBuilder, List<FieldSpec> fields, boolean hasParent) {
-        // equals
-        MethodSpec.Builder equals = MethodSpec.methodBuilder("equals")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .returns(TypeName.BOOLEAN)
-                .addParameter(Object.class, "o")
-                .addStatement("if (this == o) return true")
-                .addStatement("if (o == null || getClass() != o.getClass()) return false");
-        String cast = classBuilder.build().name();
-        // Fold in the parent's fields: the getClass() check above guarantees o is
-        // the same concrete type, so super's own getClass() check passes too.
-        if (hasParent) {
-            equals.addStatement("if (!super.equals(o)) return false");
-        }
-        if (fields.isEmpty()) {
-            equals.addStatement("return true");
-        } else {
-            equals.addStatement("$L that = ($L) o", cast, cast);
-            // Field names go through $N rather than into the format string: a
-            // property legitimately named `$name` would otherwise have its `$n`
-            // read back as a JavaPoet placeholder and blow up the format.
-            String cond = fields.stream()
-                    .map(f -> "$T.equals($N, that.$N)")
-                    .collect(java.util.stream.Collectors.joining("\n    && "));
-            List<Object> equalsArgs = new ArrayList<>();
-            for (FieldSpec field : fields) {
-                equalsArgs.add(Objects.class);
-                equalsArgs.add(field);
-                equalsArgs.add(field);
-            }
-            equals.addStatement("return " + cond, equalsArgs.toArray());
-        }
-        classBuilder.addMethod(equals.build());
-        // hashCode: seed with super.hashCode() so inherited fields contribute.
-        String names = fields.stream().map(FieldSpec::name)
-                .collect(java.util.stream.Collectors.joining(", "));
-        if (hasParent) {
-            names = names.isEmpty() ? "super.hashCode()" : "super.hashCode(), " + names;
-        }
-        classBuilder.addMethod(MethodSpec.methodBuilder("hashCode")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .returns(TypeName.INT)
-                .addStatement("return $T.hash($L)", Objects.class, names)
-                .build());
-        // toString
-        MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .returns(String.class);
-        // Built as a $S/$N-interleaved format so each field value is emitted
-        // via a real "+" concatenation at runtime, not baked into a single
-        // escaped string literal (which $S alone over the whole body would do).
-        StringBuilder format = new StringBuilder("return $S");
-        List<Object> args = new ArrayList<>();
-        args.add(cast + "{");
-        for (int i = 0; i < fields.size(); i++) {
-            FieldSpec field = fields.get(i);
-            format.append(" + $S + $N");
-            args.add((i == 0 ? "" : ", ") + field.name() + "=");
-            args.add(field.name());
-        }
-        format.append(" + $S");
-        args.add("}");
-        toString.addStatement(format.toString(), args.toArray());
-        classBuilder.addMethod(toString.build());
     }
 
     private void addPropertyField(String key, Schema<?> value, OpenAPI openAPI,
