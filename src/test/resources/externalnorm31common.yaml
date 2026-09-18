@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: "Linked 3.1 components needing normalization (hurdy-gurdy#621 review)"
+  version: "0.1"
+
+paths:
+
+x-package: com.external
+
+components:
+  schemas:
+    # `null` among the enum values is the 2020-12 way of saying the value may be
+    # null. Recognising that is a normalization step, so a linked document has
+    # to be normalized too or this reads as a plain two-value enum.
+    Colour:
+      type: string
+      enum: [RED, GREEN, null]

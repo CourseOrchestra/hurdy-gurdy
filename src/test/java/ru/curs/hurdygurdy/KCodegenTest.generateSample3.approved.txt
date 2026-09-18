@@ -33,7 +33,7 @@ public interface AdminController {
     value = ["/api/v1/admin/user"],
     produces = ["application/json"],
   )
-  public fun create(@RequestBody request: CreateUpdateUserRequest, response: HttpServletResponse): UserResponse
+  public fun create(@RequestBody(required = false) request: CreateUpdateUserRequest?, response: HttpServletResponse): UserResponse
 
   @GetMapping(
     value = ["/api/v1/admin/user/{id}"],
@@ -46,7 +46,7 @@ public interface AdminController {
     produces = ["application/json"],
   )
   public fun update(
-    @RequestBody request: CreateUpdateUserRequest,
+    @RequestBody(required = false) request: CreateUpdateUserRequest?,
     @PathVariable(name = "id") id: Long,
     response: HttpServletResponse,
   ): UserResponse

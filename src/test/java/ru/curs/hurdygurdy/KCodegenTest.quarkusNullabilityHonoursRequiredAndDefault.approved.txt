@@ -1,0 +1,195 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.kt
+package com.example.controller
+
+import com.example.dto.ItemRequest
+import com.example.dto.ItemResponse
+import com.example.dto.NullableItem
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
+import jakarta.ws.rs.DefaultValue
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
+
+@Path("")
+@RegisterRestClient
+public interface Client {
+  @PUT
+  @Path("/items/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  public fun updateItem(
+    request: ItemRequest,
+    @PathParam("id") id: Long,
+    @QueryParam("code") code: String?,
+    @QueryParam("force") @DefaultValue("false") force: Boolean,
+    @QueryParam("reason") reason: String,
+    @QueryParam("note") note: String?,
+    @HeaderParam("X-Trace-Id") `x-TraceId`: String,
+    @HeaderParam("X-Correlation-Id") `x-CorrelationId`: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items")
+  @Produces("application/json")
+  public fun listItems(): List<ItemResponse>
+
+  @POST
+  @Path("/items")
+  @Produces("application/json")
+  @Consumes("application/json")
+  public fun createItem(request: ItemRequest?): ItemResponse
+
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun uploadItem(
+    @RestForm("file") `file`: FileUpload,
+    @RestForm("meta") meta: ItemRequest,
+    @RestForm("comment") comment: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  public fun headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") `x-PageSize`: Int, @HeaderParam("X-Plain") `x-Plain`: String?): ItemResponse
+
+  @GET
+  @Path("/items/nullable")
+  @Produces("application/json")
+  public fun findItem(): NullableItem?
+
+  @DELETE
+  @Path("/items/nothing")
+  public fun deleteItem()
+}
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.example.dto.ItemRequest
+import com.example.dto.ItemResponse
+import com.example.dto.NullableItem
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
+import jakarta.ws.rs.DefaultValue
+import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.collections.List
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
+
+@Path("")
+public interface Controller {
+  @PUT
+  @Path("/items/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  public fun updateItem(
+    request: ItemRequest,
+    @PathParam("id") id: Long,
+    @QueryParam("code") code: String?,
+    @QueryParam("force") @DefaultValue("false") force: Boolean,
+    @QueryParam("reason") reason: String,
+    @QueryParam("note") note: String?,
+    @HeaderParam("X-Trace-Id") `x-TraceId`: String,
+    @HeaderParam("X-Correlation-Id") `x-CorrelationId`: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items")
+  @Produces("application/json")
+  public fun listItems(): List<ItemResponse>
+
+  @POST
+  @Path("/items")
+  @Produces("application/json")
+  @Consumes("application/json")
+  public fun createItem(request: ItemRequest?): ItemResponse
+
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun uploadItem(
+    @RestForm("file") `file`: FileUpload,
+    @RestForm("meta") meta: ItemRequest,
+    @RestForm("comment") comment: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  public fun headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") `x-PageSize`: Int, @HeaderParam("X-Plain") `x-Plain`: String?): ItemResponse
+
+  @GET
+  @Path("/items/nullable")
+  @Produces("application/json")
+  public fun findItem(): NullableItem?
+
+  @DELETE
+  @Path("/items/nothing")
+  public fun deleteItem()
+}
+---
+/com/example/dto
+---
+/com/example/dto/ItemRequest.kt
+package com.example.dto
+
+import kotlin.String
+
+public data class ItemRequest(
+  public val name: String? = null,
+)
+---
+/com/example/dto/ItemResponse.kt
+package com.example.dto
+
+import kotlin.Long
+
+public data class ItemResponse(
+  public val id: Long? = null,
+)
+---
+/com/example/dto/NullableItem.kt
+package com.example.dto
+
+import kotlin.Long
+
+public data class NullableItem(
+  public val id: Long? = null,
+)

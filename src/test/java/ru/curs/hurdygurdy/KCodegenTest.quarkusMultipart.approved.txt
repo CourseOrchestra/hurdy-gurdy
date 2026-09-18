@@ -28,7 +28,7 @@ public interface Controller {
   @Path("/api/v1/workflow-run")
   @Produces("application/json")
   @Consumes("multipart/form-data")
-  public fun runWorkflow(@RestForm("runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest, @RestForm("config") config: FileUpload?): Response
+  public fun runWorkflow(@RestForm("runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest?, @RestForm("config") config: FileUpload?): Response
 }
 ---
 /com/example/dto

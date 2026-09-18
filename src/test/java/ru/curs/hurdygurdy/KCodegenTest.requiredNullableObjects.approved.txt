@@ -19,7 +19,7 @@ public interface Controller {
     value = ["/api/v1/hello"],
     produces = ["*/*"],
   )
-  public fun hello(response: HttpServletResponse): Double?
+  public fun hello(response: HttpServletResponse): Double
 }
 ---
 /com/example/dto

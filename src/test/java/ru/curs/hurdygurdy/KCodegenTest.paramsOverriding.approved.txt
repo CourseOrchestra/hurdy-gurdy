@@ -23,11 +23,11 @@ public interface Controller {
     produces = ["application/json"],
   )
   public fun adminCustomFieldSettingsBundlesBuildIdValuesBuildBundleElementIdGet(
-    @PathVariable(name = "id") id: String?,
-    @PathVariable(name = "buildBundleElementId") buildBundleElementId: String?,
+    @PathVariable(name = "id") id: String,
+    @PathVariable(name = "buildBundleElementId") buildBundleElementId: String,
     @RequestParam(required = false, name = "fields") fields: String?,
     response: HttpServletResponse,
-  ): BuildBundleElement?
+  ): BuildBundleElement
 }
 ---
 /com/example/dto

@@ -18,7 +18,7 @@ public interface Controller {
     value = ["/api/v1/hello"],
     produces = ["*/*"],
   )
-  public fun hello(): String?
+  public fun hello(): String
 }
 ---
 /com/example/dto

@@ -20,5 +20,5 @@ public interface Controller {
     value = ["/upload"],
     consumes = ["application/octet-stream"],
   )
-  public fun upload(@RequestBody request: Resource?, response: HttpServletResponse)
+  public fun upload(@RequestBody(required = false) request: Resource?, response: HttpServletResponse)
 }

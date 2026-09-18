@@ -1,0 +1,30 @@
+openapi: 3.0.1
+info:
+  title: "Externally linked components (hurdy-gurdy#621 review)"
+  version: "0.1"
+
+paths:
+
+x-package: com.external
+
+components:
+  schemas:
+    # Declares itself nullable. A required position referencing this from
+    # another file must still come out nullable: the question has to be asked
+    # of THIS document, not of the one doing the referencing.
+    NullableThing:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+    # Declares nothing, so it is not nullable.
+    PlainThing:
+      type: object
+      properties:
+        id:
+          type: string
+    # Carries a default, which a referencing parameter must pick up.
+    PageSize:
+      type: integer
+      default: 20

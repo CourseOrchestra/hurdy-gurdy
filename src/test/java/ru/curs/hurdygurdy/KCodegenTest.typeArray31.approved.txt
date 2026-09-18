@@ -31,16 +31,16 @@ public interface Controller {
     produces = ["application/json"],
   )
   public fun getSample(
-    @PathVariable(name = "sample_id") sampleId: String?,
+    @PathVariable(name = "sample_id") sampleId: String,
     @RequestParam(required = false, name = "page") page: Int?,
     response: HttpServletResponse,
-  ): Sample?
+  ): Sample
 
   @PostMapping(
     value = ["/api/v1/sample/{sample_id}"],
     produces = ["application/json"],
   )
-  public fun putSample(@RequestBody request: SampleUpdate?, response: HttpServletResponse): List<Sample>?
+  public fun putSample(@RequestBody(required = false) request: SampleUpdate?, response: HttpServletResponse): List<Sample>?
 
   @GetMapping(
     value = ["/api/v1/sample/count"],
@@ -49,7 +49,7 @@ public interface Controller {
   public fun getCount(response: HttpServletResponse): Int?
 
   @PutMapping(value = ["/api/v1/sample/count"])
-  public fun setFlag(@RequestBody request: Boolean?, response: HttpServletResponse)
+  public fun setFlag(@RequestBody(required = false) request: Boolean?, response: HttpServletResponse)
 
   @PatchMapping(
     value = ["/api/v1/sample/count"],

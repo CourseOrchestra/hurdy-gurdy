@@ -33,10 +33,10 @@ public interface Client {
   @POST
   @Path("/api/v1/activity")
   @Consumes("application/json")
-  public fun syncPlayerActivities(request: PlayerActivitiesDTO?): Response
+  public fun syncPlayerActivities(request: PlayerActivitiesDTO): Response
 
   /**
-   * @return a Response whose entity is expected to be kotlin.String?
+   * @return a Response whose entity is expected to be kotlin.String
    */
   @GET
   @Path("/api/v1/hello")
@@ -44,16 +44,16 @@ public interface Client {
   public fun hello(): Response
 
   /**
-   * @return a Response whose entity is expected to be kotlin.String?
+   * @return a Response whose entity is expected to be kotlin.String
    */
   @GET
   @Path("/api/v1/hello/{id}")
   @Produces("*/*")
   public fun hello(
-    @PathParam("id") id: Int?,
+    @PathParam("id") id: Int,
     @QueryParam("foo") foo: String?,
-    @QueryParam("bar") bar: Int?,
-    @HeaderParam("baz") baz: String?,
+    @QueryParam("bar") bar: Int,
+    @HeaderParam("baz") baz: String,
   ): Response
 }
 ---
@@ -83,10 +83,10 @@ public interface Controller {
   @POST
   @Path("/api/v1/activity")
   @Consumes("application/json")
-  public fun syncPlayerActivities(request: PlayerActivitiesDTO?): Response
+  public fun syncPlayerActivities(request: PlayerActivitiesDTO): Response
 
   /**
-   * @return a Response whose entity is expected to be kotlin.String?
+   * @return a Response whose entity is expected to be kotlin.String
    */
   @GET
   @Path("/api/v1/hello")
@@ -94,16 +94,16 @@ public interface Controller {
   public fun hello(@Context requestContext: ContainerRequestContext): Response
 
   /**
-   * @return a Response whose entity is expected to be kotlin.String?
+   * @return a Response whose entity is expected to be kotlin.String
    */
   @GET
   @Path("/api/v1/hello/{id}")
   @Produces("*/*")
   public fun hello(
-    @PathParam("id") id: Int?,
+    @PathParam("id") id: Int,
     @QueryParam("foo") foo: String?,
-    @QueryParam("bar") bar: Int?,
-    @HeaderParam("baz") baz: String?,
+    @QueryParam("bar") bar: Int,
+    @HeaderParam("baz") baz: String,
   ): Response
 }
 ---
@@ -126,7 +126,7 @@ public interface PlayerClient {
   @POST
   @Path("/api/v1/players")
   @Consumes("application/json")
-  public fun syncPlayers(request: PlayersDTO?): Response
+  public fun syncPlayers(request: PlayersDTO): Response
 }
 ---
 /com/example/controller/PlayerController.kt
@@ -146,7 +146,7 @@ public interface PlayerController {
   @POST
   @Path("/api/v1/players")
   @Consumes("application/json")
-  public fun syncPlayers(request: PlayersDTO?): Response
+  public fun syncPlayers(request: PlayersDTO): Response
 }
 ---
 /com/example/dto

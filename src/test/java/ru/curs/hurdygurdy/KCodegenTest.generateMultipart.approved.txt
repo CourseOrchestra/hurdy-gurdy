@@ -23,8 +23,8 @@ public interface Controller {
     consumes = ["multipart/form-data"],
   )
   public fun runWorkflow(
-    @RequestPart(name = "runWorkflowRequest") runWorkflowRequest: RunWorkflowRequest,
-    @RequestPart(name = "config") config: MultipartFile?,
+    @RequestPart(name = "runWorkflowRequest", required = false) runWorkflowRequest: RunWorkflowRequest?,
+    @RequestPart(name = "config", required = false) config: MultipartFile?,
     response: HttpServletResponse,
   ): RunWorkflowRequest
 }

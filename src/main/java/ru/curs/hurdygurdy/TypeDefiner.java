@@ -23,7 +23,6 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,6 +70,8 @@ public abstract class TypeDefiner<T> {
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
+    private final Map<String, OpenAPI> externalDocuments = new HashMap<>();
+    private Consumer<String> warningListener = message -> { };
     private final Set<String> aliasesBeingInlined = new HashSet<>();
     private Path sourceFile;
 
@@ -315,9 +317,11 @@ public abstract class TypeDefiner<T> {
         throw new IllegalStateException();
     }
 
-    void init(Path currentSourceFile) {
+    void init(Path currentSourceFile, Consumer<String> listener) {
         this.sourceFile = currentSourceFile;
+        this.warningListener = listener;
         externalClasses.clear();
+        externalDocuments.clear();
         aliasesBeingInlined.clear();
     }
 
@@ -333,24 +337,56 @@ public abstract class TypeDefiner<T> {
                     getNullable(currentOpenAPI, className, true));
         } else {
             return externalClasses.computeIfAbsent(ref, f -> {
-                ParseOptions parseOptions = new ParseOptions();
-                Path externalFile = sourceFile.resolveSibling(fileName);
-                try {
-                    final SwaggerParseResult parseResult = new OpenAPIParser()
-                            .readContents(Files.readString(externalFile), null, parseOptions);
-                    OpenAPI openAPI = parseResult.getOpenAPI();
-                    String packageName = Optional.ofNullable(openAPI.getExtensions())
-                            .map(e -> e.get("x-package"))
-                            .map(String.class::cast)
-                            .orElseThrow(() -> new IllegalStateException(
-                                    String.format(
-                                            "x-package not defined for externally linked file %s ", externalFile)));
-                    return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                }
+                OpenAPI openAPI = definingDocument(currentOpenAPI, ref);
+                String packageName = Optional.ofNullable(openAPI.getExtensions())
+                        .map(e -> e.get("x-package"))
+                        .map(String.class::cast)
+                        .orElseThrow(() -> new IllegalStateException(
+                                String.format("x-package not defined for externally linked file %s ",
+                                        sourceFile.resolveSibling(fileName))));
+                return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
             });
         }
+    }
+
+    /**
+     * The document that defines what {@code ref} points at: the current one for
+     * a same-file reference, or the linked file, parsed once and cached.
+     *
+     * <p>Every question about a referenced component — is it nullable, does it
+     * carry a default, is it an enum — has to be asked of the document that
+     * declares it. Asking the current document about {@code other.yaml#/...}
+     * finds nothing and quietly returns the caller's default, which reads as
+     * "the component says nothing" when in truth it was never consulted.
+     */
+    private OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
+        Matcher matcher = FILE_NAME_PATTERN.matcher(ref);
+        String fileName = matcher.find() ? matcher.group(1) : "";
+        if (fileName.isBlank()) {
+            return currentOpenAPI;
+        }
+        return externalDocuments.computeIfAbsent(fileName, name -> {
+            Path externalFile = sourceFile.resolveSibling(name);
+            try {
+                OpenAPI parsed = new OpenAPIParser()
+                        .readContents(Files.readString(externalFile), null, new ParseOptions())
+                        .getOpenAPI();
+                if (parsed == null) {
+                    throw new IllegalStateException(
+                            String.format("Could not parse externally linked file %s", externalFile));
+                }
+                // The same normalization the root document gets in Codegen.parse.
+                // Without it a schema would mean different things depending on
+                // which file it lives in: a 3.1 `enum: [RED, GREEN, null]`
+                // component is nullable once normalized, and merely a
+                // two-value enum when read raw through a link.
+                SchemaNormalizer.normalize(parsed, message ->
+                        warningListener.accept(String.format("%s [linked file %s]", message, name)));
+                return parsed;
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
     }
 
     protected boolean getNullable(OpenAPI currentOpenAPI, String className, Boolean defaultValue) {
@@ -363,6 +399,71 @@ public abstract class TypeDefiner<T> {
             return true;
         }
         return schema == null || schema.getNullable() == null ? defaultValue : schema.getNullable();
+    }
+
+    /**
+     * Whether a schema used as a parameter, request-body or response type says
+     * of itself that it admits {@code null} — {@code nullable: true}, a 3.1
+     * {@code "null"} among its types, or the {@code anyOf: [X, null]} wrapper;
+     * for a {@code $ref} the question is asked of the referenced component
+     * schema (which, declaring nothing, is NOT nullable).
+     *
+     * <p>Deliberately separate from whether the value may be <em>absent</em> —
+     * an optional parameter, a request body that is not {@code required}. A
+     * Kotlin type is nullable when either holds, and the two are decided by
+     * different parts of the document, so they are asked separately. Absence is
+     * why a {@code $ref} <em>property</em> defaults to nullable while a list
+     * <em>element</em> does not: the property may be left out, the element
+     * cannot. Both ask this method the null question and answer the absence
+     * question themselves.
+     *
+     * <p>This is the single answer to that question, for every position —
+     * property, array element, parameter, request body, response. It used to be
+     * asked in three slightly different ways, and that disagreement is what
+     * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/620">issue 620</a>
+     * surfaced; keep it here rather than growing a fourth copy.
+     *
+     * <p>In OpenAPI 3.0 a {@code $ref} can only ever be answered for by the
+     * component it names, never at the point of use: 3.0 ignores keywords
+     * written beside a {@code $ref}, so {@code {$ref: X, nullable: false}} says
+     * nothing at all. A 3.1 document states it at the site instead, with
+     * {@code anyOf: [{$ref: X}, {type: "null"}]}.
+     *
+     * @see StrayNullableCheck
+     */
+    final boolean isNullableType(Schema<?> schema, OpenAPI openAPI) {
+        if (schema == null) {
+            return false;
+        }
+        String ref = schema.get$ref();
+        if (ref == null) {
+            return isNullableSchema(schema);
+        }
+        return getNullable(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN), false);
+    }
+
+    /**
+     * The default value that applies to {@code schema}: its own, or — for a
+     * {@code $ref} — the one the referenced component declares. Null when
+     * neither does.
+     *
+     * <p>A parameter with a default is never absent from the handler's point of
+     * view, because the generator emits that default into the annotation
+     * ({@code @RequestParam(defaultValue = ...)}, {@code @DefaultValue}) and the
+     * framework substitutes it. The two must be decided from the same answer, so
+     * both the annotation and the nullability read this method.
+     */
+    final String effectiveDefault(Schema<?> schema, OpenAPI openAPI) {
+        if (schema == null) {
+            return null;
+        }
+        if (schema.getDefault() != null) {
+            return schema.getDefault().toString();
+        }
+        String ref = schema.get$ref();
+        return ref == null
+                ? null
+                : getDefault(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN));
     }
 
     protected String getDefault(OpenAPI currentOpenAPI, String className) {

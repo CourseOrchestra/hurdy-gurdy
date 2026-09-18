@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: "A linked document is normalized like the root one (hurdy-gurdy#621 review)"
+  description: |
+    The two operations below are the same schema written twice, once locally and
+    once in a linked file. They must generate the same nullability: anything
+    else means a schema's meaning depends on which file it happens to live in.
+  version: "0.1"
+
+paths:
+  /local:
+    post:
+      operationId: viaLocal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocalColour'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalColour'
+  /linked:
+    post:
+      operationId: viaLinked
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'externalnorm31common.yaml#/components/schemas/Colour'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: 'externalnorm31common.yaml#/components/schemas/Colour'
+
+components:
+  schemas:
+    LocalColour:
+      type: string
+      enum: [RED, GREEN, null]

@@ -1,0 +1,40 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.kt
+package com.example.controller
+
+import com.`external`.dto.Colour
+import com.example.dto.LocalColour
+import org.springframework.web.bind.`annotation`.PostMapping
+import org.springframework.web.bind.`annotation`.RequestBody
+
+public interface Controller {
+  @PostMapping(
+    value = ["/local"],
+    produces = ["application/json"],
+  )
+  public fun viaLocal(@RequestBody request: LocalColour?): LocalColour?
+
+  @PostMapping(
+    value = ["/linked"],
+    produces = ["application/json"],
+  )
+  public fun viaLinked(@RequestBody request: Colour?): Colour?
+}
+---
+/com/example/dto
+---
+/com/example/dto/LocalColour.kt
+package com.example.dto
+
+public enum class LocalColour {
+  RED,
+  GREEN,
+}

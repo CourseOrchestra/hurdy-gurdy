@@ -111,7 +111,7 @@ public abstract class Codegen<T> {
         if (!Files.isDirectory(resultDirectory)) throw new IllegalArgumentException(
                 String.format("File %s is not a directory", resultDirectory));
 
-        typeDefiner.init(sourceFile);
+        typeDefiner.init(sourceFile, warningListener);
         typeSpecExtractors.forEach(e -> e.extractTypeSpecs(openAPI, this::addTypeSpec));
         generate(resultDirectory);
     }

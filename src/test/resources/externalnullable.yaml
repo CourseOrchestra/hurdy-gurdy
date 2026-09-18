@@ -1,0 +1,63 @@
+openapi: 3.0.1
+info:
+  title: "Nullability and defaults across a file boundary (hurdy-gurdy#621 review)"
+  description: |
+    Every question about a referenced component — is it nullable, does it carry
+    a default — must be answered by the document that declares it. Looking the
+    class name up in the referencing document finds nothing and silently falls
+    back to "says nothing", which is how a required position referencing an
+    externally declared `nullable: true` component came out non-null.
+  version: "0.1"
+
+paths:
+  /a:
+    post:
+      operationId: postNullable
+      # Required body, but the external component declares itself nullable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'externalnullablecommon.yaml#/components/schemas/NullableThing'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: 'externalnullablecommon.yaml#/components/schemas/NullableThing'
+  /b:
+    get:
+      operationId: getPlain
+      # The external component declares nothing, so this stays non-null.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: 'externalnullablecommon.yaml#/components/schemas/PlainThing'
+  /c:
+    get:
+      operationId: getWithExternalDefaults
+      parameters:
+        # The default lives in the other file; it must reach the annotation,
+        # which is what makes the non-null type honest.
+        - name: size
+          in: query
+          schema:
+            $ref: 'externalnullablecommon.yaml#/components/schemas/PageSize'
+        - name: X-Page-Size
+          in: header
+          schema:
+            $ref: 'externalnullablecommon.yaml#/components/schemas/PageSize'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'externalnullablecommon.yaml#/components/schemas/NullableThing'

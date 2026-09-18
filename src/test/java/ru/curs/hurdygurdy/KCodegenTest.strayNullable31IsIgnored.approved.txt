@@ -21,7 +21,7 @@ public interface Controller {
     value = ["/api/v1/thing"],
     produces = ["application/json"],
   )
-  public fun getThing(@RequestParam(required = false, name = "filter") filter: String?, response: HttpServletResponse): Thing?
+  public fun getThing(@RequestParam(required = false, name = "filter") filter: String?, response: HttpServletResponse): Thing
 }
 ---
 /com/example/dto
