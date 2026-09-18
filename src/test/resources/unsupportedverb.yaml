@@ -1,0 +1,26 @@
+openapi: 3.0.1
+info:
+  title: "An operation whose HTTP verb the generator does not support"
+  description: |
+    hurdy-gurdy maps get, post, put, patch and delete. A verb it cannot map has
+    no annotation to emit, and a method without one compiles perfectly well and
+    is simply never routed — so generation stops instead, naming the offending
+    operation. Supporting the verb is a missing feature, not a degraded mode.
+  version: "0.1"
+
+paths:
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+    options:
+      operationId: itemOptions
+      responses:
+        "204":
+          description: no content

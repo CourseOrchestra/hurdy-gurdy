@@ -31,76 +31,35 @@ import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 
 import javax.lang.model.element.Modifier;
 
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
 
+/**
+ * Generates one Java interface per OpenAPI tag, with one method per operation.
+ *
+ * <p>There is a single method-building algorithm here; everything that changes
+ * between Spring, the Spring HTTP interface and Quarkus is supplied by a
+ * {@link JavaFrameworkBinding}. It used to be three copies of that algorithm,
+ * one per dialect, which is how they came to disagree about things that are not
+ * dialect at all — see {@code ApiParityTest}.
+ */
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 
-    private static final ClassName JAXRS_PATH = ClassName.get("jakarta.ws.rs", "Path");
-    private static final ClassName JAXRS_GET = ClassName.get("jakarta.ws.rs", "GET");
-    private static final ClassName JAXRS_POST = ClassName.get("jakarta.ws.rs", "POST");
-    private static final ClassName JAXRS_PUT = ClassName.get("jakarta.ws.rs", "PUT");
-    private static final ClassName JAXRS_PATCH = ClassName.get("jakarta.ws.rs", "PATCH");
-    private static final ClassName JAXRS_DELETE = ClassName.get("jakarta.ws.rs", "DELETE");
-    private static final ClassName JAXRS_PRODUCES = ClassName.get("jakarta.ws.rs", "Produces");
-    private static final ClassName JAXRS_CONSUMES = ClassName.get("jakarta.ws.rs", "Consumes");
-    private static final ClassName JAXRS_PATH_PARAM = ClassName.get("jakarta.ws.rs", "PathParam");
-    private static final ClassName JAXRS_QUERY_PARAM = ClassName.get("jakarta.ws.rs", "QueryParam");
-    private static final ClassName JAXRS_DEFAULT_VALUE = ClassName.get("jakarta.ws.rs", "DefaultValue");
-    private static final ClassName JAXRS_HEADER_PARAM = ClassName.get("jakarta.ws.rs", "HeaderParam");
-    private static final ClassName JAXRS_CONTEXT = ClassName.get("jakarta.ws.rs.core", "Context");
-    private static final ClassName JAXRS_RESPONSE = ClassName.get("jakarta.ws.rs.core", "Response");
-    private static final ClassName JAXRS_REQUEST_CONTEXT =
-            ClassName.get("jakarta.ws.rs.container", "ContainerRequestContext");
-    private static final ClassName QUARKUS_REST_FORM =
-            ClassName.get("org.jboss.resteasy.reactive", "RestForm");
     private static final ClassName MP_REGISTER_REST_CLIENT =
             ClassName.get("org.eclipse.microprofile.rest.client.inject", "RegisterRestClient");
-    private static final ClassName SPRING_GET_EXCHANGE =
-            ClassName.get("org.springframework.web.service.annotation", "GetExchange");
-    private static final ClassName SPRING_POST_EXCHANGE =
-            ClassName.get("org.springframework.web.service.annotation", "PostExchange");
-    private static final ClassName SPRING_PUT_EXCHANGE =
-            ClassName.get("org.springframework.web.service.annotation", "PutExchange");
-    private static final ClassName SPRING_PATCH_EXCHANGE =
-            ClassName.get("org.springframework.web.service.annotation", "PatchExchange");
-    private static final ClassName SPRING_DELETE_EXCHANGE =
-            ClassName.get("org.springframework.web.service.annotation", "DeleteExchange");
-    private static final ClassName SPRING_RESPONSE_ENTITY =
-            ClassName.get("org.springframework.http", "ResponseEntity");
-    // Position-dependent target types for `format: binary`. A multipart part is a
-    // MultipartFile/FileUpload; a raw body or a response is a converter-backed
-    // body type (Spring Resource / JAX-RS InputStream). A bare binary DTO property
-    // is byte[] and handled by the type definer, not here.
-    private static final ClassName MULTIPART_FILE =
-            ClassName.get("org.springframework.web.multipart", "MultipartFile");
-    private static final ClassName QUARKUS_FILE_UPLOAD =
-            ClassName.get("org.jboss.resteasy.reactive.multipart", "FileUpload");
-    private static final ClassName SPRING_RESOURCE =
-            ClassName.get("org.springframework.core.io", "Resource");
-    private static final ClassName INPUT_STREAM = ClassName.get(java.io.InputStream.class);
 
     private final JavaTypeDefiner typeDefiner;
+    private final Framework framework;
 
     public JavaAPIExtractor(JavaTypeDefiner typeDefiner,
                             GeneratorParams params) {
@@ -108,7 +67,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 (name, role) -> {
                     TypeSpec.Builder b = TypeSpec.interfaceBuilder(normalizeToCamel(name));
                     if (params.getFramework() == Framework.QUARKUS) {
-                        b.addAnnotation(AnnotationSpec.builder(JAXRS_PATH)
+                        b.addAnnotation(AnnotationSpec.builder(JavaQuarkusBinding.JAXRS_PATH)
                                 .addMember("value", "$S", "").build());
                         if (role == Role.CLIENT) {
                             b.addAnnotation(AnnotationSpec.builder(MP_REGISTER_REST_CLIENT).build());
@@ -121,6 +80,19 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     return b.build();
                 });
         this.typeDefiner = typeDefiner;
+        this.framework = params.getFramework();
+    }
+
+    /**
+     * The annotation dialect to generate this role in. Quarkus speaks one for
+     * every role; Spring speaks two, and which of them applies is decided here
+     * rather than inside the algorithm.
+     */
+    private JavaFrameworkBinding binding(Role role) {
+        if (framework == Framework.QUARKUS) {
+            return new JavaQuarkusBinding();
+        }
+        return role == Role.CLIENT ? new JavaSpringClientBinding() : new JavaSpringBinding();
     }
 
     @Override
@@ -130,116 +102,30 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                      String operationId,
                      Role role,
                      boolean generateResponseParameter) {
-        if (getFramework() == Framework.QUARKUS) {
-            buildQuarkusMethod(openAPI, classBuilder, stringPathItemEntry,
-                    operationEntry, operationId, role, generateResponseParameter);
-        } else if (role == Role.CLIENT) {
-            buildSpringClientMethod(openAPI, classBuilder, stringPathItemEntry,
-                    operationEntry, operationId, generateResponseParameter);
-        } else {
-            buildSpringMethod(openAPI, classBuilder, stringPathItemEntry,
-                    operationEntry, operationId, generateResponseParameter);
-        }
-    }
+        JavaFrameworkBinding binding = binding(role);
+        PathItem pathItem = stringPathItemEntry.getValue();
+        String path = stringPathItemEntry.getKey();
+        PathItem.HttpMethod httpMethod = operationEntry.getKey();
+        Operation operation = operationEntry.getValue();
 
-    private void buildSpringMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
-                     Map.Entry<String, PathItem> stringPathItemEntry,
-                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                     String operationId,
-                     boolean generateResponseParameter) {
+        List<AnnotationSpec> methodAnnotations = binding.methodAnnotations(httpMethod, path, operation);
+        if (methodAnnotations.isEmpty()) {
+            throw new IllegalStateException(unsupportedHttpMethod(httpMethod, path));
+        }
+
         MethodSpec.Builder methodBuilder = MethodSpec
                 .methodBuilder(operationId)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
-        methodBuilder.addAnnotation(getControllerMethodAnnotationSpec(operationEntry, stringPathItemEntry.getKey()));
+        methodAnnotations.forEach(methodBuilder::addAnnotation);
         //we are deriving the returning type from the schema of the successful result
-        methodBuilder.returns(determineReturnJavaType(operationEntry.getValue(), openAPI, classBuilder));
-        Optional.ofNullable(operationEntry.getValue().getRequestBody())
+        binding.applyReturn(methodBuilder,
+                determineReturnJavaType(operation, openAPI, classBuilder, binding),
+                generateResponseParameter);
+
+        Optional.ofNullable(operation.getRequestBody())
                 .map(RequestBody::getContent)
                 .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, false))
-                .forEach(paramSpec ->
-                        methodBuilder.addParameter(ParameterSpec.builder(
-                                        paramSpec.typeName,
-                                        CaseUtils.toIdentifier(paramSpec.name))
-                                .addAnnotation(paramSpec.annotation).build())
-                );
-
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
-                                        openAPI, classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                        .addAnnotation(
-                                AnnotationSpec.builder(PathVariable.class)
-                                        .addMember("name", "$S", parameter.getName()).build()
-                        )
-                        .build()));
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> {
-                            AnnotationSpec annotationSpec = withSpringDefault(
-                                    AnnotationSpec.builder(RequestParam.class)
-                                            .addMember("required", "$L", parameter.getRequired())
-                                            .addMember("name", "$S", parameter.getName()),
-                                    parameter, openAPI).build();
-                            methodBuilder.addParameter(ParameterSpec.builder(
-                                            safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                                    classBuilder, null)),
-                                            CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                                    .addAnnotation(annotationSpec).build());
-                        }
-                );
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                        .addAnnotation(withSpringDefault(
-                                AnnotationSpec.builder(RequestHeader.class)
-                                        .addMember("required", "$L", parameter.getRequired())
-                                        .addMember("name", "$S", parameter.getName()),
-                                parameter, openAPI).build()
-                        ).build()));
-        if (generateResponseParameter) {
-            if (isIncludeRequest(operationEntry.getValue())) {
-                methodBuilder.addParameter(ParameterSpec.builder(
-                        HttpServletRequest.class,
-                        "request").build());
-            }
-            methodBuilder.addParameter(ParameterSpec.builder(
-                    HttpServletResponse.class,
-                    "response").build());
-        }
-        classBuilder.addMethod(methodBuilder.build());
-    }
-
-    private void buildQuarkusMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
-                     Map.Entry<String, PathItem> stringPathItemEntry,
-                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                     String operationId,
-                     Role role,
-                     boolean generateResponseParameter) {
-        MethodSpec.Builder methodBuilder = MethodSpec
-                .methodBuilder(operationId)
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
-        getQuarkusMethodAnnotations(operationEntry, stringPathItemEntry.getKey())
-                .forEach(methodBuilder::addAnnotation);
-
-        TypeName dtoReturn = determineReturnJavaType(operationEntry.getValue(), openAPI, classBuilder);
-        if (generateResponseParameter) {
-            methodBuilder.returns(JAXRS_RESPONSE);
-            methodBuilder.addJavadoc("@return a $T whose entity is expected to be $L\n",
-                    JAXRS_RESPONSE,
-                    dtoReturn.equals(TypeName.VOID) ? "empty (no body)" : dtoReturn.toString());
-        } else {
-            methodBuilder.returns(dtoReturn);
-        }
-
-        Optional.ofNullable(operationEntry.getValue().getRequestBody())
-                .map(RequestBody::getContent)
-                .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, true))
+                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, binding))
                 .forEach(paramSpec -> {
                     ParameterSpec.Builder pb = ParameterSpec.builder(
                             paramSpec.typeName, CaseUtils.toIdentifier(paramSpec.name));
@@ -249,189 +135,88 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                     methodBuilder.addParameter(pb.build());
                 });
 
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
-                                        openAPI, classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                        .addAnnotation(AnnotationSpec.builder(JAXRS_PATH_PARAM)
-                                .addMember("value", "$S", parameter.getName()).build())
-                        .build()));
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> {
-                    ParameterSpec.Builder pb = ParameterSpec.builder(
-                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder, null)),
-                                    CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                            .addAnnotation(AnnotationSpec.builder(JAXRS_QUERY_PARAM)
-                                    .addMember("value", "$S", parameter.getName()).build());
-                    addJaxrsDefault(pb, parameter, openAPI);
-                    methodBuilder.addParameter(pb.build());
-                });
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> {
-                    ParameterSpec.Builder pb = ParameterSpec.builder(
-                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder, null)),
-                                    CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                            .addAnnotation(AnnotationSpec.builder(JAXRS_HEADER_PARAM)
-                                    .addMember("value", "$S", parameter.getName()).build());
-                    addJaxrsDefault(pb, parameter, openAPI);
-                    methodBuilder.addParameter(pb.build());
-                });
-        if (generateResponseParameter && isIncludeRequest(operationEntry.getValue())
-                && role == Role.CONTROLLER) {
-            methodBuilder.addParameter(ParameterSpec.builder(
-                            JAXRS_REQUEST_CONTEXT, "requestContext")
-                    .addAnnotation(JAXRS_CONTEXT).build());
-        }
-        classBuilder.addMethod(methodBuilder.build());
-    }
+        // Order is part of the generated contract: body, then path, query, header.
+        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.PATH,
+                (parameter, defaultValue) -> binding.pathParamAnnotations(parameter));
+        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.QUERY,
+                binding::queryParamAnnotations);
+        addParameters(methodBuilder, openAPI, classBuilder, pathItem, operation, ParameterKind.HEADER,
+                binding::headerParamAnnotations);
 
-    private void buildSpringClientMethod(OpenAPI openAPI, TypeSpec.Builder classBuilder,
-                     Map.Entry<String, PathItem> stringPathItemEntry,
-                     Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                     String operationId,
-                     boolean generateResponseParameter) {
-        MethodSpec.Builder methodBuilder = MethodSpec
-                .methodBuilder(operationId)
-                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
-        AnnotationSpec exchange =
-                getSpringExchangeAnnotationSpec(operationEntry, stringPathItemEntry.getKey());
-        if (exchange != null) {
-            methodBuilder.addAnnotation(exchange);
-        }
-        TypeName dtoReturn = determineReturnJavaType(operationEntry.getValue(), openAPI, classBuilder);
-        if (generateResponseParameter) {
-            TypeName body = dtoReturn.equals(TypeName.VOID) ? ClassName.get(Void.class) : dtoReturn.box();
-            methodBuilder.returns(ParameterizedTypeName.get(SPRING_RESPONSE_ENTITY, body));
-        } else {
-            methodBuilder.returns(dtoReturn);
-        }
-        Optional.ofNullable(operationEntry.getValue().getRequestBody())
-                .map(RequestBody::getContent)
-                .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, classBuilder, false))
-                .forEach(paramSpec ->
-                        methodBuilder.addParameter(ParameterSpec.builder(
-                                        paramSpec.typeName, CaseUtils.toIdentifier(paramSpec.name))
-                                .addAnnotation(paramSpec.annotation).build()));
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "path".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeUnbox(typeDefiner.defineJavaType(parameter.getSchema(),
-                                        openAPI, classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                        .addAnnotation(AnnotationSpec.builder(PathVariable.class)
-                                .addMember("name", "$S", parameter.getName()).build())
-                        .build()));
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> {
-                    AnnotationSpec.Builder builder = withSpringDefault(
-                            AnnotationSpec.builder(RequestParam.class)
-                                    .addMember("required", "$L", parameter.getRequired())
-                                    .addMember("name", "$S", parameter.getName()),
-                            parameter, openAPI);
-                    methodBuilder.addParameter(ParameterSpec.builder(
-                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                            classBuilder, null)),
-                                    CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
-                            .addAnnotation(builder.build()).build());
-                });
-        getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
-                .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
-                                        classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                        .addAnnotation(withSpringDefault(
-                                AnnotationSpec.builder(RequestHeader.class)
-                                        .addMember("required", "$L", parameter.getRequired())
-                                        .addMember("name", "$S", parameter.getName()),
-                                parameter, openAPI).build())
-                        .build()));
+        binding.addContextParameters(methodBuilder, operation, role, generateResponseParameter);
         classBuilder.addMethod(methodBuilder.build());
     }
 
     /**
-     * Adds Spring's {@code defaultValue} member when the parameter has a default,
-     * and leaves the annotation untouched when it has none.
+     * A position a parameter can be declared in, and what that position implies
+     * for the generated signature.
      *
-     * <p>The default is read with {@link TypeDefiner#effectiveDefault}, which also
-     * looks inside the component a {@code $ref} names — a parameter is very often
-     * written as {@code schema: {$ref: '#/components/schemas/PageSize'}} with the
-     * {@code default} declared on {@code PageSize}. Reading
-     * {@code schema.getDefault()} directly finds nothing there, because
-     * swagger-parser is not asked to resolve references, and the default was
-     * silently dropped from the generated annotation. The Kotlin extractor has
-     * always called {@code effectiveDefault} here; this is the same question and
-     * must have the same answer.
+     * <p>A path variable is part of the URL and therefore always present, so it
+     * is unboxed to keep the signature compact; a query or header parameter may
+     * be absent and must be able to arrive null, so it is boxed. A header name is
+     * kebab-case by convention ({@code X-Trace-Id}), the others snake_case.
      *
-     * @see ApiParityTest
+     * @param in         the {@code in} value in the specification
+     * @param identifier how the spec name becomes an identifier
+     * @param boxing     how the parameter type is boxed or unboxed
      */
-    private AnnotationSpec.Builder withSpringDefault(AnnotationSpec.Builder builder,
-                                                     Parameter parameter, OpenAPI openAPI) {
-        String defaultValue = typeDefiner.effectiveDefault(parameter.getSchema(), openAPI);
-        if (defaultValue != null) {
-            builder.addMember("defaultValue", "$S", defaultValue);
-        }
-        return builder;
+    private record ParameterKind(String in, UnaryOperator<String> identifier,
+                                 UnaryOperator<TypeName> boxing) {
+        static final ParameterKind PATH =
+                new ParameterKind("path", CaseUtils::snakeToCamel, JavaAPIExtractor::safeUnbox);
+        static final ParameterKind QUERY =
+                new ParameterKind("query", CaseUtils::snakeToCamel, JavaAPIExtractor::safeBox);
+        static final ParameterKind HEADER =
+                new ParameterKind("header", CaseUtils::kebabToCamel, JavaAPIExtractor::safeBox);
     }
 
     /**
-     * Adds the JAX-RS {@code @DefaultValue} annotation when the parameter has a
-     * default. The value is resolved exactly as in
-     * {@link #withSpringDefault(AnnotationSpec.Builder, Parameter, OpenAPI)}.
+     * Adds every parameter declared in the given position.
+     *
+     * @param methodBuilder the method being built
+     * @param openAPI       the document being generated
+     * @param classBuilder  the interface being built, which receives any nested
+     *                      enum a parameter's schema defines
+     * @param pathItem      the path the operation belongs to, for its shared parameters
+     * @param operation     the operation
+     * @param kind          the position being added
+     * @param annotations   the binding's annotations for this position
      */
-    private void addJaxrsDefault(ParameterSpec.Builder parameterBuilder,
-                                 Parameter parameter, OpenAPI openAPI) {
-        String defaultValue = typeDefiner.effectiveDefault(parameter.getSchema(), openAPI);
-        if (defaultValue != null) {
-            parameterBuilder.addAnnotation(AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
-                    .addMember("value", "$S", defaultValue).build());
-        }
+    private void addParameters(MethodSpec.Builder methodBuilder, OpenAPI openAPI,
+                               TypeSpec.Builder classBuilder, PathItem pathItem, Operation operation,
+                               ParameterKind kind,
+                               BiFunction<Parameter, String, List<AnnotationSpec>> annotations) {
+        getParameterStream(pathItem, operation)
+                .filter(parameter -> kind.in().equalsIgnoreCase(parameter.getIn()))
+                .forEach(parameter -> {
+                    ParameterSpec.Builder pb = ParameterSpec.builder(
+                            kind.boxing().apply(typeDefiner.defineJavaType(
+                                    parameter.getSchema(), openAPI, classBuilder, null)),
+                            CaseUtils.toIdentifier(kind.identifier().apply(parameter.getName())));
+                    annotations.apply(parameter,
+                                    typeDefiner.effectiveDefault(parameter.getSchema(), openAPI))
+                            .forEach(pb::addAnnotation);
+                    methodBuilder.addParameter(pb.build());
+                });
     }
 
-    private AnnotationSpec getSpringExchangeAnnotationSpec(
-            Map.Entry<PathItem.HttpMethod, Operation> operationEntry, String path) {
-        ClassName annotationClass = switch (operationEntry.getKey()) {
-            case GET -> SPRING_GET_EXCHANGE;
-            case POST -> SPRING_POST_EXCHANGE;
-            case PUT -> SPRING_PUT_EXCHANGE;
-            case PATCH -> SPRING_PATCH_EXCHANGE;
-            case DELETE -> SPRING_DELETE_EXCHANGE;
-            default -> null;
-        };
-        if (annotationClass == null) {
-            return null;
-        }
-        AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
-                .addMember("value", "$S", path);
-        getSuccessfulReply(operationEntry.getValue())
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .ifPresent(mt -> builder.addMember("accept", "$S", mt));
-        Optional.ofNullable(operationEntry.getValue().getRequestBody())
-                .map(RequestBody::getContent)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .filter(s -> !s.isBlank() && !s.equals("application/json"))
-                .ifPresent(mt -> builder.addMember("contentType", "$S", mt));
-        return builder.build();
-    }
-
-    private static boolean isIncludeRequest(Operation operation) {
-        return Optional.ofNullable(operation.getExtensions())
-                .map(m -> m.get("x-include-request"))
-                .map(v -> {
-                    if (v instanceof Boolean b) return b;
-                    if (v instanceof String s) return Boolean.parseBoolean(s);
-                    return false;
-                }).orElse(false);
+    /**
+     * The error raised for an operation whose verb the target framework has no
+     * mapping for.
+     *
+     * <p>Generating the method without its verb annotation is the one thing that
+     * must not happen: the result compiles, so nothing complains, and the
+     * endpoint is simply never routed — a failure the user meets in production
+     * rather than in the build. Support for a verb is a feature this generator
+     * does not have yet, and saying so is what lets the user either drop the
+     * operation or add it.
+     */
+    private static String unsupportedHttpMethod(PathItem.HttpMethod httpMethod, String path) {
+        return String.format(
+                "Unsupported HTTP method '%s' at path '%s': hurdy-gurdy generates methods for "
+                        + "get, post, put, patch and delete. Remove the operation from the "
+                        + "specification, or add support for the verb.",
+                httpMethod.name().toLowerCase(Locale.ROOT), path);
     }
 
     private static TypeName safeBox(TypeName name) {
@@ -453,10 +238,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         return SchemaSemantics.isNullableSchema(schema) ? safeBox(name) : safeUnbox(name);
     }
 
-    private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI, TypeSpec.Builder parent) {
+    private TypeName determineReturnJavaType(Operation operation, OpenAPI openAPI,
+                                             TypeSpec.Builder parent, JavaFrameworkBinding binding) {
         return getSuccessfulReply(operation)
                 .stream()
-                .flatMap(c -> getContentTypes(c, openAPI, parent, false))
+                .flatMap(c -> getContentTypes(c, openAPI, parent, binding))
                 .map(p -> p.typeName)
                 .findFirst()
                 .orElse(TypeName.VOID);
@@ -475,7 +261,8 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     }
 
     private Stream<RequestPartParams> getContentTypes(Content content, OpenAPI openAPI,
-                                                      TypeSpec.Builder parent, boolean quarkus) {
+                                                      TypeSpec.Builder parent,
+                                                      JavaFrameworkBinding binding) {
         final Optional<Map.Entry<String, MediaType>> mediaTypeEntry =
                 Optional.ofNullable(content)
                         .flatMap(APIExtractor::getMediaType);
@@ -490,30 +277,19 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                         .entrySet()
                         .stream()
                         .map(e -> new RequestPartParams(
-                                multipartPartTypeName(e.getValue(), openAPI, parent),
+                                multipartPartTypeName(e.getValue(), openAPI, parent, binding),
                                 e.getKey(),
-                                quarkus
-                                        ? AnnotationSpec.builder(QUARKUS_REST_FORM)
-                                                .addMember("value", "$S", e.getKey()).build()
-                                        : AnnotationSpec.builder(RequestPart.class)
-                                                .addMember("name", "$S", e.getKey()).build()));
+                                binding.multipartPartAnnotation(e.getKey())));
             } else {
                 //Single-part
                 return Optional.ofNullable(entry.getValue().getSchema()).stream()
                         // A binary single-part body/response is a converter-backed
                         // body type (Resource / InputStream), not a multipart part.
                         .map(s -> isBinary(s)
-                                ? binaryBodyType()
+                                ? binding.binaryBodyType()
                                 : JavaAPIExtractor.bodyTypeName(s,
                                         typeDefiner.defineJavaType(s, openAPI, parent, null)))
-                        .map(t ->
-                                new RequestPartParams(t,
-                                        "request",
-                                        quarkus
-                                                ? null
-                                                : AnnotationSpec.builder(
-                                                        org.springframework.web.bind.annotation.RequestBody.class)
-                                                        .build()));
+                        .map(t -> new RequestPartParams(t, "request", binding.bodyAnnotation()));
             }
         }
     }
@@ -522,8 +298,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
      * The type of a single multipart part: an uploaded file when the part is
      * binary, the part's own type otherwise.
      */
-    private TypeName multipartPartTypeName(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
-        TypeName upload = uploadType(schema, openAPI);
+    private TypeName multipartPartTypeName(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
+                                           JavaFrameworkBinding binding) {
+        TypeName upload = uploadType(schema, openAPI, binding);
         return upload != null
                 ? upload
                 : JavaAPIExtractor.bodyTypeName(schema,
@@ -541,9 +318,9 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
      * {@code byte[]} to the type definer, which is right for a base64 property
      * of a JSON DTO but never for a multipart part.
      */
-    private TypeName uploadType(Schema<?> schema, OpenAPI openAPI) {
+    private TypeName uploadType(Schema<?> schema, OpenAPI openAPI, JavaFrameworkBinding binding) {
         if (isBinary(schema)) {
-            return multipartPartType();
+            return binding.multipartPartType();
         }
         if (schema == null) {
             return null;
@@ -559,10 +336,10 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             Schema<?> aliasTarget = typeDefiner.inlinableArrayAlias(ref, openAPI);
             return aliasTarget == null
                     ? null
-                    : typeDefiner.inliningAlias(ref, () -> uploadType(aliasTarget, openAPI));
+                    : typeDefiner.inliningAlias(ref, () -> uploadType(aliasTarget, openAPI, binding));
         }
         if (SchemaSemantics.isArraySchema(schema)) {
-            TypeName itemType = uploadType(schema.getItems(), openAPI);
+            TypeName itemType = uploadType(schema.getItems(), openAPI, binding);
             if (itemType != null) {
                 return ParameterizedTypeName.get(ClassName.get(List.class), itemType);
             }
@@ -574,79 +351,5 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     private static boolean isBinary(Schema<?> schema) {
         return schema != null && "string".equals(SchemaSemantics.effectiveType(schema))
                 && "binary".equals(schema.getFormat());
-    }
-
-    /**
-     * Type of a binary multipart part: an uploaded file. Keyed on the actual
-     * framework rather than the annotation-context flag, since a return type
-     * derives its content with that flag hardcoded to {@code false}.
-     */
-    private ClassName multipartPartType() {
-        return getFramework() == Framework.QUARKUS ? QUARKUS_FILE_UPLOAD : MULTIPART_FILE;
-    }
-
-    /** Type of a binary single-part request/response body: a converter-backed stream. */
-    private ClassName binaryBodyType() {
-        return getFramework() == Framework.QUARKUS ? INPUT_STREAM : SPRING_RESOURCE;
-    }
-
-    private List<AnnotationSpec> getQuarkusMethodAnnotations(
-            Map.Entry<PathItem.HttpMethod, Operation> operationEntry, String path) {
-        List<AnnotationSpec> result = new ArrayList<>();
-        ClassName verb = switch (operationEntry.getKey()) {
-            case GET -> JAXRS_GET;
-            case POST -> JAXRS_POST;
-            case PUT -> JAXRS_PUT;
-            case PATCH -> JAXRS_PATCH;
-            case DELETE -> JAXRS_DELETE;
-            default -> null;
-        };
-        if (verb == null) {
-            return result;
-        }
-        result.add(AnnotationSpec.builder(verb).build());
-        result.add(AnnotationSpec.builder(JAXRS_PATH).addMember("value", "$S", path).build());
-        getSuccessfulReply(operationEntry.getValue())
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_PRODUCES)
-                        .addMember("value", "$S", mt).build()));
-        Optional.ofNullable(operationEntry.getValue().getRequestBody())
-                .map(RequestBody::getContent)
-                .flatMap(APIExtractor::getMediaType)
-                .map(Map.Entry::getKey)
-                .filter(s -> !s.isBlank())
-                .ifPresent(mt -> result.add(AnnotationSpec.builder(JAXRS_CONSUMES)
-                        .addMember("value", "$S", mt).build()));
-        return result;
-    }
-
-    private AnnotationSpec getControllerMethodAnnotationSpec(Map.Entry<PathItem.HttpMethod, Operation> operationEntry,
-                                                             String path) {
-        Class<?> annotationClass = switch (operationEntry.getKey()) {
-            case GET -> GetMapping.class;
-            case POST -> PostMapping.class;
-            case PUT -> PutMapping.class;
-            case PATCH -> PatchMapping.class;
-            case DELETE -> DeleteMapping.class;
-            default -> null;
-        };
-        if (annotationClass != null) {
-            AnnotationSpec.Builder builder = AnnotationSpec.builder(annotationClass)
-                    .addMember("value", "$S", path);
-            getSuccessfulReply(operationEntry.getValue())
-                    .flatMap(APIExtractor::getMediaType)
-                    .map(Map.Entry::getKey)
-                    .ifPresent(mt -> builder.addMember("produces", "$S", mt));
-            Optional.ofNullable(operationEntry.getValue().getRequestBody())
-                    .map(RequestBody::getContent)
-                    .flatMap(APIExtractor::getMediaType)
-                    .map(Map.Entry::getKey)
-                    .filter(s -> !s.isBlank() && !s.equals("application/json"))
-                    .ifPresent(mt -> builder.addMember("consumes", "$S", mt));
-            return builder.build();
-
-        } else return null;
-
     }
 }

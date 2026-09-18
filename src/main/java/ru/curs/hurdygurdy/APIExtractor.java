@@ -125,4 +125,24 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
                         LinkedHashMap::new))
                 .values().stream();
     }
+
+    /**
+     * Whether the operation asked, with {@code x-include-request}, to be handed
+     * the raw request object in addition to its declared parameters.
+     *
+     * <p>Language-neutral, and read identically by both extractors: it is a
+     * question about the specification, not about Java or Kotlin.
+     *
+     * @param operation the operation to read
+     * @return whether the raw request was asked for
+     */
+    static boolean isIncludeRequest(Operation operation) {
+        return Optional.ofNullable(operation.getExtensions())
+                .map(m -> m.get("x-include-request"))
+                .map(v -> {
+                    if (v instanceof Boolean b) return b;
+                    if (v instanceof String str) return Boolean.parseBoolean(str);
+                    return false;
+                }).orElse(false);
+    }
 }

@@ -32,6 +32,8 @@ import java.util.EnumSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 class CodegenTest {
     private JavaCodegen codegen = new JavaCodegen(
             GeneratorParams.rootPackage("com.example").generateResponseParameter(true));
@@ -437,6 +439,30 @@ class CodegenTest {
                 .forceSnakeCaseForProperties(false));
         codegen.generate(Path.of("src/test/resources/externalnullable.yaml"), result);
         Approvals.verify(getContent(result));
+    }
+
+    /**
+     * An operation whose verb the generator cannot map stops generation, in
+     * every dialect, rather than emitting a method with no mapping annotation.
+     *
+     * <p>Such a method compiles, so nothing in the user's build complains, and
+     * the endpoint is simply never routed — the failure shows up in production.
+     * Before the framework bindings were extracted the three dialects disagreed
+     * about this: the Spring controller threw a bare NullPointerException from
+     * inside JavaPoet, while the Spring client and Quarkus emitted the unmapped
+     * method. One algorithm, one answer.
+     */
+    @ParameterizedTest
+    @EnumSource(Framework.class)
+    void unsupportedHttpMethodIsRejected(Framework framework) {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(framework)
+                .generate(EnumSet.allOf(Role.class)));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/unsupportedverb.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unsupported HTTP method 'options' at path '/items'")
+                .hasMessageContaining("get, post, put, patch and delete");
     }
 
     @Test
