@@ -1,0 +1,187 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.java
+package com.example.controller;
+
+import com.example.dto.ItemRequest;
+import com.example.dto.ItemResponse;
+import com.example.dto.NullableItem;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.service.annotation.DeleteExchange;
+import org.springframework.web.service.annotation.GetExchange;
+import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.service.annotation.PutExchange;
+
+public interface Client {
+  @PutExchange(
+      value = "/items/{id}",
+      accept = "application/json"
+  )
+  ItemResponse updateItem(@RequestBody ItemRequest request, @PathVariable(name = "id") long id,
+      @RequestParam(required = false, name = "code") String code,
+      @RequestParam(required = false, name = "force", defaultValue = "false") Boolean force,
+      @RequestParam(required = true, name = "reason") String reason,
+      @RequestParam(required = true, name = "note") String note,
+      @RequestHeader(required = true, name = "X-Trace-Id") String xTraceId,
+      @RequestHeader(required = false, name = "X-Correlation-Id") String xCorrelationId);
+
+  @GetExchange(
+      value = "/items",
+      accept = "application/json"
+  )
+  List<ItemResponse> listItems();
+
+  @PostExchange(
+      value = "/items",
+      accept = "application/json"
+  )
+  ItemResponse createItem(@RequestBody ItemRequest request);
+
+  @PostExchange(
+      value = "/items/upload",
+      accept = "application/json",
+      contentType = "multipart/form-data"
+  )
+  ItemResponse uploadItem(@RequestPart(name = "file") MultipartFile file,
+      @RequestPart(name = "meta") ItemRequest meta, @RequestPart(name = "comment") String comment);
+
+  @GetExchange(
+      value = "/items/headers",
+      accept = "application/json"
+  )
+  ItemResponse headerDefaults(
+      @RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") Integer xPageSize,
+      @RequestHeader(required = false, name = "X-Plain") String xPlain);
+
+  @GetExchange(
+      value = "/items/nullable",
+      accept = "application/json"
+  )
+  NullableItem findItem();
+
+  @DeleteExchange("/items/nothing")
+  void deleteItem();
+}
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.ItemRequest;
+import com.example.dto.ItemResponse;
+import com.example.dto.NullableItem;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+
+public interface Controller {
+  @PutMapping(
+      value = "/items/{id}",
+      produces = "application/json"
+  )
+  ItemResponse updateItem(@RequestBody ItemRequest request, @PathVariable(name = "id") long id,
+      @RequestParam(required = false, name = "code") String code,
+      @RequestParam(required = false, name = "force", defaultValue = "false") Boolean force,
+      @RequestParam(required = true, name = "reason") String reason,
+      @RequestParam(required = true, name = "note") String note,
+      @RequestHeader(required = true, name = "X-Trace-Id") String xTraceId,
+      @RequestHeader(required = false, name = "X-Correlation-Id") String xCorrelationId);
+
+  @GetMapping(
+      value = "/items",
+      produces = "application/json"
+  )
+  List<ItemResponse> listItems();
+
+  @PostMapping(
+      value = "/items",
+      produces = "application/json"
+  )
+  ItemResponse createItem(@RequestBody ItemRequest request);
+
+  @PostMapping(
+      value = "/items/upload",
+      produces = "application/json",
+      consumes = "multipart/form-data"
+  )
+  ItemResponse uploadItem(@RequestPart(name = "file") MultipartFile file,
+      @RequestPart(name = "meta") ItemRequest meta, @RequestPart(name = "comment") String comment);
+
+  @GetMapping(
+      value = "/items/headers",
+      produces = "application/json"
+  )
+  ItemResponse headerDefaults(
+      @RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") Integer xPageSize,
+      @RequestHeader(required = false, name = "X-Plain") String xPlain);
+
+  @GetMapping(
+      value = "/items/nullable",
+      produces = "application/json"
+  )
+  NullableItem findItem();
+
+  @DeleteMapping("/items/nothing")
+  void deleteItem();
+}
+---
+/com/example/dto
+---
+/com/example/dto/ItemRequest.java
+package com.example.dto;
+
+import java.lang.String;
+import lombok.Data;
+
+@Data
+public class ItemRequest {
+  private String name;
+}
+---
+/com/example/dto/ItemResponse.java
+package com.example.dto;
+
+import java.lang.Long;
+import lombok.Data;
+
+@Data
+public class ItemResponse {
+  private Long id;
+}
+---
+/com/example/dto/NullableItem.java
+package com.example.dto;
+
+import java.lang.Long;
+import lombok.Data;
+
+@Data
+public class NullableItem {
+  private Long id;
+}

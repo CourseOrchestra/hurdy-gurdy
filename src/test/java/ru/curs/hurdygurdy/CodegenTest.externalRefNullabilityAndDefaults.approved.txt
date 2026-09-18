@@ -1,0 +1,43 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.external.dto.NullableThing;
+import com.external.dto.PageSize;
+import com.external.dto.PlainThing;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface Controller {
+  @PostMapping(
+      value = "/a",
+      produces = "application/json"
+  )
+  NullableThing postNullable(@RequestBody NullableThing request);
+
+  @GetMapping(
+      value = "/b",
+      produces = "application/json"
+  )
+  PlainThing getPlain();
+
+  @GetMapping(
+      value = "/c",
+      produces = "application/json"
+  )
+  List<NullableThing> getWithExternalDefaults(
+      @RequestParam(required = false, name = "size", defaultValue = "20") PageSize size,
+      @RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") PageSize xPageSize);
+}

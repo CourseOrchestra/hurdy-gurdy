@@ -113,8 +113,20 @@ public final class CaseUtils {
                     state = 1;
                     break;
                 case 1:
-                    result.append(c);
-                    if (c != '-') {
+                    // State 1 exists so that the SECOND character survives
+                    // verbatim: a leading underscore is not a separator, so
+                    // `__meta-info` must keep both of them (see the underscore
+                    // cases in CaseUtilsTest). A hyphen there is a separator all
+                    // the same — a one-letter first segment is ordinary in a
+                    // header name (`X-Trace-Id`). Emitting it produced
+                    // `x-TraceId`, which is not an identifier at all: KotlinPoet
+                    // hid that behind back-quotes and JavaPoet rejected it
+                    // outright, so every Java spec with a hyphenated header
+                    // failed to generate.
+                    if (c == '-') {
+                        state = 3;
+                    } else {
+                        result.append(c);
                         state = 2;
                     }
                     break;

@@ -167,6 +167,25 @@ class CaseUtilsTest {
         assertThat(CaseUtils.kebabToCamel(input)).isEqualTo(expected);
     }
 
+    /**
+     * A hyphen in second position is a separator like any other. A one-letter
+     * first segment is the norm in a header name, and the hyphen used to be
+     * emitted verbatim there: {@code X-Trace-Id} came out as {@code x-TraceId},
+     * which is not an identifier at all. KotlinPoet hid that behind back-quotes
+     * and JavaPoet rejected it outright, so Java generation failed on any
+     * specification with a hyphenated header parameter.
+     */
+    @ParameterizedTest(name = "{index} ⇒ \"{0}\"  ➜  \"{1}\"")
+    @CsvSource({
+            "X-Trace-Id,xTraceId",
+            "X-Page-Size,xPageSize",
+            "X-Plain,xPlain",
+            "a-b,aB",
+    })
+    void kebabToCamelSingleLetterFirstSegment(String input, String expected) {
+        assertThat(CaseUtils.kebabToCamel(input)).isEqualTo(expected);
+    }
+
     @Test
     void pathToCamelNull() {
         assertThat(CaseUtils.pathToCamel(null)).isNull();

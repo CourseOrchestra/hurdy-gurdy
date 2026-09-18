@@ -29,6 +29,7 @@ import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -174,17 +175,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> {
-                            AnnotationSpec.Builder builder = AnnotationSpec.builder(
-                                            RequestParam.class
-                                    ).addMember("required", "$L", parameter.getRequired())
-                                    .addMember("name", "$S", parameter.getName());
-
-                            Optional.ofNullable(parameter.getSchema())
-                                    .map(Schema::getDefault)
-                                    .ifPresent(
-                                            d -> builder.addMember("defaultValue", "$S", d.toString()));
-
-                            AnnotationSpec annotationSpec = builder.build();
+                            AnnotationSpec annotationSpec = withSpringDefault(
+                                    AnnotationSpec.builder(RequestParam.class)
+                                            .addMember("required", "$L", parameter.getRequired())
+                                            .addMember("name", "$S", parameter.getName()),
+                                    parameter, openAPI).build();
                             methodBuilder.addParameter(ParameterSpec.builder(
                                             safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
                                                     classBuilder, null)),
@@ -197,11 +192,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
                                 safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
                                 CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                        .addAnnotation(
-                                AnnotationSpec.builder(
-                                                RequestHeader.class
-                                        ).addMember("required", "$L", parameter.getRequired())
-                                        .addMember("name", "$S", parameter.getName()).build()
+                        .addAnnotation(withSpringDefault(
+                                AnnotationSpec.builder(RequestHeader.class)
+                                        .addMember("required", "$L", parameter.getRequired())
+                                        .addMember("name", "$S", parameter.getName()),
+                                parameter, openAPI).build()
                         ).build()));
         if (generateResponseParameter) {
             if (isIncludeRequest(operationEntry.getValue())) {
@@ -269,20 +264,21 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                     CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.getName())))
                             .addAnnotation(AnnotationSpec.builder(JAXRS_QUERY_PARAM)
                                     .addMember("value", "$S", parameter.getName()).build());
-                    Optional.ofNullable(parameter.getSchema())
-                            .map(Schema::getDefault)
-                            .ifPresent(d -> pb.addAnnotation(AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
-                                    .addMember("value", "$S", d.toString()).build()));
+                    addJaxrsDefault(pb, parameter, openAPI);
                     methodBuilder.addParameter(pb.build());
                 });
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "header".equalsIgnoreCase(parameter.getIn()))
-                .forEach(parameter -> methodBuilder.addParameter(ParameterSpec.builder(
-                                safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI, classBuilder, null)),
-                                CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                        .addAnnotation(AnnotationSpec.builder(JAXRS_HEADER_PARAM)
-                                .addMember("value", "$S", parameter.getName()).build())
-                        .build()));
+                .forEach(parameter -> {
+                    ParameterSpec.Builder pb = ParameterSpec.builder(
+                                    safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
+                                            classBuilder, null)),
+                                    CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
+                            .addAnnotation(AnnotationSpec.builder(JAXRS_HEADER_PARAM)
+                                    .addMember("value", "$S", parameter.getName()).build());
+                    addJaxrsDefault(pb, parameter, openAPI);
+                    methodBuilder.addParameter(pb.build());
+                });
         if (generateResponseParameter && isIncludeRequest(operationEntry.getValue())
                 && role == Role.CONTROLLER) {
             methodBuilder.addParameter(ParameterSpec.builder(
@@ -332,12 +328,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         getParameterStream(stringPathItemEntry.getValue(), operationEntry.getValue())
                 .filter(parameter -> "query".equalsIgnoreCase(parameter.getIn()))
                 .forEach(parameter -> {
-                    AnnotationSpec.Builder builder = AnnotationSpec.builder(RequestParam.class)
-                            .addMember("required", "$L", parameter.getRequired())
-                            .addMember("name", "$S", parameter.getName());
-                    Optional.ofNullable(parameter.getSchema())
-                            .map(Schema::getDefault)
-                            .ifPresent(d -> builder.addMember("defaultValue", "$S", d.toString()));
+                    AnnotationSpec.Builder builder = withSpringDefault(
+                            AnnotationSpec.builder(RequestParam.class)
+                                    .addMember("required", "$L", parameter.getRequired())
+                                    .addMember("name", "$S", parameter.getName()),
+                            parameter, openAPI);
                     methodBuilder.addParameter(ParameterSpec.builder(
                                     safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
                                             classBuilder, null)),
@@ -350,11 +345,52 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                                 safeBox(typeDefiner.defineJavaType(parameter.getSchema(), openAPI,
                                         classBuilder, null)),
                                 CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.getName())))
-                        .addAnnotation(AnnotationSpec.builder(RequestHeader.class)
-                                .addMember("required", "$L", parameter.getRequired())
-                                .addMember("name", "$S", parameter.getName()).build())
+                        .addAnnotation(withSpringDefault(
+                                AnnotationSpec.builder(RequestHeader.class)
+                                        .addMember("required", "$L", parameter.getRequired())
+                                        .addMember("name", "$S", parameter.getName()),
+                                parameter, openAPI).build())
                         .build()));
         classBuilder.addMethod(methodBuilder.build());
+    }
+
+    /**
+     * Adds Spring's {@code defaultValue} member when the parameter has a default,
+     * and leaves the annotation untouched when it has none.
+     *
+     * <p>The default is read with {@link TypeDefiner#effectiveDefault}, which also
+     * looks inside the component a {@code $ref} names — a parameter is very often
+     * written as {@code schema: {$ref: '#/components/schemas/PageSize'}} with the
+     * {@code default} declared on {@code PageSize}. Reading
+     * {@code schema.getDefault()} directly finds nothing there, because
+     * swagger-parser is not asked to resolve references, and the default was
+     * silently dropped from the generated annotation. The Kotlin extractor has
+     * always called {@code effectiveDefault} here; this is the same question and
+     * must have the same answer.
+     *
+     * @see ApiParityTest
+     */
+    private AnnotationSpec.Builder withSpringDefault(AnnotationSpec.Builder builder,
+                                                     Parameter parameter, OpenAPI openAPI) {
+        String defaultValue = typeDefiner.effectiveDefault(parameter.getSchema(), openAPI);
+        if (defaultValue != null) {
+            builder.addMember("defaultValue", "$S", defaultValue);
+        }
+        return builder;
+    }
+
+    /**
+     * Adds the JAX-RS {@code @DefaultValue} annotation when the parameter has a
+     * default. The value is resolved exactly as in
+     * {@link #withSpringDefault(AnnotationSpec.Builder, Parameter, OpenAPI)}.
+     */
+    private void addJaxrsDefault(ParameterSpec.Builder parameterBuilder,
+                                 Parameter parameter, OpenAPI openAPI) {
+        String defaultValue = typeDefiner.effectiveDefault(parameter.getSchema(), openAPI);
+        if (defaultValue != null) {
+            parameterBuilder.addAnnotation(AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
+                    .addMember("value", "$S", defaultValue).build());
+        }
     }
 
     private AnnotationSpec getSpringExchangeAnnotationSpec(

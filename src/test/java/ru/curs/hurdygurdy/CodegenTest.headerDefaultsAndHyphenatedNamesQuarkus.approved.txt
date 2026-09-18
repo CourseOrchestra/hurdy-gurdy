@@ -1,0 +1,185 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/controller
+---
+/com/example/controller/Client.java
+package com.example.controller;
+
+import com.example.dto.ItemRequest;
+import com.example.dto.ItemResponse;
+import com.example.dto.NullableItem;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+
+@Path("")
+@RegisterRestClient
+public interface Client {
+  @PUT
+  @Path("/items/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  ItemResponse updateItem(ItemRequest request, @PathParam("id") long id,
+      @QueryParam("code") String code, @QueryParam("force") @DefaultValue("false") Boolean force,
+      @QueryParam("reason") String reason, @QueryParam("note") String note,
+      @HeaderParam("X-Trace-Id") String xTraceId,
+      @HeaderParam("X-Correlation-Id") String xCorrelationId);
+
+  @GET
+  @Path("/items")
+  @Produces("application/json")
+  List<ItemResponse> listItems();
+
+  @POST
+  @Path("/items")
+  @Produces("application/json")
+  @Consumes("application/json")
+  ItemResponse createItem(ItemRequest request);
+
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  ItemResponse uploadItem(@RestForm("file") FileUpload file, @RestForm("meta") ItemRequest meta,
+      @RestForm("comment") String comment);
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  ItemResponse headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") Integer xPageSize,
+      @HeaderParam("X-Plain") String xPlain);
+
+  @GET
+  @Path("/items/nullable")
+  @Produces("application/json")
+  NullableItem findItem();
+
+  @DELETE
+  @Path("/items/nothing")
+  void deleteItem();
+}
+---
+/com/example/controller/Controller.java
+package com.example.controller;
+
+import com.example.dto.ItemRequest;
+import com.example.dto.ItemResponse;
+import com.example.dto.NullableItem;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import java.lang.Boolean;
+import java.lang.Integer;
+import java.lang.String;
+import java.util.List;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+
+@Path("")
+public interface Controller {
+  @PUT
+  @Path("/items/{id}")
+  @Produces("application/json")
+  @Consumes("application/json")
+  ItemResponse updateItem(ItemRequest request, @PathParam("id") long id,
+      @QueryParam("code") String code, @QueryParam("force") @DefaultValue("false") Boolean force,
+      @QueryParam("reason") String reason, @QueryParam("note") String note,
+      @HeaderParam("X-Trace-Id") String xTraceId,
+      @HeaderParam("X-Correlation-Id") String xCorrelationId);
+
+  @GET
+  @Path("/items")
+  @Produces("application/json")
+  List<ItemResponse> listItems();
+
+  @POST
+  @Path("/items")
+  @Produces("application/json")
+  @Consumes("application/json")
+  ItemResponse createItem(ItemRequest request);
+
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  ItemResponse uploadItem(@RestForm("file") FileUpload file, @RestForm("meta") ItemRequest meta,
+      @RestForm("comment") String comment);
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  ItemResponse headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") Integer xPageSize,
+      @HeaderParam("X-Plain") String xPlain);
+
+  @GET
+  @Path("/items/nullable")
+  @Produces("application/json")
+  NullableItem findItem();
+
+  @DELETE
+  @Path("/items/nothing")
+  void deleteItem();
+}
+---
+/com/example/dto
+---
+/com/example/dto/ItemRequest.java
+package com.example.dto;
+
+import java.lang.String;
+import lombok.Data;
+
+@Data
+public class ItemRequest {
+  private String name;
+}
+---
+/com/example/dto/ItemResponse.java
+package com.example.dto;
+
+import java.lang.Long;
+import lombok.Data;
+
+@Data
+public class ItemResponse {
+  private Long id;
+}
+---
+/com/example/dto/NullableItem.java
+package com.example.dto;
+
+import java.lang.Long;
+import lombok.Data;
+
+@Data
+public class NullableItem {
+  private Long id;
+}

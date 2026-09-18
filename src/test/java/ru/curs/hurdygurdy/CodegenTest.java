@@ -390,6 +390,56 @@ class CodegenTest {
     }
 
     @Test
+    void headerDefaultsAndHyphenatedNamesSpring() throws IOException {
+        // The Java counterpart of KCodegenTest.nullabilityHonoursRequiredAndDefault,
+        // and the fixture that had no Java coverage at all. Two things it pins,
+        // both of which used to be wrong here and right in Kotlin:
+        // `X-Trace-Id` becomes the identifier xTraceId (CaseUtils.kebabToCamel used
+        // to leave the hyphen in, which JavaPoet rejects outright, so generation
+        // failed on any spec with a hyphenated header), and an optional header
+        // carrying a default gets that default into @RequestHeader — without it the
+        // parameter arrives null where the specification promised a value.
+        // Controller and client together, since each builds its parameters separately.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void headerDefaultsAndHyphenatedNamesQuarkus() throws IOException {
+        // The Quarkus resource builds its own parameter list, so it needs its own
+        // coverage: here the default reaches the parameter as a separate
+        // @DefaultValue annotation, which the Java extractor emitted for query
+        // parameters only and never for headers.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .framework(Framework.QUARKUS)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void externalRefNullabilityAndDefaults() throws IOException {
+        // The Java counterpart of the identically named Kotlin test. A default
+        // declared on a component in another file has to reach the annotation of
+        // every parameter that $refs it: the Java extractor read
+        // schema.getDefault() directly, which is null for a $ref because the
+        // parser is not asked to resolve one, and silently dropped the default.
+        // Snapshot only: the referenced types live in another package and are not
+        // generated here.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/externalnullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void quarkusServerAndClientSample2() throws IOException {
         // Both roles in a single run: XxxController (server resource) and
         // XxxClient (@RegisterRestClient) side by side, sharing the DTOs.
