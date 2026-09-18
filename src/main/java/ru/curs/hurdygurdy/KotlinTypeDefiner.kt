@@ -54,6 +54,7 @@ import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
+import ru.curs.hurdygurdy.SchemaInheritance.InheritedProperty
 import ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN
 import ru.curs.hurdygurdy.SchemaSemantics.FILE_NAME_PATTERN
 import ru.curs.hurdygurdy.SchemaSemantics.defaultOf
@@ -256,7 +257,6 @@ class KotlinTypeDefiner internal constructor(
     }
 
     /** A constructor property carried over from a base class (an allOf parent). */
-    private data class InheritedProperty(val key: String, val schema: Schema<*>, val required: Boolean)
 
     /**
      * The member subschemas of a polymorphic container — a `oneOf`, or a top-level
@@ -314,58 +314,13 @@ class KotlinTypeDefiner internal constructor(
     }
 
     /**
-     * The constructor parameters that the class generated for [ref] will declare,
-     * in declaration order (its own allOf-inherited parameters first, then its
-     * own properties), excluding the discriminator property. Used so that a
-     * subclass can re-declare the inherited parameters as `override` and pass
-     * them to the base-class constructor. Only resolves same-file references.
+     * The constructor parameters the class generated for [ref] will declare, so
+     * that a subclass can re-declare them as `override` and pass them to the
+     * base-class constructor.
      */
     private fun constructorPropertiesOf(ref: String, openAPI: OpenAPI): List<InheritedProperty> {
-        val schema = resolveLocalSchema(ref, openAPI) ?: return emptyList()
-        return constructorPropertiesOf(schema, openAPI)
-    }
-
-    private fun constructorPropertiesOf(schema: Schema<*>, openAPI: OpenAPI): List<InheritedProperty> {
-        val result = mutableListOf<InheritedProperty>()
-        // A property can be re-declared at several levels of an allOf chain (the
-        // YouTrack spec, for example, restates inherited fields on every subtype).
-        // Keep only the first (most-base) declaration by key so the generated
-        // constructor does not carry duplicate parameters. First-wins also keeps
-        // the parameter order aligned with the base-class constructor, which is
-        // what a subclass forwards its super-constructor arguments to.
-        val seen = mutableSetOf<String>()
-        fun add(property: InheritedProperty) {
-            if (seen.add(property.key)) {
-                result.add(property)
-            }
-        }
-        var ownSchema: Schema<*> = schema
-        if (schema.oneOf == null && schema.allOf != null) {
-            for (s in schema.allOf) {
-                if (s.`$ref` != null) {
-                    constructorPropertiesOf(s.`$ref`, openAPI).forEach(::add)
-                } else {
-                    ownSchema = s
-                }
-            }
-        }
-        val discriminatorProperty = schema.discriminator?.propertyName
-        val required = ownSchema.required?.toSet() ?: emptySet()
-        ownSchema.properties?.forEach { (key, value) ->
-            if (key != discriminatorProperty) {
-                add(InheritedProperty(key, value, required.contains(key)))
-            }
-        }
-        return result
-    }
-
-    private fun resolveLocalSchema(ref: String, openAPI: OpenAPI): Schema<*>? {
-        if (extractGroup(ref, FILE_NAME_PATTERN).isNotBlank()) {
-            // Reference into another file — we cannot see its schema here, so we
-            // leave inherited-property synthesis to that file's own generation.
-            return null
-        }
-        return openAPI.components?.schemas?.get(extractGroup(ref, CLASS_NAME_PATTERN))
+        val schema = SchemaInheritance.localComponent(openAPI, ref) ?: return emptyList()
+        return SchemaInheritance.flattenedProperties(schema, openAPI)
     }
 
     private fun getDTOClass(

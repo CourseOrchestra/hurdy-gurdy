@@ -42,7 +42,6 @@ import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Data;
@@ -60,14 +59,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
 import static ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake;
+import static ru.curs.hurdygurdy.SchemaInheritance.InheritedProperty;
+import static ru.curs.hurdygurdy.SchemaInheritance.allPropertyKeys;
+import static ru.curs.hurdygurdy.SchemaInheritance.componentSchemas;
+import static ru.curs.hurdygurdy.SchemaInheritance.inheritedProperties;
+import static ru.curs.hurdygurdy.SchemaInheritance.isInterfaceBase;
+import static ru.curs.hurdygurdy.SchemaInheritance.localComponent;
+import static ru.curs.hurdygurdy.SchemaInheritance.ownProperties;
+import static ru.curs.hurdygurdy.SchemaInheritance.ownSchemaOf;
 import static ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN;
-import static ru.curs.hurdygurdy.SchemaSemantics.FILE_NAME_PATTERN;
 import static ru.curs.hurdygurdy.SchemaSemantics.describesObject;
 import static ru.curs.hurdygurdy.SchemaSemantics.effectiveType;
 import static ru.curs.hurdygurdy.SchemaSemantics.extractGroup;
@@ -341,33 +346,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * type) or collides on erasure, neither of which compiles.
      */
     private Set<String> inheritedPropertyKeys(String ref, OpenAPI openAPI) {
-        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
-            // Reference into another file — its schema is not visible here.
-            return Set.of();
-        }
-        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
-                .orElse(null);
-        return schema == null ? Set.of() : inheritedPropertyKeys(schema, openAPI);
-    }
-
-    private Set<String> inheritedPropertyKeys(Schema<?> schema, OpenAPI openAPI) {
-        Set<String> keys = new HashSet<>();
-        Schema<?> ownSchema = schema;
-        if (schema.getOneOf() == null && schema.getAllOf() != null) {
-            for (Schema<?> s : schema.getAllOf()) {
-                if (s.get$ref() != null) {
-                    keys.addAll(inheritedPropertyKeys(s.get$ref(), openAPI));
-                } else {
-                    ownSchema = s;
-                }
-            }
-        }
-        if (ownSchema.getProperties() != null) {
-            keys.addAll(ownSchema.getProperties().keySet());
-        }
-        return keys;
+        Schema<?> schema = localComponent(openAPI, ref);
+        return schema == null ? Set.of() : allPropertyKeys(schema, openAPI);
     }
 
     private TypeSpec getDTOClass(String name, Schema<?> schema, OpenAPI openAPI, ClassName baseClass,
@@ -444,23 +424,6 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return classBuilder.build();
     }
 
-    /**
-     * The component schemas of {@code openAPI}, or an empty map when it declares
-     * no {@code components} block (a spec with only inline/path schemas). Guards
-     * the whole-document scans ({@link #polymorphicInterfacesOf}, {@link
-     * #permittedSubtypes}, {@link #effectiveSubclassMapping}) against a null
-     * {@code getComponents()} — {@link #polymorphicInterfacesOf} now runs for
-     * every class-path DTO, so it must tolerate a component-less document.
-     */
-    private static Map<String, Schema> schemasOf(OpenAPI openAPI) {
-        return Optional.ofNullable(openAPI.getComponents())
-                .map(Components::getSchemas)
-                .orElse(Map.of());
-    }
-
-    /** A record component carried into a record (own or flattened-inherited). */
-    private record RecordComponent(String key, Schema<?> schema, boolean required) { }
-
     private TypeSpec buildRecordDto(String name, Schema<?> schema, OpenAPI openAPI) {
         // 1) oneOf / top-level anyOf, or a discriminator base WITH subtypes ->
         // sealed interface. When a discriminator is present it wins: subtypes are
@@ -479,90 +442,9 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // subtype-less discriminator base also lands here (buildConcreteRecord
         // keeps its @JsonTypeInfo and drops the discriminator property), so it is
         // instantiable instead of a bare interface.
-        List<RecordComponent> inherited = inheritedComponents(schema, openAPI);
+        List<InheritedProperty> inherited = inheritedProperties(schema, openAPI);
         List<ClassName> implemented = ancestorInterfaces(name, schema, openAPI);
-        return buildConcreteRecord(name, currentSchemaOf(schema), openAPI, inherited, implemented);
-    }
-
-    /** The non-$ref member schema of an allOf (its own properties), else the schema itself. */
-    private Schema<?> currentSchemaOf(Schema<?> schema) {
-        if (schema.getOneOf() == null && schema.getAllOf() != null) {
-            Schema<?> current = schema;
-            for (Schema<?> s : schema.getAllOf()) {
-                if (s.get$ref() == null) {
-                    current = s;
-                }
-            }
-            return current;
-        }
-        return schema;
-    }
-
-    /**
-     * All components a schema inherits through its allOf $ref ancestors, first
-     * (most-base) declaration wins, discriminator property excluded. Same-file
-     * refs only (mirrors inheritedPropertyKeys).
-     */
-    private List<RecordComponent> inheritedComponents(Schema<?> schema, OpenAPI openAPI) {
-        List<RecordComponent> result = new ArrayList<>();
-        if (schema.getOneOf() != null || schema.getAllOf() == null) {
-            return result;
-        }
-        Set<String> seen = new HashSet<>();
-        for (Schema<?> s : schema.getAllOf()) {
-            if (s.get$ref() != null) {
-                for (RecordComponent c : componentsOfRef(s.get$ref(), openAPI)) {
-                    if (seen.add(c.key())) {
-                        result.add(c);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Whether a same-file {@code allOf} parent {@code $ref} is generated as an
-     * interface (a discriminator base or a {@code oneOf} container) rather than
-     * a concrete record. External-file refs are assumed to be bases (preserving
-     * the prior always-implement behaviour), since their schema is not visible.
-     */
-    private boolean refIsInterfaceBase(String ref, OpenAPI openAPI) {
-        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
-            return true;
-        }
-        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
-                .orElse(null);
-        return schema != null && (schema.getDiscriminator() != null || isPolymorphicInterface(schema));
-    }
-
-    private List<RecordComponent> componentsOfRef(String ref, OpenAPI openAPI) {
-        if (!extractGroup(ref, FILE_NAME_PATTERN).isBlank()) {
-            return List.of();
-        }
-        Schema<?> schema = Optional.ofNullable(openAPI.getComponents())
-                .map(Components::getSchemas)
-                .map(s -> s.get(extractGroup(ref, CLASS_NAME_PATTERN)))
-                .orElse(null);
-        if (schema == null) {
-            return List.of();
-        }
-        List<RecordComponent> result = new ArrayList<>(inheritedComponents(schema, openAPI));
-        result.addAll(ownComponents(currentSchemaOf(schema)));
-        // Strip the ref'd schema's OWN discriminator property. When that schema is
-        // itself an intermediate discriminator base (a subtype declaring its own
-        // `discriminator`), currentSchemaOf unwraps its ComposedSchema to the inline
-        // allOf member — which has a null discriminator — so ownComponents cannot skip
-        // it there. Jackson manages that property as the @JsonTypeInfo type-id on the
-        // generated base interface, so it must never be flattened into a descendant
-        // record as a data component (else it is double-emitted on the wire).
-        if (schema.getDiscriminator() != null) {
-            String disc = schema.getDiscriminator().getPropertyName();
-            result.removeIf(c -> c.key().equals(disc));
-        }
-        return result;
+        return buildConcreteRecord(name, ownSchemaOf(schema), openAPI, inherited, implemented);
     }
 
     /**
@@ -581,7 +463,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 // object parent becomes a concrete record whose fields are
                 // flattened into this record instead; `implements` against it
                 // would not compile ("interface expected").
-                if (s.get$ref() != null && refIsInterfaceBase(s.get$ref(), openAPI)) {
+                if (s.get$ref() != null && isInterfaceBase(s.get$ref(), openAPI)) {
                     result.add(referencedClassName(openAPI, s.get$ref()));
                 }
             }
@@ -604,7 +486,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      */
     private List<ClassName> polymorphicInterfacesOf(String name, OpenAPI openAPI) {
         List<ClassName> result = new ArrayList<>();
-        schemasOf(openAPI).forEach((schemaName, s) -> {
+        componentSchemas(openAPI).forEach((schemaName, s) -> {
             for (Schema member : polymorphicMembers(s)) {
                 if (member.get$ref() != null
                         && referencedClassName(openAPI, member.get$ref()).simpleName().equals(name)) {
@@ -617,11 +499,11 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     private TypeSpec buildConcreteRecord(String name, Schema<?> ownSchema, OpenAPI openAPI,
-                                         List<RecordComponent> inherited, List<ClassName> implemented) {
-        List<RecordComponent> components = new ArrayList<>(inherited);
+                                         List<InheritedProperty> inherited, List<ClassName> implemented) {
+        List<InheritedProperty> components = new ArrayList<>(inherited);
         Set<String> inheritedKeys = new HashSet<>();
         inherited.forEach(c -> inheritedKeys.add(c.key()));
-        for (RecordComponent c : ownComponents(ownSchema)) {
+        for (InheritedProperty c : ownProperties(ownSchema)) {
             if (!inheritedKeys.contains(c.key())) {
                 components.add(c);
             }
@@ -644,7 +526,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
         MethodSpec.Builder canonical = MethodSpec.constructorBuilder();
         List<String> requiredNames = new ArrayList<>();
-        for (RecordComponent c : components) {
+        for (InheritedProperty c : components) {
             String propertyName = params.isForceSnakeCaseForProperties()
                     ? CaseUtils.snakeToCamel(c.key()) : c.key();
             checkPropertyName(name, c.key());
@@ -788,7 +670,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         // No explicit mapping: derive {schemaName -> $ref} for every schema whose
         // allOf lists this base. Reuse the same discovery permittedSubtypes uses.
         Map<String, String> derived = new java.util.LinkedHashMap<>();
-        schemasOf(openAPI).forEach((schemaName, s) -> {
+        componentSchemas(openAPI).forEach((schemaName, s) -> {
             if (s.getAllOf() != null) {
                 for (Object aObj : s.getAllOf()) {
                     Schema<?> a = (Schema<?>) aObj;
@@ -819,7 +701,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /** Declares abstract accessor methods for a discriminator base's own (non-discriminator) properties. */
     private void addBaseAccessors(TypeSpec.Builder ifaceBuilder, String name, Schema<?> schema, OpenAPI openAPI) {
-        for (RecordComponent c : ownComponents(schema)) {
+        for (InheritedProperty c : ownProperties(schema)) {
             String propertyName = params.isForceSnakeCaseForProperties()
                     ? CaseUtils.snakeToCamel(c.key()) : c.key();
             checkPropertyName(name, c.key());
@@ -875,7 +757,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             return result;
         }
         // discriminator: subtypes are the schemas whose allOf $refs this base
-        schemasOf(openAPI).forEach((schemaName, s) -> {
+        componentSchemas(openAPI).forEach((schemaName, s) -> {
             if (s.getAllOf() != null) {
                 for (Object aObj : s.getAllOf()) {
                     Schema<?> a = (Schema<?>) aObj;
@@ -887,26 +769,6 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
                 }
             }
         });
-        return result;
-    }
-
-    /** Own (non-inherited) properties of a plain object schema, in declaration order. */
-    private List<RecordComponent> ownComponents(Schema<?> schema) {
-        List<RecordComponent> result = new ArrayList<>();
-        Map<String, Schema> properties = schema.getProperties();
-        if (properties == null) {
-            return result;
-        }
-        Set<String> required = schema.getRequired() == null
-                ? Set.of() : new HashSet<>(schema.getRequired());
-        String discriminatorProperty = schema.getDiscriminator() == null
-                ? null : schema.getDiscriminator().getPropertyName();
-        for (Map.Entry<String, Schema> e : properties.entrySet()) {
-            if (e.getKey().equals(discriminatorProperty)) {
-                continue;
-            }
-            result.add(new RecordComponent(e.getKey(), e.getValue(), required.contains(e.getKey())));
-        }
         return result;
     }
 

@@ -1111,6 +1111,38 @@ divergences waiting to be found.
 expose package-private parameter types, and `APIExtractor` is public. Accepted as the price of the
 step, per the agreement to revisit visibility once the package layout is settled.
 
+
+### 7.5 Step 4a, as executed
+
+Step 4 is decomposed into three slices; this is the first. Output-identical: 430 tests, no snapshot
+touched.
+
+`SchemaInheritance` now answers the `allOf` questions once. Walking a chain of `$ref` parents,
+keeping the first declaration of each key, and never letting the discriminator through as data is
+the same question in every language; it had been written out three times —
+`inheritedPropertyKeys` and `inheritedComponents`/`componentsOfRef` in the Java definer,
+`constructorPropertiesOf` in the Kotlin one — over a local-component lookup that existed four
+times. `RecordComponent` and `InheritedProperty` were the same record under two names and are now
+one.
+
+`JavaTypeDefiner` −180 lines, `KotlinTypeDefiner` −57, `SchemaInheritance` +130 code. Net
+production code across `src/main`: **−6 lines** — the same wash the earlier steps showed. The
+return is that a fix lands once, not three times.
+
+**Still to do in Step 4:**
+
+- **4b — `DtoStyle` strategies.** Five `if (javaDtoStyle == …)` sites in `JavaTypeDefiner`
+  guarding roughly 280 lines of Lombok, POJO and record emission. Splitting them into three
+  strategies is the change that actually breaks up the 800-line class. Java only; low risk.
+- **4c — the `TypeModel` IR.** The DTO half of the model, and with it F5: type *resolution* and
+  type *emission* are still the same call, so `defineJavaType` emits nested enums and inline DTOs
+  as a side effect, and `Codegen.addTypeSpec` still appends without deduplication. This is the
+  slice that can move snapshots.
+
+**Deliberately left for 4c:** `JavaTypeDefiner.isNullable` is still a fourth answer to the
+nullability question, asking the current document about a cross-file `$ref` rather than the one
+that declares it. Collapsing it into `isNullableType` is a behaviour change, not a move.
+
 ---
 
 ## 8. Rendering the diagrams
