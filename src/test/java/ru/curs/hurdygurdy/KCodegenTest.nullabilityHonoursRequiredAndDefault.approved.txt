@@ -14,6 +14,7 @@ import com.example.dto.ItemRequest
 import com.example.dto.ItemResponse
 import com.example.dto.NullableItem
 import kotlin.Boolean
+import kotlin.Int
 import kotlin.Long
 import kotlin.String
 import kotlin.collections.List
@@ -21,6 +22,8 @@ import org.springframework.web.bind.`annotation`.PathVariable
 import org.springframework.web.bind.`annotation`.RequestBody
 import org.springframework.web.bind.`annotation`.RequestHeader
 import org.springframework.web.bind.`annotation`.RequestParam
+import org.springframework.web.bind.`annotation`.RequestPart
+import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.service.`annotation`.DeleteExchange
 import org.springframework.web.service.`annotation`.GetExchange
 import org.springframework.web.service.`annotation`.PostExchange
@@ -54,6 +57,23 @@ public interface Client {
   )
   public fun createItem(@RequestBody(required = false) request: ItemRequest?): ItemResponse
 
+  @PostExchange(
+    value = "/items/upload",
+    accept = ["application/json"],
+    contentType = "multipart/form-data",
+  )
+  public fun uploadItem(
+    @RequestPart(name = "file") `file`: MultipartFile,
+    @RequestPart(name = "meta") meta: ItemRequest,
+    @RequestPart(name = "comment", required = false) comment: String?,
+  ): ItemResponse
+
+  @GetExchange(
+    value = "/items/headers",
+    accept = ["application/json"],
+  )
+  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") `x-PageSize`: Int, @RequestHeader(required = false, name = "X-Plain") `x-Plain`: String?): ItemResponse
+
   @GetExchange(
     value = "/items/nullable",
     accept = ["application/json"],
@@ -71,6 +91,7 @@ import com.example.dto.ItemRequest
 import com.example.dto.ItemResponse
 import com.example.dto.NullableItem
 import kotlin.Boolean
+import kotlin.Int
 import kotlin.Long
 import kotlin.String
 import kotlin.collections.List
@@ -82,6 +103,8 @@ import org.springframework.web.bind.`annotation`.PutMapping
 import org.springframework.web.bind.`annotation`.RequestBody
 import org.springframework.web.bind.`annotation`.RequestHeader
 import org.springframework.web.bind.`annotation`.RequestParam
+import org.springframework.web.bind.`annotation`.RequestPart
+import org.springframework.web.multipart.MultipartFile
 
 public interface Controller {
   @PutMapping(
@@ -110,6 +133,23 @@ public interface Controller {
     produces = ["application/json"],
   )
   public fun createItem(@RequestBody(required = false) request: ItemRequest?): ItemResponse
+
+  @PostMapping(
+    value = ["/items/upload"],
+    produces = ["application/json"],
+    consumes = ["multipart/form-data"],
+  )
+  public fun uploadItem(
+    @RequestPart(name = "file") `file`: MultipartFile,
+    @RequestPart(name = "meta") meta: ItemRequest,
+    @RequestPart(name = "comment", required = false) comment: String?,
+  ): ItemResponse
+
+  @GetMapping(
+    value = ["/items/headers"],
+    produces = ["application/json"],
+  )
+  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") `x-PageSize`: Int, @RequestHeader(required = false, name = "X-Plain") `x-Plain`: String?): ItemResponse
 
   @GetMapping(
     value = ["/items/nullable"],

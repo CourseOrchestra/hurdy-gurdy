@@ -180,7 +180,8 @@ class KotlinAPIExtractor(
                 val builder = AnnotationSpec.builder(RequestParam::class)
                     .addMember("required = %L", parameter.required == true)
                     .addMember("name = %S", parameter.name)
-                parameter.schema?.default?.let { builder.addMember("defaultValue = %S", it.toString()) }
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)
+                    ?.let { builder.addMember("defaultValue = %S", it) }
                 val annotationSpec = builder.build()
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
@@ -200,17 +201,16 @@ class KotlinAPIExtractor(
                 )
             }
             .forEach { parameter: Parameter ->
+                val builder = AnnotationSpec.builder(RequestHeader::class)
+                    .addMember("required = %L", parameter.required == true)
+                    .addMember("name = %S", parameter.name)
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)
+                    ?.let { builder.addMember("defaultValue = %S", it) }
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
                         parameterType(parameter, openAPI, classBuilder),
-                    )
-                        .addAnnotation(
-                            AnnotationSpec.builder(
-                                RequestHeader::class
-                            ).addMember("required = %L", parameter.required == true)
-                                .addMember("name = %S", parameter.name).build()
-                        ).build()
+                    ).addAnnotation(builder.build()).build()
                 )
             }
         if (generateResponseParameter) {
@@ -291,10 +291,10 @@ class KotlinAPIExtractor(
                         AnnotationSpec.builder(JAXRS_QUERY_PARAM)
                             .addMember("%S", parameter.name).build()
                     )
-                parameter.schema?.default?.let {
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)?.let {
                     pb.addAnnotation(
                         AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
-                            .addMember("%S", it.toString()).build()
+                            .addMember("%S", it).build()
                     )
                 }
                 methodBuilder.addParameter(pb.build())
@@ -302,16 +302,20 @@ class KotlinAPIExtractor(
         getParameterStream(stringPathItemEntry.value, operationEntry.value)
             .filter { parameter: Parameter -> "header".equals(parameter.getIn(), ignoreCase = true) }
             .forEach { parameter: Parameter ->
-                methodBuilder.addParameter(
-                    ParameterSpec.builder(
-                        CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
-                        parameterType(parameter, openAPI, classBuilder),
-                    )
-                        .addAnnotation(
-                            AnnotationSpec.builder(JAXRS_HEADER_PARAM)
-                                .addMember("%S", parameter.name).build()
-                        ).build()
+                val pb = ParameterSpec.builder(
+                    CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
+                    parameterType(parameter, openAPI, classBuilder),
+                ).addAnnotation(
+                    AnnotationSpec.builder(JAXRS_HEADER_PARAM)
+                        .addMember("%S", parameter.name).build()
                 )
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)?.let {
+                    pb.addAnnotation(
+                        AnnotationSpec.builder(JAXRS_DEFAULT_VALUE)
+                            .addMember("%S", it).build()
+                    )
+                }
+                methodBuilder.addParameter(pb.build())
             }
         if (generateResponseParameter && isIncludeRequest(operationEntry.value) && role == Role.CONTROLLER) {
             methodBuilder.addParameter(
@@ -368,7 +372,8 @@ class KotlinAPIExtractor(
                 val builder = AnnotationSpec.builder(RequestParam::class)
                     .addMember("required = %L", parameter.required == true)
                     .addMember("name = %S", parameter.name)
-                parameter.schema?.default?.let { builder.addMember("defaultValue = %S", it.toString()) }
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)
+                    ?.let { builder.addMember("defaultValue = %S", it) }
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.toIdentifier(CaseUtils.snakeToCamel(parameter.name)),
@@ -379,15 +384,16 @@ class KotlinAPIExtractor(
         getParameterStream(stringPathItemEntry.value, operationEntry.value)
             .filter { "header".equals(it.getIn(), ignoreCase = true) }
             .forEach { parameter: Parameter ->
+                val builder = AnnotationSpec.builder(RequestHeader::class)
+                    .addMember("required = %L", parameter.required == true)
+                    .addMember("name = %S", parameter.name)
+                typeDefiner.effectiveDefault(parameter.schema, openAPI)
+                    ?.let { builder.addMember("defaultValue = %S", it) }
                 methodBuilder.addParameter(
                     ParameterSpec.builder(
                         CaseUtils.toIdentifier(CaseUtils.kebabToCamel(parameter.name)),
                         parameterType(parameter, openAPI, classBuilder),
-                    ).addAnnotation(
-                        AnnotationSpec.builder(RequestHeader::class)
-                            .addMember("required = %L", parameter.required == true)
-                            .addMember("name = %S", parameter.name).build()
-                    ).build()
+                    ).addAnnotation(builder.build()).build()
                 )
             }
         classBuilder.addFunction(methodBuilder.build())
@@ -639,15 +645,20 @@ class KotlinAPIExtractor(
      * A value is nullable when it may be ABSENT, or when its schema says it may
      * be null — two independent questions, both asked here. A path variable is
      * part of the URL and so is always present; a query or header parameter is
-     * present when it is `required`, and also when its schema carries a
-     * `default`, because the generated `@RequestParam(defaultValue = ...)` /
-     * `@DefaultValue` makes the framework substitute that default and the
-     * argument never arrives null.
+     * present when it is `required`, and also when a `default` applies, because
+     * the generator emits that default into the annotation
+     * (`@RequestParam(defaultValue = ...)`, `@RequestHeader(defaultValue = ...)`,
+     * `@DefaultValue`) and the framework substitutes it.
+     *
+     * The default is read with [TypeDefiner.effectiveDefault], the same call the
+     * annotations are built from, so "assumed present" and "default emitted"
+     * cannot drift apart: claiming presence without emitting the default would
+     * hand the caller a non-null parameter that the framework fills with null.
      */
     private fun isNullableParameter(parameter: Parameter, openAPI: OpenAPI): Boolean {
         val present = "path".equals(parameter.getIn(), ignoreCase = true)
                 || parameter.required == true
-                || parameter.schema?.default != null
+                || typeDefiner.effectiveDefault(parameter.schema, openAPI) != null
         return !present || typeDefiner.isNullableType(parameter.schema, openAPI)
     }
 

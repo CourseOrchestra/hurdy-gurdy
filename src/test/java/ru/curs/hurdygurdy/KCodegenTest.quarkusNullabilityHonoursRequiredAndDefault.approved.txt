@@ -25,10 +25,13 @@ import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.QueryParam
 import kotlin.Boolean
+import kotlin.Int
 import kotlin.Long
 import kotlin.String
 import kotlin.collections.List
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
 
 @Path("")
 @RegisterRestClient
@@ -59,6 +62,21 @@ public interface Client {
   @Consumes("application/json")
   public fun createItem(request: ItemRequest?): ItemResponse
 
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun uploadItem(
+    @RestForm("file") `file`: FileUpload,
+    @RestForm("meta") meta: ItemRequest,
+    @RestForm("comment") comment: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  public fun headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") `x-PageSize`: Int, @HeaderParam("X-Plain") `x-Plain`: String?): ItemResponse
+
   @GET
   @Path("/items/nullable")
   @Produces("application/json")
@@ -87,9 +105,12 @@ import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.QueryParam
 import kotlin.Boolean
+import kotlin.Int
 import kotlin.Long
 import kotlin.String
 import kotlin.collections.List
+import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
 
 @Path("")
 public interface Controller {
@@ -118,6 +139,21 @@ public interface Controller {
   @Produces("application/json")
   @Consumes("application/json")
   public fun createItem(request: ItemRequest?): ItemResponse
+
+  @POST
+  @Path("/items/upload")
+  @Produces("application/json")
+  @Consumes("multipart/form-data")
+  public fun uploadItem(
+    @RestForm("file") `file`: FileUpload,
+    @RestForm("meta") meta: ItemRequest,
+    @RestForm("comment") comment: String?,
+  ): ItemResponse
+
+  @GET
+  @Path("/items/headers")
+  @Produces("application/json")
+  public fun headerDefaults(@HeaderParam("X-Page-Size") @DefaultValue("20") `x-PageSize`: Int, @HeaderParam("X-Plain") `x-Plain`: String?): ItemResponse
 
   @GET
   @Path("/items/nullable")

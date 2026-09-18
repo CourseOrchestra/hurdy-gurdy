@@ -93,6 +93,55 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ItemResponse'
+  /items/upload:
+    post:
+      operationId: uploadItem
+      # A required multipart body whose schema marks some parts required: those
+      # parts are present, the rest are not.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, meta]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                meta:
+                  $ref: '#/components/schemas/ItemRequest'
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+  # An optional header carrying a default: the generator must emit the default
+  # into the annotation, since the type says the value is always there.
+  /items/headers:
+    get:
+      operationId: headerDefaults
+      parameters:
+        - name: X-Page-Size
+          in: header
+          schema:
+            type: integer
+            default: 20
+        - name: X-Plain
+          in: header
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
   /items/nullable:
     get:
       operationId: findItem

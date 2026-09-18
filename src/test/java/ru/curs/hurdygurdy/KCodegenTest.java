@@ -367,6 +367,22 @@ class KCodegenTest {
     }
 
     @Test
+    void externalRefNullabilityAndDefaults() throws IOException {
+        // PR #621 review: a $ref into another file was looked up in the CURRENT
+        // document, where it is never found, so the "says nothing" default won
+        // and a required position referencing an externally declared
+        // `nullable: true` component came out non-null. Same for a default
+        // declared in the other file, which has to reach the annotation for the
+        // non-null type to be honest. Snapshot only: the referenced types live
+        // in another package and are not generated here.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/externalnullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @Test
     void arrayElementNullabilityFrom30Component() throws IOException {
         // hurdy-gurdy#620: in a 3.0 document an array element's nullability can
         // only come from the component the $ref names, because 3.0 ignores

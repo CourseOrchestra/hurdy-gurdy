@@ -23,7 +23,6 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -70,6 +69,7 @@ public abstract class TypeDefiner<T> {
     final BiConsumer<ClassCategory, T> typeSpecBiConsumer;
     final GeneratorParams params;
     final Map<String, DTOMeta> externalClasses = new HashMap<>();
+    private final Map<String, OpenAPI> externalDocuments = new HashMap<>();
     private final Set<String> aliasesBeingInlined = new HashSet<>();
     private Path sourceFile;
 
@@ -318,6 +318,7 @@ public abstract class TypeDefiner<T> {
     void init(Path currentSourceFile) {
         this.sourceFile = currentSourceFile;
         externalClasses.clear();
+        externalDocuments.clear();
         aliasesBeingInlined.clear();
     }
 
@@ -333,24 +334,49 @@ public abstract class TypeDefiner<T> {
                     getNullable(currentOpenAPI, className, true));
         } else {
             return externalClasses.computeIfAbsent(ref, f -> {
-                ParseOptions parseOptions = new ParseOptions();
-                Path externalFile = sourceFile.resolveSibling(fileName);
-                try {
-                    final SwaggerParseResult parseResult = new OpenAPIParser()
-                            .readContents(Files.readString(externalFile), null, parseOptions);
-                    OpenAPI openAPI = parseResult.getOpenAPI();
-                    String packageName = Optional.ofNullable(openAPI.getExtensions())
-                            .map(e -> e.get("x-package"))
-                            .map(String.class::cast)
-                            .orElseThrow(() -> new IllegalStateException(
-                                    String.format(
-                                            "x-package not defined for externally linked file %s ", externalFile)));
-                    return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                }
+                OpenAPI openAPI = definingDocument(currentOpenAPI, ref);
+                String packageName = Optional.ofNullable(openAPI.getExtensions())
+                        .map(e -> e.get("x-package"))
+                        .map(String.class::cast)
+                        .orElseThrow(() -> new IllegalStateException(
+                                String.format("x-package not defined for externally linked file %s ",
+                                        sourceFile.resolveSibling(fileName))));
+                return new DTOMeta(className, packageName, fileName, getNullable(openAPI, className, true));
             });
         }
+    }
+
+    /**
+     * The document that defines what {@code ref} points at: the current one for
+     * a same-file reference, or the linked file, parsed once and cached.
+     *
+     * <p>Every question about a referenced component — is it nullable, does it
+     * carry a default, is it an enum — has to be asked of the document that
+     * declares it. Asking the current document about {@code other.yaml#/...}
+     * finds nothing and quietly returns the caller's default, which reads as
+     * "the component says nothing" when in truth it was never consulted.
+     */
+    private OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
+        Matcher matcher = FILE_NAME_PATTERN.matcher(ref);
+        String fileName = matcher.find() ? matcher.group(1) : "";
+        if (fileName.isBlank()) {
+            return currentOpenAPI;
+        }
+        return externalDocuments.computeIfAbsent(fileName, name -> {
+            Path externalFile = sourceFile.resolveSibling(name);
+            try {
+                OpenAPI parsed = new OpenAPIParser()
+                        .readContents(Files.readString(externalFile), null, new ParseOptions())
+                        .getOpenAPI();
+                if (parsed == null) {
+                    throw new IllegalStateException(
+                            String.format("Could not parse externally linked file %s", externalFile));
+                }
+                return parsed;
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
     }
 
     protected boolean getNullable(OpenAPI currentOpenAPI, String className, Boolean defaultValue) {
@@ -403,7 +429,31 @@ public abstract class TypeDefiner<T> {
         if (ref == null) {
             return isNullableSchema(schema);
         }
-        return getNullable(openAPI, extractGroup(ref, CLASS_NAME_PATTERN), false);
+        return getNullable(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN), false);
+    }
+
+    /**
+     * The default value that applies to {@code schema}: its own, or — for a
+     * {@code $ref} — the one the referenced component declares. Null when
+     * neither does.
+     *
+     * <p>A parameter with a default is never absent from the handler's point of
+     * view, because the generator emits that default into the annotation
+     * ({@code @RequestParam(defaultValue = ...)}, {@code @DefaultValue}) and the
+     * framework substitutes it. The two must be decided from the same answer, so
+     * both the annotation and the nullability read this method.
+     */
+    final String effectiveDefault(Schema<?> schema, OpenAPI openAPI) {
+        if (schema == null) {
+            return null;
+        }
+        if (schema.getDefault() != null) {
+            return schema.getDefault().toString();
+        }
+        String ref = schema.get$ref();
+        return ref == null
+                ? null
+                : getDefault(definingDocument(openAPI, ref), extractGroup(ref, CLASS_NAME_PATTERN));
     }
 
     protected String getDefault(OpenAPI currentOpenAPI, String className) {
