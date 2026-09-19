@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static ru.curs.hurdygurdy.TestUtils.getContent;
 
 class CodegenTest {
     private JavaCodegen codegen = new JavaCodegen(
@@ -683,35 +684,5 @@ class CodegenTest {
     void verify(Path path) throws IOException {
         Approvals.verify(getContent(path));
         GeneratedCodeCompiler.assertJavaCompiles(path);
-    }
-
-    String getContent(Path path) throws IOException {
-        try (Stream<Path> paths = Files.walk(path)) {
-            return paths
-                    .sorted(Comparator.comparing(Path::toString))
-                    .flatMap(p -> Stream.concat(
-                            Stream.of(
-                                    String.format("---%n"),
-                                    String.format("%s%n", p.toString()
-                                            .replaceAll(String.format("\\%s", File.separator), "/")
-                                            .substring(result.toString().length()))
-                            ),
-                            readFile(p))
-                    ).collect(Collectors.joining());
-        }
-    }
-
-    Stream<String> readFile(Path path) {
-        String result;
-        if (Files.isReadable(path)) {
-            try {
-                result = Files.readString(path);
-            } catch (IOException e) {
-                result = null;
-            }
-            return Stream.ofNullable(result);
-        } else {
-            return Stream.empty();
-        }
     }
 }
