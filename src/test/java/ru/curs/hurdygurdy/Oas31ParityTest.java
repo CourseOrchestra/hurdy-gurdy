@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.spec.StrayNullableCheck;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

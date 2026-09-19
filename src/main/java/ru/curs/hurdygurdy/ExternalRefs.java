@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.spec.SchemaSemantics;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.Yaml;
@@ -47,7 +48,7 @@ public final class ExternalRefs {
     /**
      * The spec file plus every file transitively referenced from it via
      * {@code $ref: "<file>#/..."}. Reference file names are resolved against
-     * the root spec's directory, exactly as {@link TypeDefiner} does at
+     * the root spec's directory, exactly as {@code TypeDefiner} does at
      * generation time. Keys are display names (the given spec string for the
      * root, the ref file name for the rest), values are resolved paths.
      * Unreadable files are kept as keys but not scanned — generation will

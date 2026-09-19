@@ -16,6 +16,9 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.JavaTypeDefiner;
+import ru.curs.hurdygurdy.extract.DTOExtractor;
+import ru.curs.hurdygurdy.extract.JavaAPIExtractor;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 

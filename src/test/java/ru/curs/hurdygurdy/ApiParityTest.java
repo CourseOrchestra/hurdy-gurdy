@@ -16,6 +16,10 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.TypeDefiner;
+import ru.curs.hurdygurdy.extract.APIExtractor;
+import ru.curs.hurdygurdy.extract.JavaAPIExtractor;
+import ru.curs.hurdygurdy.extract.KotlinAPIExtractor;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

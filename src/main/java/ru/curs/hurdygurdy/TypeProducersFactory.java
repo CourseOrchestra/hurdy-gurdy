@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.TypeDefiner;
 import java.util.List;
 import java.util.function.BiConsumer;
 

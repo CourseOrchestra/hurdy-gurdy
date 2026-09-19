@@ -25,7 +25,7 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 
 /** Small filesystem helpers shared by the tests. */
-final class TestFiles {
+public final class TestFiles {
 
     private TestFiles() {
     }

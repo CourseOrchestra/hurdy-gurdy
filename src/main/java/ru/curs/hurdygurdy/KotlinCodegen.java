@@ -16,6 +16,9 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.KotlinTypeDefiner;
+import ru.curs.hurdygurdy.extract.DTOExtractor;
+import ru.curs.hurdygurdy.extract.KotlinAPIExtractor;
 import com.squareup.kotlinpoet.FileSpec;
 import com.squareup.kotlinpoet.TypeSpec;
 

@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.build.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

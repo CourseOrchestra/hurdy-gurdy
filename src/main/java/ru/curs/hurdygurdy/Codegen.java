@@ -16,6 +16,9 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.TypeDefiner;
+import ru.curs.hurdygurdy.spec.SchemaNormalizer;
+import ru.curs.hurdygurdy.spec.StrayNullableCheck;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
