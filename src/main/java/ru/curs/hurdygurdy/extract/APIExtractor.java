@@ -39,10 +39,15 @@ import java.util.function.Function;
  * {@code io.swagger.*} except the type definers, which still resolve a schema to
  * a type.
  *
+ * <p>Public although nothing outside this package references it: Kotlin refuses
+ * to let a public class expose a package-private supertype, and
+ * {@code KotlinAPIExtractor} has to be reachable from {@code KotlinCodegen} in
+ * the root package.
+ *
  * @param <T> the generated type
  * @param <B> the builder that produces it
  */
-abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
+public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     private final GeneratorParams params;
     private final ApiModelBuilder modelBuilder;
     private final BiFunction<String, Role, B> builderSupplier;

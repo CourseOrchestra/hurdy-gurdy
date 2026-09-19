@@ -32,11 +32,8 @@ import java.util.List;
  * <p>Turning an operation into an interface method is one algorithm — annotate
  * the method, set the return type, add the body, then the path, query and header
  * parameters, then whatever context parameters the framework wants. Only the
- * <em>names</em> in it change between Spring and Quarkus. That algorithm used to
- * be written out once per framework and once more for the Spring client, three
- * copies in this language and three more in Kotlin; a binding is what is left
- * when the algorithm is factored out of them, and
- * {@code JavaAPIExtractor.buildMethod} is the algorithm itself.
+ * <em>names</em> in it change between frameworks; a binding supplies those, and
+ * {@code JavaAPIExtractor.buildMethod} is the algorithm.
  *
  * <p>Note that the Spring client is a binding of its own
  * ({@link JavaSpringClientBinding}) rather than a special case of a role: it
@@ -44,10 +41,9 @@ import java.util.List;
  * wraps its return type differently. Roles that share a dialect share a binding,
  * and {@link Role} is passed only where a framework genuinely distinguishes them.
  *
- * <p>Until the model of step 3 exists there has to be one of these per language,
- * because every method here returns a JavaPoet object. The Kotlin counterpart is
- * {@code KotlinFrameworkBinding}, and the two are expected to stay in step; see
- * {@code ApiParityTest}.
+ * <p>One of these per language for as long as every method returns a JavaPoet
+ * object; {@code KotlinFrameworkBinding} is the counterpart, and
+ * {@code ApiParityTest} holds the two to the same answers.
  */
 public interface JavaFrameworkBinding {
 

@@ -50,10 +50,8 @@ import kotlin.streams.asSequence
  * Generates one Kotlin interface per OpenAPI tag, with one function per
  * operation.
  *
- * There is a single method-building algorithm here; everything that changes
- * between Spring, the Spring HTTP interface and Quarkus is supplied by a
- * [KotlinFrameworkBinding]. It used to be three copies of that algorithm, one
- * per dialect, mirroring three more in Java.
+ * One method-building algorithm; everything that changes between Spring, the
+ * Spring HTTP interface and Quarkus is supplied by a [KotlinFrameworkBinding].
  */
 class KotlinAPIExtractor(
     private val typeDefiner: KotlinTypeDefiner,

@@ -25,9 +25,9 @@
  * {@code byte[]} against {@code ByteArray}, a boxed Java type against a nullable
  * Kotlin one.
  *
- * <p>For Java the shape of a DTO is a further choice, and
- * {@link ru.curs.hurdygurdy.emit.JavaClassMembers} carries it: Lombok leaves the
- * accessors to {@code @Data}, the plain style writes them out, and records are a
- * different shape again.
+ * <p>For Java the shape of a DTO is a further choice, carried by
+ * {@link ru.curs.hurdygurdy.emit.JavaClassMembers}: Lombok leaves the accessors
+ * to {@code @Data}, the plain style writes them out, and records are a different
+ * shape again.
  */
 package ru.curs.hurdygurdy.emit;

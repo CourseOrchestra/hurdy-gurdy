@@ -41,13 +41,8 @@ import java.util.regex.Pattern;
  * {@code GeneratorParams} to answer is generator <em>policy</em> and stays on
  * {@code TypeDefiner}.
  *
- * <p>Gathering these here is what stops them being answered twice. They used to
- * live partly on {@code TypeDefiner} and partly, in a second copy, in each of
- * the two type definers — {@link #polymorphicMembers(Schema)} was written out
- * once per language — and a pair of copies that drift is how the generator comes
- * to mean different things in Java and in Kotlin. There is one answer to each
- * question and it is here; see {@code ApiParityTest} for what the alternative
- * costs.
+ * <p>One answer to each question, in one place: two copies that drift are how
+ * a generator comes to mean different things in Java and in Kotlin.
  */
 public final class SchemaSemantics {
 

@@ -17,18 +17,16 @@
 /**
  * The annotation vocabulary of one target web framework.
  *
- * <p>Turning an operation into an interface method is a single algorithm —
- * annotate the method, set the return type, add the body, then the path, query
- * and header parameters, then any context parameters. Only the names in it change
- * between Spring Web MVC, Spring's declarative HTTP interface and Quarkus, and a
- * binding is what is left when the algorithm is factored out.
+ * <p>Only the names change between Spring Web MVC, Spring's declarative HTTP
+ * interface and Quarkus; a binding supplies them and the extractor holds the
+ * algorithm.
  *
  * <p>A dialect, not a role: the Spring client has its own binding because it
  * speaks {@code @GetExchange} rather than {@code @GetMapping}, while a Quarkus
  * resource and a Quarkus client share one.
  *
- * <p>There is a binding interface per language for as long as each of their
- * methods returns a JavaPoet or KotlinPoet object; they merge once the model
- * covers types as well as operations.
+ * <p>One interface per language for as long as their methods return JavaPoet or
+ * KotlinPoet objects; they merge once the model covers types as well as
+ * operations.
  */
 package ru.curs.hurdygurdy.binding;

@@ -23,9 +23,8 @@
  * tag, with one method per operation. Both delegate the shape of a type to a
  * definer in {@code emit}.
  *
- * <p>The per-language subclasses hold only what genuinely differs: the
- * JavaPoet or KotlinPoet builder being filled. Which annotations go on it is the
- * business of a binding, and what the specification means is settled before they
- * are reached.
+ * <p>The per-language subclasses hold only what genuinely differs: the JavaPoet
+ * or KotlinPoet builder being filled. Which annotations go on it is a binding's
+ * business, and what the specification means is settled before they are reached.
  */
 package ru.curs.hurdygurdy.extract;

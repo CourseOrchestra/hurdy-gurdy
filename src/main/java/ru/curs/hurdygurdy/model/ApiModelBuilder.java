@@ -44,16 +44,12 @@ import java.util.stream.Stream;
  * Reads the paths of a document into the language-neutral model the generators
  * emit from.
  *
- * <p>This is the only place on the API path that touches {@code io.swagger.*}.
- * Every question it answers — is this parameter required, does it have a
- * default, is the body one value or several parts, is that part always
- * present — is a question about the specification, with one right answer; and
- * for as long as they were asked separately by a Java extractor and a Kotlin one,
- * they were answered differently. That is not a hypothetical: the Java side read
- * a parameter's default straight off the schema, where the Kotlin side resolved
- * it through the {@code $ref}, so the same document produced a Java client that
- * silently dropped the default (see {@code ApiParityTest}). Asking once is what
- * makes that class of divergence unrepresentable rather than merely unlikely.
+ * <p>The only place on the API path that touches {@code io.swagger.*}. Every
+ * question it answers — is this parameter required, does it have a default, is
+ * the body one value or several parts, is that part always present — is a
+ * question about the specification with one right answer. Asking it once here,
+ * rather than once per language, is what makes a Java/Kotlin divergence
+ * unrepresentable rather than merely unlikely.
  *
  * <p>What is deliberately <em>not</em> resolved here is the type behind a
  * schema. {@code byte[]} against {@code ByteArray}, {@code Integer} against

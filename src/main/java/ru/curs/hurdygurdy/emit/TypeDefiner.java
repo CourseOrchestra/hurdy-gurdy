@@ -53,12 +53,8 @@ import static ru.curs.hurdygurdy.spec.SchemaSemantics.isNullableSchema;
  * specification alone live in {@link SchemaSemantics}, and the parsing and
  * caching of linked documents in {@link LinkedDocuments}.
  *
- * <p>The class is deliberately free of any code-generation library: a subclass
- * produces {@code T} and nothing here knows what {@code T} is. It used to
- * declare both {@code defineJavaType} and {@code defineKotlinType}, whose base
- * implementations threw — so this class imported JavaPoet <em>and</em>
- * KotlinPoet, and {@code <T>} constrained nothing. Each definer now declares its
- * own, and the extractors hold the definer they actually need.
+ * <p>Deliberately free of any code-generation library: a subclass produces
+ * {@code T} and nothing here knows what {@code T} is.
  *
  * @param <T> the generated type: a JavaPoet or KotlinPoet {@code TypeSpec}
  */
@@ -283,11 +279,11 @@ public abstract class TypeDefiner<T> {
      * cannot. Both ask this method the null question and answer the absence
      * question themselves.
      *
-     * <p>This is the single answer to that question, for every position —
-     * property, array element, parameter, request body, response. It used to be
-     * asked in three slightly different ways, and that disagreement is what
+     * <p>The single answer to that question, for every position — property,
+     * array element, parameter, request body, response. Asking it a second way
+     * is what
      * <a href="https://github.com/CourseOrchestra/hurdy-gurdy/issues/620">issue 620</a>
-     * surfaced; keep it here rather than growing a fourth copy.
+     * was.
      *
      * <p>In OpenAPI 3.0 a {@code $ref} can only ever be answered for by the
      * component it names, never at the point of use: 3.0 ignores keywords

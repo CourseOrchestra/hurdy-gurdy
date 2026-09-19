@@ -35,8 +35,7 @@ import java.util.function.BiConsumer;
  *
  * <p>Language-neutral: which schemas become classes is a question about the
  * specification and the configuration, and the {@link TypeDefiner} handed in
- * answers the only language-dependent part. There used to be an empty subclass
- * per language whose whole body was a constructor calling {@code super}.
+ * answers the only language-dependent part.
  *
  * @param <T> the generated type
  */

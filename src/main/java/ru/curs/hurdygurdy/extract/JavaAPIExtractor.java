@@ -52,11 +52,9 @@ import static ru.curs.hurdygurdy.CaseUtils.normalizeToCamel;
 /**
  * Generates one Java interface per OpenAPI tag, with one method per operation.
  *
- * <p>There is a single method-building algorithm here; everything that changes
- * between Spring, the Spring HTTP interface and Quarkus is supplied by a
- * {@link JavaFrameworkBinding}. It used to be three copies of that algorithm,
- * one per dialect, which is how they came to disagree about things that are not
- * dialect at all — see {@code ApiParityTest}.
+ * <p>One method-building algorithm; everything that changes between Spring, the
+ * Spring HTTP interface and Quarkus is supplied by a
+ * {@link JavaFrameworkBinding}.
  */
 public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
 

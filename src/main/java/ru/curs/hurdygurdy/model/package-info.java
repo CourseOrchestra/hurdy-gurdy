@@ -25,11 +25,6 @@
  * value can be absent; bodies as one value or a list of parts — and the back ends
  * emit from that.
  *
- * <p>Asking each question once is the point. While the Java and Kotlin extractors
- * each read the document for themselves they answered some of them differently,
- * and a document could produce a Java client that silently dropped a default the
- * Kotlin one honoured.
- *
  * <p>Deliberately absent is the type behind a schema: mapping one to
  * {@code byte[]} or {@code ByteArray} is the genuinely per-language step and
  * stays with the definers in {@code emit}.

@@ -24,10 +24,8 @@ import com.palantir.javapoet.TypeSpec;
  * How a class-shaped DTO gets its accessors and value semantics.
  *
  * <p>The two class styles build the same fields from the same schema and differ
- * only in who writes the boilerplate: {@link JavaDtoStyle#LOMBOK} delegates it to
- * an annotation processor, {@link JavaDtoStyle#POJO} writes it out. Keeping that
- * difference behind three hooks is what leaves one class-building path instead of
- * a body threaded with style tests.
+ * only in who writes the boilerplate: {@link JavaDtoStyle#LOMBOK} delegates it
+ * to an annotation processor, {@link JavaDtoStyle#POJO} writes it out.
  *
  * <p>{@link JavaDtoStyle#RECORDS} is not one of these: a record is not a class
  * with accessors bolted on, it is a different shape entirely, and it is dispatched

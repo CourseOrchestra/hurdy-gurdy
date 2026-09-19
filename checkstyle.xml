@@ -67,12 +67,10 @@
 
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->
-        <!-- JavadocMethod/JavadocType only validate the Javadoc that IS there:
-             they check its tags, not its existence. Requiring it at all is the
-             MissingJavadoc* family's job, which is why public types went
-             undocumented for so long without a word from the build. Both halves
-             are configured here, and both reach protected members: anything a
-             subclass or another package can see is API to someone. -->
+        <!-- JavadocMethod/JavadocType validate the Javadoc that is there;
+             MissingJavadoc* requires it to be there at all. Both halves are
+             needed, and both reach protected: anything a subclass or another
+             package can see is API to someone. -->
         <module name="JavadocMethod">
             <property name="accessModifiers" value="public, protected"/>
             <property name="allowMissingReturnTag" value="true"/>

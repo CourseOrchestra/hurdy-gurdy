@@ -45,10 +45,8 @@ import kotlin.reflect.KClass
  * The annotation vocabulary of one target web framework, for Kotlin output.
  *
  * Counterpart of [JavaFrameworkBinding]; see its documentation for why the
- * algorithm and the vocabulary are separated. There has to be one of these per
- * language until the model of step 3 exists, because every method here returns a
- * KotlinPoet object. The two are expected to answer alike — `ApiParityTest`
- * checks that they do.
+ * algorithm and the vocabulary are separated. `ApiParityTest` holds the two to
+ * the same answers.
  */
 internal interface KotlinFrameworkBinding {
 
