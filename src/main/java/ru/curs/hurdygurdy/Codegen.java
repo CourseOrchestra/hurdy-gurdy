@@ -24,8 +24,8 @@ import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -42,7 +42,7 @@ public abstract class Codegen<T> {
 
     private final GeneratorParams params;
     private OpenAPI openAPI;
-    private final Map<ClassCategory, List<T>> typeSpecs = new EnumMap<>(ClassCategory.class);
+    private final Map<ClassCategory, Map<String, T>> typeSpecs = new EnumMap<>(ClassCategory.class);
     private final List<TypeSpecExtractor<T>> typeSpecExtractors;
     private final TypeDefiner<T> typeDefiner;
     private Consumer<String> warningListener = System.err::println;
@@ -120,8 +120,8 @@ public abstract class Codegen<T> {
 
 
     void generate(Path resultDirectory) throws IOException {
-        for (Map.Entry<ClassCategory, List<T>> typeSpecsEntry : typeSpecs.entrySet()) {
-            for (T typeSpec : typeSpecsEntry.getValue()) {
+        for (Map.Entry<ClassCategory, Map<String, T>> typeSpecsEntry : typeSpecs.entrySet()) {
+            for (T typeSpec : typeSpecsEntry.getValue().values()) {
                 final String packageName = String.join(".", params.getRootPackage(),
                         typeSpecsEntry.getKey().getPackageName());
                 writeFile(resultDirectory, packageName, typeSpec);
@@ -129,10 +129,42 @@ public abstract class Codegen<T> {
         }
     }
 
+    /**
+     * Collects a generated type, at most once per name.
+     *
+     * <p>The same type can legitimately be reached twice — an inline titled
+     * schema used by two properties is resolved once per use — and the second
+     * copy was previously appended and written over the first. Identical content
+     * made that invisible; differing content made it a silent loss, because the
+     * last writer won and nothing said which one that was. A name is a file, so
+     * one name is one type, and a genuine clash is reported rather than resolved
+     * by writing order.
+     *
+     * @param classCategory the subpackage the type belongs in
+     * @param typeSpec      the generated type
+     */
     public void addTypeSpec(ClassCategory classCategory, T typeSpec) {
-        List<T> specList = this.typeSpecs.computeIfAbsent(classCategory, n -> new ArrayList<>());
-        specList.add(typeSpec);
+        Map<String, T> byName =
+                this.typeSpecs.computeIfAbsent(classCategory, n -> new LinkedHashMap<>());
+        String name = typeName(typeSpec);
+        T existing = byName.putIfAbsent(name, typeSpec);
+        if (existing != null && !existing.toString().equals(typeSpec.toString())) {
+            throw new IllegalStateException(String.format(
+                    "Two different types are both generated as '%s' in the %s package. A generated "
+                            + "name is a file name, so one of them would silently overwrite the "
+                            + "other; give the schemas distinct titles.",
+                    name, classCategory.getPackageName()));
+        }
     }
+
+    /**
+     * The simple name of a generated type, which is also the name of the file it
+     * is written to.
+     *
+     * @param typeSpec the generated type
+     * @return its simple name
+     */
+    abstract String typeName(T typeSpec);
 
     abstract void writeFile(Path resultDirectory, String packageName, T typeSpec) throws IOException;
 }

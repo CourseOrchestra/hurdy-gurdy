@@ -481,6 +481,18 @@ class KCodegenTest {
                 .hasMessageContaining("get, post, put, patch and delete");
     }
 
+    @Test
+    void clashingGeneratedNamesAreRejected() {
+        // The Kotlin definer has the same inline-type side channel as the Java
+        // one, so it needs the same guard: a generated name is a file name.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/titleclash.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("both generated as 'Shared'");
+    }
+
     @ParameterizedTest
     @EnumSource(Framework.class)
     void youtrackOpenapiCompiles(Framework framework) throws IOException {

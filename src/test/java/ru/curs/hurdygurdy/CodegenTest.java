@@ -466,6 +466,40 @@ class CodegenTest {
     }
 
     @Test
+    void externalNullableRequiredRecordComponent() throws IOException {
+        // A required record component is null-checked in the compact constructor
+        // unless the component it references permits null. When that component is
+        // declared in another file the question has to be put to THAT document:
+        // asking the current one finds nothing, answers "not nullable" by default
+        // and emits a check that rejects the legal payload {"thing": null}. The
+        // records path used to ask the wrong document; it now shares the one
+        // answer the rest of the generator has used since issue 620.
+        // Snapshot only: the referenced type lives in another package.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false)
+                .javaDtoStyle(JavaDtoStyle.RECORDS));
+        codegen.generate(Path.of("src/test/resources/externalrecordnullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void clashingGeneratedNamesAreRejected(JavaDtoStyle style) {
+        // Two inline objects with the same title generate two different classes
+        // under one name. Because a generated name is a file name, the second
+        // silently overwrote the first and one of the two properties ended up
+        // typed by a class carrying the other's fields — output that compiles,
+        // which is what made it dangerous.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false)
+                .javaDtoStyle(style));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/titleclash.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("both generated as 'Shared'");
+    }
+
+    @Test
     void quarkusServerAndClientSample2() throws IOException {
         // Both roles in a single run: XxxController (server resource) and
         // XxxClient (@RegisterRestClient) side by side, sharing the DTOs.

@@ -42,6 +42,11 @@ public class JavaCodegen extends Codegen<TypeSpec> {
     }
 
     @Override
+    String typeName(TypeSpec typeSpec) {
+        return typeSpec.name();
+    }
+
+    @Override
     void writeFile(Path resultDirectory, String packageName, TypeSpec typeSpec) throws IOException {
         JavaFile javaFile = JavaFile.builder(packageName, typeSpec).build();
         javaFile.writeTo(resultDirectory);

@@ -1,0 +1,32 @@
+openapi: 3.0.1
+info:
+  title: "Two different inline schemas claiming the same generated name"
+  description: |
+    A generated name is a file name. Two inline objects titled the same produce
+    two different classes at one path, and whichever is written last wins — so
+    one of the two properties ends up typed by a class that has the other's
+    fields. The output compiles, which is what makes it dangerous.
+  version: "0.1"
+
+paths:
+
+components:
+  schemas:
+    First:
+      type: object
+      properties:
+        thing:
+          type: object
+          title: Shared
+          properties:
+            a:
+              type: string
+    Second:
+      type: object
+      properties:
+        thing:
+          type: object
+          title: Shared
+          properties:
+            b:
+              type: integer

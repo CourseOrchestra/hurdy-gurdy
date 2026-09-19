@@ -41,6 +41,11 @@ public class KotlinCodegen extends Codegen<TypeSpec> {
     }
 
     @Override
+    String typeName(TypeSpec typeSpec) {
+        return typeSpec.getName();
+    }
+
+    @Override
     void writeFile(Path resultDirectory, String packageName, TypeSpec typeSpec) throws IOException {
         var ktFile = FileSpec.get(packageName, typeSpec);
         ktFile.writeTo(resultDirectory);

@@ -69,10 +69,8 @@ import static ru.curs.hurdygurdy.SchemaInheritance.isInterfaceBase;
 import static ru.curs.hurdygurdy.SchemaInheritance.localComponent;
 import static ru.curs.hurdygurdy.SchemaInheritance.ownProperties;
 import static ru.curs.hurdygurdy.SchemaInheritance.ownSchemaOf;
-import static ru.curs.hurdygurdy.SchemaSemantics.CLASS_NAME_PATTERN;
 import static ru.curs.hurdygurdy.SchemaSemantics.describesObject;
 import static ru.curs.hurdygurdy.SchemaSemantics.effectiveType;
-import static ru.curs.hurdygurdy.SchemaSemantics.extractGroup;
 import static ru.curs.hurdygurdy.SchemaSemantics.getEnumName;
 import static ru.curs.hurdygurdy.SchemaSemantics.getExtendsList;
 import static ru.curs.hurdygurdy.SchemaSemantics.getSubclassMapping;
@@ -541,7 +539,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             // hold an explicit null (OpenAPI 3.0 semantics), so it must NOT be
             // null-checked — otherwise a valid {"x":null} payload fails to
             // deserialize. Only non-nullable required components are enforced.
-            if (c.required() && !isNullable(c.schema(), openAPI)) {
+            if (c.required() && !isNullableType(c.schema(), openAPI)) {
                 requiredNames.add(propertyName);
             }
         }
@@ -555,28 +553,6 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
             recordBuilder.addMethod(compact.build());
         }
         return recordBuilder.build();
-    }
-
-    /**
-     * Whether a schema permits an explicit {@code null} value: an OpenAPI 3.0
-     * {@code nullable: true}, a 3.1 {@code type: [X, "null"]} union, a same-file
-     * {@code $ref} to a nullable schema, or a 3.1 {@code anyOf:[X, null]}
-     * nullable wrapper.
-     *
-     * <p>Note that this answers the same question as
-     * {@link TypeDefiner#isNullableType(Schema, OpenAPI)} but only for a
-     * <em>same-file</em> {@code $ref}: it asks the current document rather than
-     * the one that declares the component. Collapsing the two is a behaviour
-     * change for cross-file references and so is left for the step that
-     * introduces the model.
-     */
-    private boolean isNullable(Schema<?> schema, OpenAPI openAPI) {
-        if (isNullableSchema(schema)) {
-            return true;
-        }
-        return schema.get$ref() != null
-                && SchemaSemantics.nullableOf(
-                        openAPI, extractGroup(schema.get$ref(), CLASS_NAME_PATTERN), false);
     }
 
     private void addAdditionalPropertiesComponent(Schema<?> schema, OpenAPI openAPI,

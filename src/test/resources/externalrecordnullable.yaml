@@ -1,0 +1,31 @@
+openapi: 3.0.1
+info:
+  title: "A required record component whose nullability lives in another file"
+  description: |
+    `thing` is required, so a records-mode DTO null-checks it in the compact
+    constructor — unless the component it references permits null, in which case
+    a valid {"thing": null} payload must still deserialize. That component is
+    declared in another file, and the question has to be put to the document
+    that declares it: asking the current one finds nothing, silently answers
+    "not nullable", and emits a check that rejects a legal payload.
+  version: "0.1"
+
+paths:
+
+components:
+  schemas:
+    Holder:
+      type: object
+      required:
+        - thing
+        - local_thing
+      properties:
+        thing:
+          $ref: 'externalnullablecommon.yaml#/components/schemas/NullableThing'
+        local_thing:
+          $ref: '#/components/schemas/LocalThing'
+    LocalThing:
+      type: object
+      properties:
+        id:
+          type: string
