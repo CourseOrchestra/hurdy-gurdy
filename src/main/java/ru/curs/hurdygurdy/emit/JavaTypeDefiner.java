@@ -853,7 +853,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     }
 
     @Override
-    TypeSpec getEnum(String name, Schema<?> schema, OpenAPI openAPI) {
+    TypeSpec getEnum(String name, Schema<?> schema) {
         TypeSpec.Builder classBuilder = TypeSpec.enumBuilder(name).addModifiers(Modifier.PUBLIC);
         for (Object val : schema.getEnum()) {
             addEnumValue(classBuilder, val);

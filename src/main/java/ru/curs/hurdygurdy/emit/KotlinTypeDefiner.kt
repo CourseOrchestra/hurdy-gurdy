@@ -254,7 +254,7 @@ class KotlinTypeDefiner internal constructor(
     }
 
 
-    override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
+    override fun getEnum(name: String, schema: Schema<*>): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
         schema.enum.forEach { classBuilder.addEnumValue(it) }
         return classBuilder.build()
@@ -641,8 +641,7 @@ class KotlinTypeDefiner internal constructor(
         if (isPolymorphicInterface(schema) && schema.discriminator == null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
             polymorphicMembers(schema).asSequence()
-                .map { it.`$ref` }
-                .filterNotNull()
+                .mapNotNull { it.`$ref` }
                 .map { referencedTypeName(it, openAPI) }
                 .map { it.copy(nullable = false) }
                 .map {
@@ -664,7 +663,7 @@ class KotlinTypeDefiner internal constructor(
     }
 
     private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
-        openAPI.components.schemas.forEach { schemaName, schema ->
+        openAPI.components.schemas.forEach { (schemaName, schema) ->
             if (isPolymorphicInterface(schema)) {
                 val interfaceName = ClassName(
                     java.lang.String.join(".", params.rootPackage, "dto"),

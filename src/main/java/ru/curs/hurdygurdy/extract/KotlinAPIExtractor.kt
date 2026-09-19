@@ -16,7 +16,20 @@
 
 package ru.curs.hurdygurdy.extract
 
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LIST
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.UNIT
+import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils
+import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.GeneratorParams
 import ru.curs.hurdygurdy.Role
@@ -30,22 +43,7 @@ import ru.curs.hurdygurdy.model.BodyModel
 import ru.curs.hurdygurdy.model.OperationModel
 import ru.curs.hurdygurdy.model.ParameterModel
 import ru.curs.hurdygurdy.spec.SchemaSemantics
-import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LIST
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.UNIT
-import io.swagger.v3.oas.models.OpenAPI
-import io.swagger.v3.oas.models.PathItem
-import io.swagger.v3.oas.models.media.Schema
-import ru.curs.hurdygurdy.CaseUtils.normalizeToCamel
-import java.util.Locale
-import java.util.Optional
+import java.util.*
 import kotlin.streams.asSequence
 
 /**
@@ -281,7 +279,7 @@ class KotlinAPIExtractor(
             // - inlinableArrayAlias returns null and the part keeps that class, as
             // it does everywhere else.
             val aliasTarget = typeDefiner.inlinableArrayAlias(`$ref`, openAPI) ?: return null
-            return typeDefiner.inliningAlias<TypeName?>(`$ref`) { uploadType(aliasTarget, openAPI, binding) }
+            return typeDefiner.inliningAlias(`$ref`) { uploadType(aliasTarget, openAPI, binding) }
         }
         if (SchemaSemantics.isArraySchema(schema)) {
             val items = schema.items

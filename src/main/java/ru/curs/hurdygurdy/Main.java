@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy.build;
+package ru.curs.hurdygurdy;
 
-import ru.curs.hurdygurdy.Codegen;
-import ru.curs.hurdygurdy.Framework;
-import ru.curs.hurdygurdy.GeneratorParams;
-import ru.curs.hurdygurdy.JavaCodegen;
-import ru.curs.hurdygurdy.JavaDtoStyle;
-import ru.curs.hurdygurdy.KotlinCodegen;
-import ru.curs.hurdygurdy.Role;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IVersionProvider;

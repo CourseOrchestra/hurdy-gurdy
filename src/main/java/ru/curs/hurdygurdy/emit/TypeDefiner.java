@@ -93,7 +93,7 @@ public abstract class TypeDefiner<T> {
 
     public final T getDTO(String name, Schema<?> schema, OpenAPI openAPI) {
         if (schema.getEnum() != null) {
-            return getEnum(name, schema, openAPI);
+            return getEnum(name, schema);
         } else if (isArraySchema(schema)) {
             return getArrayAlias(name, schema, openAPI);
         } else {
@@ -183,7 +183,7 @@ public abstract class TypeDefiner<T> {
         return SNAKE_CASE_STRATEGY.translate(propertyName).equals(key) ? null : key;
     }
 
-    abstract T getEnum(String name, Schema<?> schema, OpenAPI openAPI);
+    abstract T getEnum(String name, Schema<?> schema);
 
     abstract T getDTOClass(String name, Schema<?> schema, OpenAPI openAPI);
 
