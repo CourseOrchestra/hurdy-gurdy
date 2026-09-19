@@ -449,6 +449,15 @@ public data class ListTasksResponse(
   public val totalCount: Int,
 )
 ---
+/com/example/dto/LocItem.kt
+package com.example.dto
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.`annotation`.JsonNaming
+
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+public object LocItem
+---
 /com/example/dto/Metadata.kt
 package com.example.dto
 
@@ -972,13 +981,12 @@ package com.example.dto
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.`annotation`.JsonNaming
-import kotlin.Any
 import kotlin.String
 import kotlin.collections.List
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 public data class ValidationError(
-  public val loc: List<Any>,
+  public val loc: List<LocItem>,
   public val msg: String,
   public val type: String,
 )

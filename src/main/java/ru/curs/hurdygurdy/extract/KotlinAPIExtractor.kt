@@ -42,6 +42,7 @@ import ru.curs.hurdygurdy.model.ApiModelBuilder
 import ru.curs.hurdygurdy.model.BodyModel
 import ru.curs.hurdygurdy.model.OperationModel
 import ru.curs.hurdygurdy.model.ParameterModel
+import ru.curs.hurdygurdy.model.TypeRef
 import ru.curs.hurdygurdy.spec.SchemaSemantics
 import java.util.*
 import kotlin.streams.asSequence
@@ -59,7 +60,7 @@ class KotlinAPIExtractor(
 ) :
     APIExtractor<TypeSpec, TypeSpec.Builder>(
         params,
-        ApiModelBuilder(typeDefiner),
+        ApiModelBuilder(typeDefiner.models()),
         { name, role ->
             val b = TypeSpec.interfaceBuilder(normalizeToCamel(name))
             if (params.framework == Framework.QUARKUS) {
@@ -130,6 +131,21 @@ class KotlinAPIExtractor(
         classBuilder.addFunction(methodBuilder.build())
     }
 
+    /**
+     * The Kotlin type of a schema at one point of use, with whatever it declares
+     * inline generated into the interface being built.
+     */
+    private fun kotlinType(
+        schema: Schema<*>,
+        openAPI: OpenAPI,
+        parent: TypeSpec.Builder,
+        nullable: Boolean
+    ): TypeName {
+        val ref: TypeRef = typeDefiner.models().resolve(schema, openAPI, null)
+        typeDefiner.addDeclarations(ref, parent)
+        return typeDefiner.kotlinType(ref).copy(nullable = nullable)
+    }
+
     /** One bound parameter, with the annotations the binding gives its position. */
     private fun parameter(
         parameter: ParameterModel,
@@ -139,9 +155,9 @@ class KotlinAPIExtractor(
     ): ParameterSpec {
         val pb = ParameterSpec.builder(
             parameter.identifier(),
-            typeDefiner.defineKotlinType(
-                parameter.schema(), openAPI, classBuilder, null, !parameter.present()
-                    || typeDefiner.isNullableType(parameter.schema(), openAPI)
+            kotlinType(
+                parameter.schema(), openAPI, classBuilder,
+                !parameter.present() || typeDefiner.models().isNullableType(parameter.schema(), openAPI)
             ),
         )
         when (parameter.`in`()) {
@@ -210,13 +226,14 @@ class KotlinAPIExtractor(
         }
         if (body.multipart()) {
             return body.parts().asSequence().map { part ->
-                val nullable = !part.present() || typeDefiner.isNullableType(part.schema(), openAPI)
+                val nullable =
+                    !part.present() || typeDefiner.models().isNullableType(part.schema(), openAPI)
                 RequestPartParams(
                     name = part.name(),
                     // A binary part, or an array of them, is an uploaded file
                     // (MultipartFile / FileUpload); other parts resolve normally.
                     typeName = uploadType(part.schema(), openAPI, binding)?.copy(nullable = nullable)
-                        ?: typeDefiner.defineKotlinType(part.schema(), openAPI, parent, null, nullable),
+                        ?: kotlinType(part.schema(), openAPI, parent, nullable),
                     annotation = binding.multipartPartAnnotation(part)
                 )
             }
@@ -225,9 +242,9 @@ class KotlinAPIExtractor(
             // A binary single-part body/response is a converter-backed body type
             // (Resource / InputStream), not a multipart part.
             .map {
-                val nullable = !body.required() || typeDefiner.isNullableType(it, openAPI)
+                val nullable = !body.required() || typeDefiner.models().isNullableType(it, openAPI)
                 if (isBinary(it)) binding.binaryBodyType().copy(nullable = nullable)
-                else typeDefiner.defineKotlinType(it, openAPI, parent, null, nullable)
+                else kotlinType(it, openAPI, parent, nullable)
             }
             .map {
                 RequestPartParams(
@@ -276,14 +293,14 @@ class KotlinAPIExtractor(
             // as well. Under generateAliasAsModel the alias stays a class of its own
             // - inlinableArrayAlias returns null and the part keeps that class, as
             // it does everywhere else.
-            val aliasTarget = typeDefiner.inlinableArrayAlias(`$ref`, openAPI) ?: return null
-            return typeDefiner.inliningAlias(`$ref`) { uploadType(aliasTarget, openAPI, binding) }
+            val aliasTarget = typeDefiner.models().inlinableArrayAlias(`$ref`, openAPI) ?: return null
+            return typeDefiner.models().inliningAlias(`$ref`) { uploadType(aliasTarget, openAPI, binding) }
         }
         if (SchemaSemantics.isArraySchema(schema)) {
             val items = schema.items
             val itemType = uploadType(items, openAPI, binding) ?: return null
             return LIST.parameterizedBy(
-                itemType.copy(nullable = typeDefiner.isNullableType(items, openAPI))
+                itemType.copy(nullable = typeDefiner.models().isNullableType(items, openAPI))
             )
         }
         return null

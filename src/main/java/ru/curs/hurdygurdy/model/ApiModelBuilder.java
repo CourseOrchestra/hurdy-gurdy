@@ -18,7 +18,6 @@ package ru.curs.hurdygurdy.model;
 
 import ru.curs.hurdygurdy.CaseUtils;
 import ru.curs.hurdygurdy.Role;
-import ru.curs.hurdygurdy.emit.TypeDefiner;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -52,23 +51,23 @@ import java.util.stream.Stream;
  * unrepresentable rather than merely unlikely.
  *
  * <p>What is deliberately <em>not</em> resolved here is the type behind a
- * schema. {@code byte[]} against {@code ByteArray}, {@code Integer} against
- * {@code Int}, a nullable Kotlin type against a boxed Java one — that mapping is
- * the one genuinely per-language step, and it stays with the type definers.
+ * schema, which is {@link TypeModelBuilder}'s job on the DTO side: an operation
+ * carries the schemas it was written with, and a back end turns each into a type
+ * at the point it builds a signature.
  */
 public final class ApiModelBuilder {
 
-    private final TypeDefiner<?> typeDefiner;
+    private final TypeModelBuilder types;
 
     /**
-     * Creates a builder that reads documents with the given definer's help.
+     * Creates a builder that reads documents with the given type reader's help.
      *
-     * @param typeDefiner consulted for the questions whose answer lives in the
-     *                    document a {@code $ref} points into rather than the one
-     *                    being generated
+     * @param types consulted for the questions whose answer lives in the
+     *              document a {@code $ref} points into rather than the one being
+     *              generated
      */
-    public ApiModelBuilder(TypeDefiner<?> typeDefiner) {
-        this.typeDefiner = typeDefiner;
+    public ApiModelBuilder(TypeModelBuilder types) {
+        this.types = types;
     }
 
     /**
@@ -189,7 +188,7 @@ public final class ApiModelBuilder {
                 ? CaseUtils.kebabToCamel(parameter.getName())
                 : CaseUtils.snakeToCamel(parameter.getName()));
         boolean required = Boolean.TRUE.equals(parameter.getRequired());
-        String defaultValue = typeDefiner.effectiveDefault(parameter.getSchema(), openAPI);
+        String defaultValue = types.effectiveDefault(parameter.getSchema(), openAPI);
         // Present when it cannot be absent: a path variable is part of the URL, a
         // required parameter is demanded of the caller, and one with a default has
         // that default substituted by the framework — which is only true because
