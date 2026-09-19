@@ -132,6 +132,12 @@
             <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>1.5.0</version>
+            <scope>test</scope>
+        </dependency>
         <!-- DtoEqualsContractTest exercises the equals/hashCode contract of every
              generated DTO with EqualsVerifier. The `-nodep` variant bundles its own
              (shaded) ByteBuddy/Objenesis so verifying classes loaded by the test's
