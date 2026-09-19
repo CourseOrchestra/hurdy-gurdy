@@ -16,4 +16,7 @@
 
 package ru.curs.hurdygurdy.gradle
 
-enum class Language { JAVA, KOTLIN }
+/**
+ * The language the generated sources are written in.
+ */
+typealias Language = ru.curs.hurdygurdy.Language

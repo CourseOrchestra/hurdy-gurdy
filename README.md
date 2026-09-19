@@ -92,7 +92,7 @@ its own `<configuration>` (including a distinct `<outputDirectory>`):
 ```kotlin
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.Role
-import ru.curs.hurdygurdy.gradle.Language
+import ru.curs.hurdygurdy.Language
 
 plugins {
     java

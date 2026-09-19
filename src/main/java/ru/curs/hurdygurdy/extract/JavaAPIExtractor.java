@@ -29,6 +29,7 @@ import ru.curs.hurdygurdy.model.ApiModelBuilder;
 import ru.curs.hurdygurdy.model.BodyModel;
 import ru.curs.hurdygurdy.model.OperationModel;
 import ru.curs.hurdygurdy.model.ParameterModel;
+import ru.curs.hurdygurdy.model.TypeRef;
 import ru.curs.hurdygurdy.spec.SchemaSemantics;
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
@@ -73,7 +74,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     public JavaAPIExtractor(JavaTypeDefiner typeDefiner,
                             GeneratorParams params) {
         super(params,
-                new ApiModelBuilder(typeDefiner),
+                new ApiModelBuilder(typeDefiner.models()),
                 (name, role) -> {
                     TypeSpec.Builder b = TypeSpec.interfaceBuilder(normalizeToCamel(name));
                     if (params.getFramework() == Framework.QUARKUS) {
@@ -146,6 +147,21 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     }
 
     /**
+     * The Java type of a schema at one point of use, with whatever it declares
+     * inline generated into the interface being built.
+     *
+     * <p>An extractor builds interfaces, and JavaPoet requires a type nested
+     * inside one to carry {@code public static} explicitly — which is why the
+     * caller says what it is building rather than having the fact threaded down
+     * a resolution recursion.
+     */
+    private TypeName javaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent) {
+        TypeRef ref = typeDefiner.models().resolve(schema, openAPI, null);
+        typeDefiner.addDeclarations(ref, parent, true);
+        return typeDefiner.javaType(ref);
+    }
+
+    /**
      * One bound parameter.
      *
      * <p>A path variable is part of the URL and therefore always present, so it
@@ -154,7 +170,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
      */
     private ParameterSpec parameter(ParameterModel parameter, OpenAPI openAPI,
                                     TypeSpec.Builder classBuilder, JavaFrameworkBinding binding) {
-        TypeName type = typeDefiner.defineJavaType(parameter.schema(), openAPI, classBuilder, null);
+        TypeName type = javaType(parameter.schema(), openAPI, classBuilder);
         ParameterSpec.Builder pb = ParameterSpec.builder(
                 parameter.in() == ParameterModel.In.PATH ? safeUnbox(type) : safeBox(type),
                 parameter.identifier());
@@ -239,8 +255,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 // body type (Resource / InputStream), not a multipart part.
                 .map(s -> isBinary(s)
                         ? binding.binaryBodyType()
-                        : JavaAPIExtractor.bodyTypeName(s,
-                                typeDefiner.defineJavaType(s, openAPI, parent, null)))
+                        : JavaAPIExtractor.bodyTypeName(s, javaType(s, openAPI, parent)))
                 .map(t -> new RequestPartParams(t, "request", binding.bodyAnnotation()));
     }
 
@@ -253,8 +268,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
         TypeName upload = uploadType(schema, openAPI, binding);
         return upload != null
                 ? upload
-                : JavaAPIExtractor.bodyTypeName(schema,
-                        typeDefiner.defineJavaType(schema, openAPI, parent, null));
+                : JavaAPIExtractor.bodyTypeName(schema, javaType(schema, openAPI, parent));
     }
 
     /**
@@ -283,10 +297,11 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
             // through here as well. Under generateAliasAsModel the alias stays a
             // class of its own — inlinableArrayAlias returns null and the part
             // keeps that class, as it does everywhere else.
-            Schema<?> aliasTarget = typeDefiner.inlinableArrayAlias(ref, openAPI);
+            Schema<?> aliasTarget = typeDefiner.models().inlinableArrayAlias(ref, openAPI);
             return aliasTarget == null
                     ? null
-                    : typeDefiner.inliningAlias(ref, () -> uploadType(aliasTarget, openAPI, binding));
+                    : typeDefiner.models()
+                            .inliningAlias(ref, () -> uploadType(aliasTarget, openAPI, binding));
         }
         if (SchemaSemantics.isArraySchema(schema)) {
             TypeName itemType = uploadType(schema.getItems(), openAPI, binding);

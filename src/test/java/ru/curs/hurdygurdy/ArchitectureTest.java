@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -23,9 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.tngtech.archunit.base.DescribedPredicate.not;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
+import static com.tngtech.archunit.base.DescribedPredicate.describe;
+import static com.tngtech.archunit.lang.conditions.ArchConditions.be;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.GeneralCodingRules.ACCESS_STANDARD_STREAMS;
@@ -105,9 +105,11 @@ class ArchitectureTest {
     @Test
     void emitDependsOnNothingAboveIt() {
         noClasses().that().resideInAPackage(EMIT)
-                .should().dependOnClassesThat().resideInAnyPackage(MODEL, EXTRACT, BINDING, MAVEN)
-                .because("a type definer turns a schema into a type name; it is called by the extractors "
-                        + "and must not reach back up into them")
+                .should().dependOnClassesThat().resideInAnyPackage(EXTRACT, BINDING, MAVEN)
+                .because("a type definer spells a described type in one language; it is called by the "
+                        + "extractors and must not reach back up into them. It does depend on model, "
+                        + "which is the direction of the pipeline: emit reads the description, the "
+                        + "description does not know there is an emitter")
                 .check(PRODUCTION_CLASSES);
     }
 
@@ -124,19 +126,11 @@ class ArchitectureTest {
     @Test
     void modelDependsOnNothingAboveIt() {
         noClasses().that().resideInAPackage(MODEL)
-                .should().dependOnClassesThat().resideInAnyPackage(EXTRACT, BINDING, MAVEN)
-                .because("the model is what the document says, not what anyone does with it")
-                .check(PRODUCTION_CLASSES);
-    }
-
-    @Test
-    void modelReachesIntoEmitOnlyForTheTypeDefiner() {
-        noClasses().that().resideInAPackage(MODEL)
-                .should().dependOnClassesThat(resideInAPackage(EMIT).and(not(name(EMIT + ".TypeDefiner"))))
-                .because("ApiModelBuilder takes a TypeDefiner because resolving a schema to a type is the "
-                        + "one genuinely per-language step it cannot do itself. That is the whole of the "
-                        + "model's business with emit, and it is pinned here so it does not grow before "
-                        + "the TypeModel IR removes it")
+                .should().dependOnClassesThat().resideInAnyPackage(EMIT, EXTRACT, BINDING, MAVEN)
+                .because("the model is what the document says, not what anyone does with it. The one "
+                        + "edge that used to be allowed - ApiModelBuilder holding a TypeDefiner, because "
+                        + "resolving a schema to a type was a per-language step it could not do itself - "
+                        + "is gone now that TypeRef carries the answer")
                 .check(PRODUCTION_CLASSES);
     }
 
@@ -278,11 +272,33 @@ class ArchitectureTest {
     void theModelIsValueObjects() {
         classes().that().resideInAPackage(MODEL)
                 .and().areNotNestedClasses()
+                .and().areNotInterfaces()
                 .and().doNotHaveSimpleName("package-info")
                 .and().haveSimpleNameNotEndingWith("Builder")
                 .should().beRecords()
-                .because("a model type carries facts read out of the document and nothing else; the one "
-                        + "class that does the reading is the builder")
+                .because("a model type carries facts read out of the document and nothing else; the ones "
+                        + "that do the reading are the builders, and the interfaces are sum types - "
+                        + "TypeModel names the four shapes a generated type can have")
+                .check(PRODUCTION_CLASSES);
+    }
+
+    /**
+     * The exemption {@link #theModelIsValueObjects} grants interfaces, paid for.
+     *
+     * <p>An interface cannot be a record, so {@code TypeModel} had to be excused
+     * from that rule - and an excused interface is somewhere a {@code default}
+     * method could put behaviour into a layer that is supposed to hold none.
+     * Sealing is what makes the exemption safe: the implementors are enumerated,
+     * so the interface names a closed set of shapes instead of opening an
+     * extension point.
+     */
+    @Test
+    void anInterfaceInTheModelIsASumType() {
+        classes().that().resideInAPackage(MODEL).and().areInterfaces()
+                // package-info compiles to an interface, which is how it got here.
+                .and().doNotHaveSimpleName("package-info")
+                .should(be(describe("sealed", JavaClass::isSealed)))
+                .because("an interface here is a sum type naming the shapes, not a place for behaviour")
                 .check(PRODUCTION_CLASSES);
     }
 

@@ -97,9 +97,7 @@ public final class Main implements Callable<Integer> {
                 .framework(Framework.of(framework))
                 .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                 .generate(roles);
-        Codegen<?> codegen = "java".equalsIgnoreCase(language)
-                ? new JavaCodegen(params)
-                : new KotlinCodegen(params);
+        Codegen<?> codegen = Codegen.of(Language.of(language), params);
         Files.createDirectories(output);
         codegen.generate(spec, output);
         return 0;

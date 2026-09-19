@@ -16,9 +16,15 @@
 
 package ru.curs.hurdygurdy.emit
 
-import ru.curs.hurdygurdy.CaseUtils
 import ru.curs.hurdygurdy.ClassCategory
 import ru.curs.hurdygurdy.GeneratorParams
+import ru.curs.hurdygurdy.model.ArrayAliasType
+import ru.curs.hurdygurdy.model.EnumType
+import ru.curs.hurdygurdy.model.ObjectType
+import ru.curs.hurdygurdy.model.PolymorphicType
+import ru.curs.hurdygurdy.model.PropertyModel
+import ru.curs.hurdygurdy.model.TypeModel
+import ru.curs.hurdygurdy.model.TypeRef
 import ru.curs.hurdygurdy.spec.SchemaInheritance
 import ru.curs.hurdygurdy.spec.SchemaSemantics
 import com.fasterxml.jackson.annotation.JsonAnyGetter
@@ -41,6 +47,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
+import com.squareup.kotlinpoet.BYTE_ARRAY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.DOUBLE
@@ -52,29 +59,24 @@ import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
-import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
-import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import ru.curs.hurdygurdy.spec.SchemaInheritance.InheritedProperty
-import ru.curs.hurdygurdy.spec.SchemaSemantics.CLASS_NAME_PATTERN
-import ru.curs.hurdygurdy.spec.SchemaSemantics.defaultOf
-import ru.curs.hurdygurdy.spec.SchemaSemantics.describesObject
-import ru.curs.hurdygurdy.spec.SchemaSemantics.extractGroup
-import ru.curs.hurdygurdy.spec.SchemaSemantics.getEnumName
 import ru.curs.hurdygurdy.spec.SchemaSemantics.getExtendsList
-import ru.curs.hurdygurdy.spec.SchemaSemantics.getSubclassMapping
-import ru.curs.hurdygurdy.spec.SchemaSemantics.isEnumComponent
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.UUID
 import java.util.function.BiConsumer
 
+/**
+ * Spells a described type in Kotlin, and builds the Kotlin DTOs.
+ */
 class KotlinTypeDefiner internal constructor(
     params: GeneratorParams,
     typeSpecBiConsumer: BiConsumer<ClassCategory?, TypeSpec?>?
@@ -82,207 +84,103 @@ class KotlinTypeDefiner internal constructor(
 
     private var hasJsonZonedDateTimeDeserializer = false
 
-    private fun TypeSpec.Builder.addEnumValue(e: Any?) {
-        val stringValue = e.toString()
-        val normalized = normalizeToScreamingSnake(stringValue)
-        if (stringValue != normalized) {
+    /**
+     * How a resolved type is spelled in Kotlin.
+     *
+     * A mapping table and nothing else: no schema is read here and nothing is
+     * emitted. What the type *is* was decided once, language-neutrally, by
+     * `TypeModelBuilder`; this table differs from the Java one exactly where the
+     * two type systems do — `ByteArray` against `byte[]`, a nullable type against
+     * a boxed one.
+     *
+     * Nullability is part of a Kotlin type, and it is applied here: a schema that
+     * says nothing about null leaves the property nullable, which is the
+     * generator's long-standing default for anything that may simply be left out.
+     */
+    fun kotlinType(ref: TypeRef): TypeName {
+        val bare = when (ref.kind()) {
+            TypeRef.Kind.STRING -> STRING
+            TypeRef.Kind.BOOLEAN -> BOOLEAN
+            TypeRef.Kind.INTEGER -> INT
+            TypeRef.Kind.LONG -> LONG
+            TypeRef.Kind.FLOAT -> FLOAT
+            TypeRef.Kind.DOUBLE -> DOUBLE
+            TypeRef.Kind.DATE -> LocalDate::class.asClassName()
+            TypeRef.Kind.DATE_TIME -> ZonedDateTime::class.asClassName()
+            TypeRef.Kind.UUID -> UUID::class.asClassName()
+            // A bare binary schema (a DTO property / JSON value) is base64 in JSON,
+            // so it maps to ByteArray. Binary request/response BODIES and multipart
+            // parts are position-dependent and handled by the API extractor.
+            TypeRef.Kind.BINARY -> BYTE_ARRAY
+            TypeRef.Kind.ARRAY -> List::class.asClassName().parameterizedBy(kotlinType(ref.element()))
+            TypeRef.Kind.ENUM -> ClassName("", ref.simpleName())
+            TypeRef.Kind.REFERENCE -> ClassName(ref.packageName(), ref.simpleName())
+            TypeRef.Kind.ANY -> ANY
+        }
+        return bare.copy(nullable = ref.nullUnion() || (ref.nullable() ?: true))
+    }
+
+    /**
+     * Generates the types a resolved reference declares: an inline enum nested in
+     * [parent], an inline titled object as a file of its own.
+     *
+     * This is the half that used to happen inside type resolution, onto a builder
+     * threaded down the recursion.
+     */
+    fun addDeclarations(ref: TypeRef, parent: TypeSpec.Builder) {
+        emitDeclarations(ref) { enumType ->
+            val enumBuilder = TypeSpec.enumBuilder(enumType.name()).addModifiers(KModifier.PUBLIC)
+            enumType.constants().forEach { enumBuilder.addConstant(it) }
+            parent.addType(enumBuilder.build())
+        }
+    }
+
+    private fun TypeSpec.Builder.addConstant(constant: EnumType.EnumConstant) {
+        if (constant.wireName() == null) {
+            addEnumConstant(constant.identifier())
+        } else {
             addEnumConstant(
-                normalized,
+                constant.identifier(),
                 TypeSpec.anonymousClassBuilder().addAnnotation(
                     AnnotationSpec.builder(JsonProperty::class)
-                        .addMember("%S", stringValue).build()
+                        .addMember("%S", constant.wireName()).build()
                 ).build()
             )
-        } else {
-            addEnumConstant(stringValue)
         }
     }
 
-    private fun Schema<*>.getInternalType() = SchemaSemantics.effectiveType(this)
+    private fun className(ref: TypeRef): ClassName = ClassName(ref.packageName(), ref.simpleName())
 
-    /**
-     * Whether this schema is nullable: true when it says so (3.0 `nullable: true`
-     * or a 3.1 `type: [X, "null"]`), otherwise whatever `nullable` states — null
-     * when the schema says nothing at all, leaving the choice to the caller.
-     */
-    private fun Schema<*>.nullableOrNull(): Boolean? =
-        if (SchemaSemantics.isNullableSchema(this)) true else nullable
-
-    internal fun defineKotlinType(
-        outerSchema: Schema<*>, openAPI: OpenAPI,
-        parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
-    ): TypeName {
-        //handle anyOf <something|null>
-        val anyOf = outerSchema.anyOf
-        var nullableByAnyOf: Boolean? = null
-        val schema = if (anyOf != null && anyOf.size == 2) {
-            if ("null" == anyOf[0].getInternalType()) {
-                nullableByAnyOf = true
-                anyOf[1]
-            } else if ("null" == anyOf[1].getInternalType()) {
-                nullableByAnyOf = true
-                anyOf[0]
-            } else outerSchema
-        } else outerSchema
-        val `$ref` = schema.`$ref`
-        val result = if (`$ref` == null) {
-            val internalType = schema.getInternalType()
-            when (internalType) {
-                "string" -> when {
-                    "date" == schema.format -> LocalDate::class.asTypeName()
-                    "date-time" == schema.format -> ZonedDateTime::class.asTypeName()
-                    "uuid" == schema.format -> UUID::class.asTypeName()
-                    // A bare binary schema (a DTO property / JSON value) is base64
-                    // in JSON, so it maps to ByteArray. Binary request/response
-                    // BODIES and multipart parts are position-dependent and handled
-                    // by the API extractor.
-                    "binary" == schema.format -> ByteArray::class.asTypeName()
-                    schema.enum != null -> {
-                        //internal enum
-                        val simpleName = getEnumName(schema, typeNameFallback)
-                        val enumBuilder = TypeSpec.enumBuilder(simpleName).addModifiers(KModifier.PUBLIC)
-                        for (e in schema.enum) {
-                            enumBuilder.addEnumValue(e)
-                        }
-                        val internalEnum: TypeSpec = enumBuilder.build()
-                        parent.addType(internalEnum)
-                        ClassName("", simpleName)
-                    }
-
-                    else -> String::class.asTypeName()
-                }
-
-                "number" ->
-                    if ("float" == schema.format) FLOAT else DOUBLE
-
-                "integer" -> if ("int64" == schema.format) LONG else INT
-                "boolean" -> BOOLEAN
-                "array" -> {
-                    val itemsSchema: Schema<*> = schema.items
-                    List::class.asTypeName().parameterizedBy(
-                        defineKotlinType(itemsSchema, openAPI, parent, typeNameFallback?.plus("Item"), null)
-                            .copy(nullable = isNullableType(itemsSchema, openAPI))
-                    )
-                }
-
-                "object" -> {
-                    val simpleName = schema.title ?: typeNameFallback
-                    if (simpleName != null) {
-                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
-                        ClassName(
-                            java.lang.String.join(".", params.rootPackage, "dto"),
-                            simpleName
-                        )
-                    } else {
-                        //This means failure, in fact.
-                        ANY
-                    }
-                }
-
-                else -> {
-                    // No single JSON type: a 3.1 multi-type union, a `true`/`false`
-                    // schema, or a schema that constrains nothing. Such a schema is
-                    // a class only if it goes on to describe one; otherwise it
-                    // genuinely admits any value.
-                    val simpleName = schema.title
-                    if (simpleName != null && describesObject(schema)) {
-                        typeSpecBiConsumer.accept(ClassCategory.DTO, getDTO(simpleName, schema, openAPI))
-                        ClassName(
-                            java.lang.String.join(".", params.rootPackage, "dto"),
-                            simpleName
-                        )
-                    } else {
-                        ANY
-                    }
-                }
-            }
-        } else {
-            val aliasTarget = inlinableArrayAlias(`$ref`, openAPI)
-            if (aliasTarget != null) {
-                // A same-file array alias (ItemArray: type: array) is not a class;
-                // inline it at the point of use (List<Item>) instead.
-                return inliningAlias(`$ref`) {
-                    defineKotlinType(aliasTarget, openAPI, parent, typeNameFallback, nullableOverride)
-                }
-            }
-            return referencedTypeName(`$ref`, openAPI, nullableOverride)
-        }
-        return result.copy(nullable = nullableOverride ?: nullableByAnyOf ?: schema.nullableOrNull() ?: true)
-    }
-
-    private fun referencedTypeName(
-        `$ref`: String,
-        openAPI: OpenAPI,
-        nullableOverride: Boolean? = null,
-    ): TypeName {
-        val meta = getReferencedTypeInfo(openAPI, `$ref`)
-        return ClassName(java.lang.String.join(".", meta.packageName(), "dto"), meta.className())
-            .copy(nullable = nullableOverride ?: meta.nullable())
-    }
-
-    /**
-     * The subtype mapping used to emit `@JsonSubTypes` for a discriminator base.
-     *
-     * Prefers the explicit `discriminator.mapping`; when the base declares a
-     * discriminator but no explicit mapping, derives
-     * `{schemaName -> "#/components/schemas/" + schemaName}` for every component
-     * schema whose `allOf` references this base, following the implicit convention
-     * that the discriminator value is the subtype's schema name.
-     *
-     * The `schema.discriminator == null` guard is essential: a plain allOf
-     * intermediate that other schemas reference must emit no `@JsonSubTypes`.
-     * Kotlin-only; does not touch the shared [getSubclassMapping] used by Java.
-     */
-    private fun effectiveSubclassMapping(
-        name: String, schema: Schema<*>, openAPI: OpenAPI
-    ): Map<String, String> {
-        val explicit = getSubclassMapping(schema).toMap()
-        if (explicit.isNotEmpty() || schema.discriminator == null) {
-            return explicit
-        }
-        val derived = LinkedHashMap<String, String>()
-        openAPI.components?.schemas?.forEach { (schemaName, s) ->
-            s.allOf?.forEach { a ->
-                if (a.`$ref` != null
-                    && (referencedTypeName(a.`$ref`, openAPI).copy(nullable = false) as ClassName).simpleName == name
-                ) {
-                    derived[schemaName] = "#/components/schemas/$schemaName"
-                }
-            }
-        }
-        return derived
-    }
-
-
-    override fun getEnum(name: String, schema: Schema<*>): TypeSpec {
-        val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
-        schema.enum.forEach { classBuilder.addEnumValue(it) }
+    override fun getEnum(type: EnumType): TypeSpec {
+        val classBuilder = TypeSpec.enumBuilder(type.name()).addModifiers(KModifier.PUBLIC)
+        type.constants().forEach { classBuilder.addConstant(it) }
         return classBuilder.build()
     }
 
-    /** A constructor property carried over from a base class (an allOf parent). */
+    override fun getArrayAlias(type: ArrayAliasType): TypeSpec {
+        val classBuilder = TypeSpec.classBuilder(type.name())
+        val element = type.element()
+        val itemType = if (element == null) ANY else {
+            addDeclarations(element, classBuilder)
+            kotlinType(element)
+        }
+        classBuilder.superclass(ClassName("kotlin.collections", "ArrayList").parameterizedBy(itemType))
+        type.superInterfaces().map { ClassName.bestGuess(it) }.forEach { classBuilder.addSuperinterface(it) }
+        return classBuilder.build()
+    }
 
-    /**
-     * The member subschemas of a polymorphic container — a `oneOf`, or a top-level
-     * `anyOf` of two-or-more non-null `$ref`s (treated the same way). Returns an
-     * empty list for a plain schema, a nullable `anyOf:[X,null]`, or a single-ref
-     * anyOf. Single predicate for "is this schema a DEDUCTION-based polymorphic
-     * interface".
-     */
-    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> =
-        SchemaSemantics.polymorphicMembers(schema)
-
-    private fun isPolymorphicInterface(schema: Schema<*>): Boolean =
-        SchemaSemantics.isPolymorphicInterface(schema)
-
-    override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
+    override fun getDTOClass(model: TypeModel): TypeSpec {
+        val base = if (model is PolymorphicType) model.base() else model as ObjectType
+        val members = if (model is PolymorphicType) model.members() else emptyList()
+        val schema = base.schema()
+        val openAPI = base.document()
         return if (schema.oneOf == null && schema.allOf != null) {
             var baseClass: TypeName = Any::class.asClassName()
             var currentSchema = schema
             var inheritedProperties: List<InheritedProperty> = emptyList()
             for (s in schema.allOf) {
                 if (s.`$ref` != null) {
-                    baseClass = referencedTypeName(s.`$ref`, openAPI).copy(nullable = false)
+                    baseClass = className(models().reference(openAPI, s.`$ref`))
                     inheritedProperties = constructorPropertiesOf(s.`$ref`, openAPI)
                 } else {
                     currentSchema = s
@@ -300,21 +198,10 @@ class KotlinTypeDefiner internal constructor(
             if (schema.discriminator != null && currentSchema !== schema) {
                 currentSchema.discriminator = schema.discriminator
             }
-            getDTOClass(name, currentSchema, openAPI, baseClass, inheritedProperties)
+            getDTOClass(base, currentSchema, members, baseClass, inheritedProperties)
         } else {
-            getDTOClass(name, schema, openAPI, Any::class.asClassName(), emptyList())
+            getDTOClass(base, schema, members, Any::class.asClassName(), emptyList())
         }
-    }
-
-    override fun getArrayAlias(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
-        val classBuilder = TypeSpec.classBuilder(name)
-        val itemsSchema: Schema<*>? = schema.items
-        val itemType = if (itemsSchema == null) ANY
-        else defineKotlinType(itemsSchema, openAPI, classBuilder, name + "Item", null)
-            .copy(nullable = isNullableType(itemsSchema, openAPI))
-        classBuilder.superclass(ClassName("kotlin.collections", "ArrayList").parameterizedBy(itemType))
-        getExtendsList(schema).map { ClassName.bestGuess(it) }.forEach { classBuilder.addSuperinterface(it) }
-        return classBuilder.build()
     }
 
     /**
@@ -328,31 +215,35 @@ class KotlinTypeDefiner internal constructor(
     }
 
     private fun getDTOClass(
-        name: String,
+        base: ObjectType,
         schema: Schema<*>,
-        openAPI: OpenAPI,
+        members: List<TypeRef>,
         baseClass: TypeName,
         inheritedProperties: List<InheritedProperty>
     ): TypeSpec {
+        val name = base.name()
+        val openAPI = base.document()
+        val additionalProperties = base.additionalProperties()
+        val polymorphic = SchemaSemantics.isPolymorphicInterface(schema)
         // Define if any schema references to us as "allOf"
-        val isParent = openAPI.components.schemas.any { (_, schema) ->
-            schema.allOf?.any { it.`$ref`?.endsWith(name) ?: false } ?: false
+        val isParent = SchemaInheritance.componentSchemas(openAPI).values.any { candidate ->
+            candidate.allOf?.any { it.`$ref`?.endsWith(name) ?: false } ?: false
         }
         val classBuilder =
             (if (schema.properties.isNullOrEmpty() &&
-                schema.additionalProperties == null &&
-                !isPolymorphicInterface(schema) &&
+                additionalProperties == null &&
+                !polymorphic &&
                 !isParent &&
                 inheritedProperties.isEmpty()
             )
                 TypeSpec.objectBuilder(name).superclass(baseClass)
-            else if (isPolymorphicInterface(schema))
+            else if (polymorphic)
                 TypeSpec.interfaceBuilder(name)
             else
                 TypeSpec.classBuilder(name).superclass(baseClass))
 
-        addInterfaces(openAPI, name, classBuilder)
-        polymorphicToInterface(schema, openAPI, classBuilder)
+        models().polymorphicSuperTypes(name, openAPI).forEach { classBuilder.addSuperinterface(className(it)) }
+        polymorphicToInterface(schema, members, classBuilder)
 
         if (params.isForceSnakeCaseForProperties) {
             classBuilder.addAnnotation(
@@ -363,7 +254,7 @@ class KotlinTypeDefiner internal constructor(
             )
         }
 
-        val subclassMapping = effectiveSubclassMapping(name, schema, openAPI)
+        val subclassMapping = models().subclassMapping(name, schema, openAPI)
         // A discriminator base is a sealed superclass ONLY when it actually has
         // subtypes. A discriminator base with no subtypes would otherwise become an
         // empty, uninstantiable `sealed class`, so fall back to a normal (data/open)
@@ -376,7 +267,7 @@ class KotlinTypeDefiner internal constructor(
             ?.count { it != schema.discriminator?.propertyName } ?: 0
         val hasDataProperties = ownDataPropertyCount > 0
             || inheritedProperties.isNotEmpty()
-            || schema.additionalProperties != null
+            || additionalProperties != null
 
         //This class is a superclass
         if (schema.discriminator != null) {
@@ -406,7 +297,7 @@ class KotlinTypeDefiner internal constructor(
                 subclassMapping
                     .map { (key, value) ->
                         AnnotationSpec.builder(JsonSubTypes.Type::class)
-                            .addMember("value = %T::class", referencedTypeName(value, openAPI).copy(nullable = false))
+                            .addMember("value = %T::class", className(value))
                             .addMember("name = %S", key).build()
                     }
                     .map { CodeBlock.of("%L", it) }
@@ -422,9 +313,9 @@ class KotlinTypeDefiner internal constructor(
             .map(ClassName.Companion::bestGuess)
             .forEach(classBuilder::addSuperinterface)
 
-        if ((!(schema.properties.isNullOrEmpty() && schema.additionalProperties == null)
+        if ((!(schema.properties.isNullOrEmpty() && additionalProperties == null)
                     || inheritedProperties.isNotEmpty())
-            && !isPolymorphicInterface(schema)
+            && !polymorphic
         ) {
             //Add properties
             val schemaMap: Map<String, Schema<*>>? = schema.properties
@@ -462,19 +353,11 @@ class KotlinTypeDefiner internal constructor(
             }
 
             //Dictionary support
-            if (schema.additionalProperties != null) {
-                val additionalProperties = schema.additionalProperties
-                val valueTypeName = if (additionalProperties is Schema<*>) {
-                    defineKotlinType(
-                        additionalProperties, openAPI, classBuilder, null, null
-                    )
-                } else {
-                    String::class.asTypeName()
-                }
-
+            if (additionalProperties != null) {
+                addDeclarations(additionalProperties, classBuilder)
                 val mapType = Map::class.asClassName().parameterizedBy(
-                    String::class.asTypeName(),
-                    valueTypeName
+                    STRING,
+                    kotlinType(additionalProperties)
                 )
 
                 val param = ParameterSpec.builder("additionalProperties", mapType)
@@ -520,28 +403,21 @@ class KotlinTypeDefiner internal constructor(
         isParent: Boolean,
         isOverride: Boolean
     ): String {
-        checkPropertyName(name, key)
-        val nullable = isNullableType(value, openAPI)
-        val typeName = defineKotlinType(
-            value, openAPI, classBuilder,
-            CaseUtils.snakeToCamel(key, true),
-            !required || nullable
-        )
-
-        val propertyName =
-            if (params.isForceSnakeCaseForProperties) {
-                CaseUtils.snakeToCamel(key)
-            } else {
-                key
-            }
-        val paramSpec =
-            ParameterSpec.builder(propertyName, typeName)
+        models().checkPropertyName(name, key)
+        val property = models().property(key, value, required, openAPI)
+        addDeclarations(property.type(), classBuilder)
+        // A property that may be left out is nullable whether or not its schema
+        // admits an explicit null; the two are separate statements in the document
+        // and are asked separately.
+        val typeName = kotlinType(property.type()).copy(nullable = !required || property.nullable())
+        val propertyName = property.identifier()
+        val paramSpec = ParameterSpec.builder(propertyName, typeName)
 
         // Pins the wire name when @JsonNaming alone cannot reproduce the spec key
         // (a leading/trailing underscore). On a data-class constructor `val` the
         // annotation lands on the constructor parameter, which is where both the
         // Kotlin module's creator binding and the merged property read it from.
-        jsonNameOverride(key, propertyName)?.let { jsonName ->
+        property.jsonNameOverride()?.let { jsonName ->
             paramSpec.addAnnotation(
                 AnnotationSpec.builder(JsonProperty::class)
                     .addMember("value = %S", jsonName)
@@ -565,56 +441,7 @@ class KotlinTypeDefiner internal constructor(
             ensureJsonZonedDateTimeDeserializer()
         }
 
-        val default = if (value.`$ref` == null) {
-            value.default
-        } else defaultOf(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
-        if (default != null) {
-            when {
-                value.getInternalType() == "array" -> {
-                    //Empty list as default
-                    paramSpec.defaultValue("listOf()")
-                }
-
-                typeName.copy(nullable = false) == String::class.asTypeName() -> {
-                    //Default string value
-                    paramSpec.defaultValue("%S", default.toString())
-                }
-
-                value.`$ref` != null && isEnumComponent(
-                    openAPI,
-                    extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
-                )
-                    -> {
-                    //Default enum value
-                    paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.toString())
-                }
-
-                value.`$ref` != null && default.toString().matches(Regex("\\s*\\{\\s*}\\s*")) -> {
-                    //"Empty object" default value
-                    paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
-                }
-
-                value.`$ref` != null -> {
-                    // A $ref default that is neither an enum constant nor an empty
-                    // object (handled above) is a structured object default, e.g.
-                    // {order: SIMILARITY, limit: 10}. It cannot be rendered as a
-                    // Kotlin initializer expression, so drop it — matching the Java
-                    // generator, which emits no initializer for object defaults —
-                    // and fall back to null for an optional property.
-                    if (!required) {
-                        paramSpec.defaultValue("null")
-                    }
-                }
-
-                else -> {
-                    //Everything else (e.g., numbers)
-                    paramSpec.defaultValue("%L", default.toString())
-                }
-            }
-        } else if (!required) {
-            paramSpec.defaultValue("null")
-        }
-
+        applyDefault(paramSpec, property, typeName, required)
         constructorBuilder.addParameter(paramSpec.build())
 
         val propertySpec = PropertySpec
@@ -632,18 +459,47 @@ class KotlinTypeDefiner internal constructor(
         return propertyName
     }
 
+    /**
+     * Spells the default the model classified, or falls back to `null` for a
+     * property that may simply be left out.
+     */
+    private fun applyDefault(
+        paramSpec: ParameterSpec.Builder,
+        property: PropertyModel,
+        typeName: TypeName,
+        required: Boolean
+    ) {
+        val default = property.defaultValue()
+        when (default.style()) {
+            //Empty list as default
+            PropertyModel.DefaultValue.Style.EMPTY_LIST -> paramSpec.defaultValue("listOf()")
+            //Default string value
+            PropertyModel.DefaultValue.Style.STRING -> paramSpec.defaultValue("%S", default.text())
+            //Default enum value
+            PropertyModel.DefaultValue.Style.ENUM_CONSTANT ->
+                paramSpec.defaultValue("%T.%L", typeName.copy(nullable = false), default.text())
+            //"Empty object" default value
+            PropertyModel.DefaultValue.Style.EMPTY_OBJECT ->
+                paramSpec.defaultValue("%T()", typeName.copy(nullable = false))
+            //Everything else (e.g., numbers)
+            PropertyModel.DefaultValue.Style.LITERAL -> paramSpec.defaultValue("%L", default.text())
+            // A structured default cannot be rendered as a Kotlin initializer
+            // expression, so it is dropped — matching the Java generator, which
+            // emits no initializer for object defaults — and an optional property
+            // falls back to null, as one with no default at all does.
+            else -> if (!required) paramSpec.defaultValue("null")
+        }
+    }
 
-    private fun polymorphicToInterface(schema: Schema<*>, openAPI: OpenAPI, classBuilder: TypeSpec.Builder) {
+    private fun polymorphicToInterface(schema: Schema<*>, members: List<TypeRef>, classBuilder: TypeSpec.Builder) {
         // A discriminator, when present, selects subtypes by a property value
         // (NAME-based, emitted in getDTOClass) and takes precedence over
         // oneOf/anyOf DEDUCTION. Emitting both would produce two @JsonTypeInfo and
         // two @JsonSubTypes — neither is repeatable, so it would not compile.
-        if (isPolymorphicInterface(schema) && schema.discriminator == null) {
+        if (SchemaSemantics.isPolymorphicInterface(schema) && schema.discriminator == null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
-            polymorphicMembers(schema).asSequence()
-                .mapNotNull { it.`$ref` }
-                .map { referencedTypeName(it, openAPI) }
-                .map { it.copy(nullable = false) }
+            members.asSequence()
+                .map { className(it) }
                 .map {
                     AnnotationSpec.builder(JsonSubTypes.Type::class)
                         .addMember("%T::class", it)
@@ -659,27 +515,6 @@ class KotlinTypeDefiner internal constructor(
                     .build()
             )
             classBuilder.addModifiers(KModifier.SEALED)
-        }
-    }
-
-    private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
-        openAPI.components.schemas.forEach { (schemaName, schema) ->
-            if (isPolymorphicInterface(schema)) {
-                val interfaceName = ClassName(
-                    java.lang.String.join(".", params.rootPackage, "dto"),
-                    schemaName
-                ).copy(nullable = false)
-
-                for (s in polymorphicMembers(schema)) {
-                    if (s.`$ref` != null) {
-                        val typeName = referencedTypeName(s.`$ref`, openAPI).copy(nullable = true)
-                        val className = (typeName as ClassName).simpleName
-                        if (className == name) {
-                            classBuilder.addSuperinterface(interfaceName)
-                        }
-                    }
-                }
-            }
         }
     }
 

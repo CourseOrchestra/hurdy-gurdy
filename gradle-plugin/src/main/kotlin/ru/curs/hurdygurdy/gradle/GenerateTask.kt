@@ -33,9 +33,7 @@ import org.gradle.api.tasks.TaskAction
 import ru.curs.hurdygurdy.Codegen
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.GeneratorParams
-import ru.curs.hurdygurdy.JavaCodegen
 import ru.curs.hurdygurdy.JavaDtoStyle
-import ru.curs.hurdygurdy.KotlinCodegen
 import ru.curs.hurdygurdy.Role
 import java.nio.file.Files
 
@@ -80,10 +78,7 @@ abstract class GenerateTask : DefaultTask() {
             .javaDtoStyle(javaDtoStyle.get())
             .generate(generate.get())
 
-        val codegen: Codegen<*> = when (language.get()) {
-            Language.JAVA -> JavaCodegen(params)
-            Language.KOTLIN -> KotlinCodegen(params)
-        }
+        val codegen: Codegen<*> = Codegen.of(language.get(), params)
         codegen.generate(spec.get().asFile.toPath(), outDir.toPath())
     }
 }

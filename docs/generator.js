@@ -91,7 +91,7 @@ function gradleSnippet(c) {
   const imports = [];
   if (useFramework) imports.push(`import ru.curs.hurdygurdy.Framework`);
   if (useGenerate) imports.push(`import ru.curs.hurdygurdy.Role`);
-  if (useLanguage) imports.push(`import ru.curs.hurdygurdy.gradle.Language`);
+  if (useLanguage) imports.push(`import ru.curs.hurdygurdy.Language`);
   if (useStyle) imports.push(`import ru.curs.hurdygurdy.JavaDtoStyle`);
 
   const body = [

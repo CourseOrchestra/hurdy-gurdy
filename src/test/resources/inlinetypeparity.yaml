@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: Inline type parity
+  version: 1.0.0
+paths:
+  /thing:
+    get:
+      tags:
+        - thing
+      operationId: getThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+components:
+  schemas:
+    Thing:
+      type: object
+      properties:
+        # An `anyOf` of scalars: no `type`, no `title`. This is the shape the two
+        # back ends disagreed about - Java invented a class named after the
+        # position, Kotlin gave up and said Any.
+        scalar_union:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        # Properties but no `type`: an object by inference rather than by
+        # declaration, and again without a title of its own.
+        untyped_object:
+          properties:
+            inner:
+              type: string
+        # Declared an object, still untitled: named after the position.
+        anonymous_object:
+          type: object
+          properties:
+            inner:
+              type: string
+        # Titled: named after the title, which both back ends always agreed on.
+        titled_object:
+          title: NamedInline
+          type: object
+          properties:
+            inner:
+              type: string

@@ -73,6 +73,27 @@ public abstract class Codegen<T> {
         typeSpecExtractors = typeProducersFactory.typeSpecExtractors(definer);
     }
 
+    /**
+     * The generator that writes {@code language}.
+     *
+     * <p>Selecting a back end is the one thing every front end has to do and
+     * none of them should decide for itself. The Maven mojo, the CLI and the
+     * Gradle task each carried their own copy of the choice, two of them as
+     * {@code "java".equalsIgnoreCase(language) ? ... : ...} - which quietly
+     * generated Kotlin for any value that was not the word "java", a misspelt
+     * one included.
+     *
+     * @param language the target language
+     * @param params   what to generate and how
+     * @return a generator for that language
+     */
+    public static Codegen<?> of(Language language, GeneratorParams params) {
+        return switch (language) {
+            case JAVA -> new JavaCodegen(params);
+            case KOTLIN -> new KotlinCodegen(params);
+        };
+    }
+
     private void parse(Path sourceFile) throws IOException {
         if (!Files.isReadable(sourceFile)) throw new IllegalArgumentException(
                 String.format("File %s is not readable", sourceFile));
