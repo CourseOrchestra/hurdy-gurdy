@@ -33,7 +33,7 @@ import com.palantir.javapoet.TypeSpec;
  * with accessors bolted on, it is a different shape entirely, and it is dispatched
  * before this path is reached.
  */
-public interface JavaClassMembers {
+interface JavaClassMembers {
 
     /**
      * Annotations the style puts on the class itself.

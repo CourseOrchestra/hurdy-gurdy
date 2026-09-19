@@ -263,7 +263,7 @@ public abstract class TypeDefiner<T> {
      * @return the declaring document
      * @see LinkedDocuments
      */
-    public final OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
+    private OpenAPI definingDocument(OpenAPI currentOpenAPI, String ref) {
         return linkedDocuments.documentOf(currentOpenAPI, ref);
     }
 

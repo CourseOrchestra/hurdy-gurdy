@@ -57,7 +57,7 @@ import java.util.function.BiConsumer;
  * self-referential schema (or a {@code $ref} reached twice) stop instead of
  * recursing forever.
  */
-public final class SchemaWalker {
+final class SchemaWalker {
 
     private final Set<Schema<?>> visitedSchemas = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<PathItem> visitedPathItems = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -74,7 +74,7 @@ public final class SchemaWalker {
      * @param openAPI the document to walk
      * @param visitor receives each schema and its location
      */
-    public static void walk(OpenAPI openAPI, BiConsumer<Schema<?>, String> visitor) {
+    static void walk(OpenAPI openAPI, BiConsumer<Schema<?>, String> visitor) {
         if (openAPI != null) {
             new SchemaWalker(visitor).visitDocument(openAPI);
         }

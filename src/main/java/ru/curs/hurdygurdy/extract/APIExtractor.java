@@ -42,7 +42,7 @@ import java.util.function.Function;
  * @param <T> the generated type
  * @param <B> the builder that produces it
  */
-public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
+abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     private final GeneratorParams params;
     private final ApiModelBuilder modelBuilder;
     private final BiFunction<String, Role, B> builderSupplier;

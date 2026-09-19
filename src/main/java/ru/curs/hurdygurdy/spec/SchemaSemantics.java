@@ -274,7 +274,7 @@ public final class SchemaSemantics {
      * @param className the component's name under {@code components/schemas}
      * @return the schema, or null
      */
-    public static Schema<?> componentSchema(OpenAPI openAPI, String className) {
+    private static Schema<?> componentSchema(OpenAPI openAPI, String className) {
         return Optional.ofNullable(openAPI.getComponents())
                 .map(Components::getSchemas)
                 .map(map -> map.get(className))

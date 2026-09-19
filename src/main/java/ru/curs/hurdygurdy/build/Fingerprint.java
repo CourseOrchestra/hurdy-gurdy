@@ -41,7 +41,7 @@ import java.util.zip.CRC32;
  * {@code $ref: "<file>#/..."}. Stored as a {@code .properties} marker file and
  * compared via {@link Properties#equals}; any difference triggers regeneration.
  */
-public final class Fingerprint {
+final class Fingerprint {
     private final Properties properties;
     private final Path markerFile;
 

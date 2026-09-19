@@ -29,7 +29,7 @@ import lombok.Getter;
  * Lombok DTOs: the accessors and value methods are left to {@code @Data}, so
  * there is nothing to emit beyond the annotations that ask for them.
  */
-public final class JavaLombokMembers implements JavaClassMembers {
+final class JavaLombokMembers implements JavaClassMembers {
 
     @Override
     public void decorateClass(TypeSpec.Builder classBuilder, boolean hasParent) {

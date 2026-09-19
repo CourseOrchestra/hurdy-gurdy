@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * Plain-Java DTOs: every accessor and value method is written out, so the
  * generated sources carry no dependency on Lombok.
  */
-public final class JavaPojoMembers implements JavaClassMembers {
+final class JavaPojoMembers implements JavaClassMembers {
 
     @Override
     public void decorateClass(TypeSpec.Builder classBuilder, boolean hasParent) {
