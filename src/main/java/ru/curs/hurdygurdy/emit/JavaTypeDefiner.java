@@ -223,7 +223,7 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     private ClassName referencedClassName(OpenAPI openAPI, String ref) {
         DTOMeta meta = getReferencedTypeInfo(openAPI, ref);
-        return ClassName.get(String.join(".", meta.getPackageName(), "dto"), meta.getClassName());
+        return ClassName.get(String.join(".", meta.packageName(), "dto"), meta.className());
     }
 
     private void ensureJsonZonedDateTimeDeserializer() {
@@ -622,7 +622,8 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
      * every schema whose {@code allOf} references this base, keyed by the OpenAPI
      * implicit convention that the discriminator value is the subtype's schema name.
      *
-     * <p>Java-only (does not touch the shared {@link #getSubclassMapping}, which
+     * <p>Java-only (does not touch the shared
+     * {@link ru.curs.hurdygurdy.spec.SchemaSemantics#getSubclassMapping}, which
      * Kotlin uses). Kotlin has its own equivalent
      * {@code effectiveSubclassMapping} for the discriminator-without-mapping case,
      * and its own polymorphic-anyOf handling, so both former Kotlin gaps are now
@@ -743,14 +744,12 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
 
     /**
      * Adds the {@code additionalProperties} dictionary-support field, when the
-     * schema declares one. Under {@link JavaDtoStyle#LOMBOK} the field itself
-     * carries {@code @JsonAnySetter} and Lombok's {@code @Getter(onMethod_ =
-     * @JsonAnyGetter)}, matching historical behaviour; under {@link
-     * JavaDtoStyle#POJO} the field is left unannotated because {@link
-     * #addPojoMembers} adds an explicit {@code @JsonAnyGetter} getter and
-     * {@code @JsonAnySetter} setter for it, and annotating the field too would
-     * both leak a Lombok import into POJO output and collide with those
-     * explicit accessors.
+     * schema declares one.
+     *
+     * <p>How the field is annotated is the style's business, not this method's:
+     * see {@link JavaClassMembers#decorateAdditionalProperties(FieldSpec.Builder)}
+     * and the note there on why {@code @JsonAnySetter} sits on the field rather
+     * than on the setter.
      */
     private void addAdditionalPropertiesField(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder classBuilder) {
         if (schema.getAdditionalProperties() == null) {

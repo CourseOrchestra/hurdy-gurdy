@@ -61,7 +61,6 @@ import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
 import ru.curs.hurdygurdy.spec.SchemaInheritance.InheritedProperty
 import ru.curs.hurdygurdy.spec.SchemaSemantics.CLASS_NAME_PATTERN
-import ru.curs.hurdygurdy.spec.SchemaSemantics.FILE_NAME_PATTERN
 import ru.curs.hurdygurdy.spec.SchemaSemantics.defaultOf
 import ru.curs.hurdygurdy.spec.SchemaSemantics.describesObject
 import ru.curs.hurdygurdy.spec.SchemaSemantics.extractGroup
@@ -217,8 +216,8 @@ class KotlinTypeDefiner internal constructor(
         nullableOverride: Boolean? = null,
     ): TypeName {
         val meta = getReferencedTypeInfo(openAPI, `$ref`)
-        return ClassName(java.lang.String.join(".", meta.packageName, "dto"), meta.className)
-            .copy(nullable = nullableOverride ?: meta.isNullable)
+        return ClassName(java.lang.String.join(".", meta.packageName(), "dto"), meta.className())
+            .copy(nullable = nullableOverride ?: meta.nullable())
     }
 
     /**

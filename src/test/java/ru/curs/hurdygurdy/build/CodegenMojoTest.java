@@ -16,9 +16,6 @@
 
 package ru.curs.hurdygurdy.build;
 
-import ru.curs.hurdygurdy.TestFiles;
-import ru.curs.hurdygurdy.build.CodegenMojo;
-import ru.curs.hurdygurdy.build.Fingerprint;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.project.MavenProject;

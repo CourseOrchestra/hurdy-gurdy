@@ -274,7 +274,7 @@ public abstract class TypeDefiner<T> {
      * @param schema  the schema at the point of use
      * @param openAPI the document it was written in
      * @return whether a null value is permitted there
-     * @see StrayNullableCheck
+     * @see ru.curs.hurdygurdy.spec.StrayNullableCheck
      */
     public final boolean isNullableType(Schema<?> schema, OpenAPI openAPI) {
         if (schema == null) {

@@ -16,9 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
-import ru.curs.hurdygurdy.emit.KotlinTypeDefiner;
 import ru.curs.hurdygurdy.extract.DTOExtractor;
-import ru.curs.hurdygurdy.extract.KotlinAPIExtractor;
 import com.squareup.kotlinpoet.FileSpec;
 import com.squareup.kotlinpoet.TypeSpec;
 
@@ -27,18 +25,29 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * Generates Kotlin sources.
+ *
+ * <p>The two Kotlin classes it drives are named in full rather than imported.
+ * javadoc reads only the Java sources and never sees a Kotlin declaration, and
+ * an unresolvable {@code import} is a hard error where an unresolvable name
+ * inside a method body is not — so importing them would break the javadoc build
+ * that the release relies on.
+ */
 public class KotlinCodegen extends Codegen<TypeSpec> {
     public KotlinCodegen(GeneratorParams params) {
-        super(params, new TypeProducersFactory<TypeSpec, KotlinTypeDefiner>() {
+        super(params, new TypeProducersFactory<TypeSpec, ru.curs.hurdygurdy.emit.KotlinTypeDefiner>() {
             @Override
-            public KotlinTypeDefiner createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
-                return new KotlinTypeDefiner(params, typeSpecBiConsumer);
+            public ru.curs.hurdygurdy.emit.KotlinTypeDefiner createTypeDefiner(
+                    BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+                return new ru.curs.hurdygurdy.emit.KotlinTypeDefiner(params, typeSpecBiConsumer);
             }
 
             @Override
-            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(KotlinTypeDefiner typeDefiner) {
+            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(
+                    ru.curs.hurdygurdy.emit.KotlinTypeDefiner typeDefiner) {
                 return List.of(new DTOExtractor<>(typeDefiner, params),
-                        new KotlinAPIExtractor(typeDefiner, params));
+                        new ru.curs.hurdygurdy.extract.KotlinAPIExtractor(typeDefiner, params));
             }
         });
     }

@@ -209,16 +209,7 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
                 .orElse(TypeName.VOID);
     }
 
-    private static class RequestPartParams {
-        final TypeName typeName;
-        final String name;
-        final AnnotationSpec annotation;
-
-        RequestPartParams(TypeName typeName, String name, AnnotationSpec annotation) {
-            this.typeName = typeName;
-            this.name = name;
-            this.annotation = annotation;
-        }
+    private record RequestPartParams(TypeName typeName, String name, AnnotationSpec annotation) {
     }
 
     /**

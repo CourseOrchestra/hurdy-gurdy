@@ -283,7 +283,7 @@ class ApiParityTest {
                         jaxrsIn(matcher.group(3)), matcher.group(4), NOT_APPLICABLE, NONE));
             } else if (!bindings.isEmpty()) {
                 // @DefaultValue qualifies the parameter it sits on.
-                Binding last = bindings.remove(bindings.size() - 1);
+                Binding last = bindings.removeLast();
                 bindings.add(new Binding(last.in(), last.specName(), last.required(),
                         matcher.group(6)));
             }

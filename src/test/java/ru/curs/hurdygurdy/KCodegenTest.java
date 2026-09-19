@@ -572,18 +572,21 @@ class KCodegenTest {
     }
 
     String getContent(Path path) throws IOException {
-        return Files.walk(path)
-                .sorted(Comparator.comparing(Path::toString))
-                .flatMap(p -> Stream.concat(
-                        Stream.of(
-                                String.format("---%n"),
-                                String.format("%s%n", p.toString()
-                                        .replaceAll(String.format("\\%s", File.separator), "/")
-                                        .substring(result.toString().length()))
-                        ),
-                        readFile(p))
-                ).collect(Collectors.joining());
+        try (Stream<Path> paths = Files.walk(path)) {
+            return paths
+                    .sorted(Comparator.comparing(Path::toString))
+                    .flatMap(p -> Stream.concat(
+                            Stream.of(
+                                    String.format("---%n"),
+                                    String.format("%s%n", p.toString()
+                                            .replaceAll(String.format("\\%s", File.separator), "/")
+                                            .substring(result.toString().length()))
+                            ),
+                            readFile(p))
+                    ).collect(Collectors.joining());
+        }
     }
+
 
     Stream<String> readFile(Path path) {
         String result;
