@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy;
+package ru.curs.hurdygurdy.maven;
 
+import ru.curs.hurdygurdy.Codegen;
+import ru.curs.hurdygurdy.Framework;
+import ru.curs.hurdygurdy.GeneratorParams;
+import ru.curs.hurdygurdy.JavaCodegen;
+import ru.curs.hurdygurdy.JavaDtoStyle;
+import ru.curs.hurdygurdy.KotlinCodegen;
+import ru.curs.hurdygurdy.Role;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -30,6 +37,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+/**
+ * The {@code gen-server} goal: generates sources from a specification and adds
+ * them to the project's compile source roots.
+ *
+ * <p>A run is skipped when nothing it depends on has changed; see
+ * {@link Fingerprint}.
+ */
 @Mojo(
         name = "gen-server",
         defaultPhase = LifecyclePhase.GENERATE_SOURCES

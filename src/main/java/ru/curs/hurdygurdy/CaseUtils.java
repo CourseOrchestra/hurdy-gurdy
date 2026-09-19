@@ -16,11 +16,22 @@
 
 package ru.curs.hurdygurdy;
 
+/**
+ * Name conversions between the spelling a specification uses and the one a
+ * generated identifier needs.
+ */
 public final class CaseUtils {
     private CaseUtils() {
 
     }
 
+    /**
+     * A method name derived from a path: the segments camel-cased together, with
+     * separators and path-variable braces dropped.
+     *
+     * @param pathText the path as written in the specification
+     * @return a camelCase name, or null for null input
+     */
     public static String pathToCamel(String pathText) {
         if (pathText == null) {
             return null;
@@ -54,10 +65,25 @@ public final class CaseUtils {
         return result.toString();
     }
 
+    /**
+     * Camel-cases a snake_case name, leaving the first letter lower-case.
+     *
+     * @param snakeText the name as written in the specification
+     * @return the camelCase form, or null for null input
+     */
     public static String snakeToCamel(String snakeText) {
         return snakeToCamel(snakeText, false);
     }
 
+    /**
+     * Camel-cases a snake_case name. Leading underscores are kept: they are part
+     * of the name, not separators.
+     *
+     * @param snakeText      the name as written in the specification
+     * @param capitalizeFirst whether to upper-case the first character, as a type
+     *                        name needs
+     * @return the camelCase form, or null for null input
+     */
     public static String snakeToCamel(String snakeText, boolean capitalizeFirst) {
         if (snakeText == null) {
             return null;
@@ -99,6 +125,14 @@ public final class CaseUtils {
         return result.toString();
     }
 
+    /**
+     * Camel-cases a kebab-case name, as a header parameter such as
+     * {@code X-Trace-Id} needs. Leading underscores are kept, hyphens are
+     * separators.
+     *
+     * @param kebabPascalText the name as written in the specification
+     * @return the camelCase form, or null for null input
+     */
     public static String kebabToCamel(String kebabPascalText) {
         if (kebabPascalText == null) {
             return null;
@@ -113,8 +147,20 @@ public final class CaseUtils {
                     state = 1;
                     break;
                 case 1:
-                    result.append(c);
-                    if (c != '-') {
+                    // State 1 exists so that the SECOND character survives
+                    // verbatim: a leading underscore is not a separator, so
+                    // `__meta-info` must keep both of them (see the underscore
+                    // cases in CaseUtilsTest). A hyphen there is a separator all
+                    // the same — a one-letter first segment is ordinary in a
+                    // header name (`X-Trace-Id`). Emitting it produced
+                    // `x-TraceId`, which is not an identifier at all: KotlinPoet
+                    // hid that behind back-quotes and JavaPoet rejected it
+                    // outright, so every Java spec with a hyphenated header
+                    // failed to generate.
+                    if (c == '-') {
+                        state = 3;
+                    } else {
+                        result.append(c);
                         state = 2;
                     }
                     break;
@@ -216,6 +262,12 @@ public final class CaseUtils {
         return result.toString();
     }
 
+    /**
+     * A legal SCREAMING_SNAKE_CASE enum constant name for an arbitrary value.
+     *
+     * @param text the value as written in the specification
+     * @return the constant name, or null for null input
+     */
     public static String normalizeToScreamingSnake(String text) {
         if (text == null) {
             return null;

@@ -1,0 +1,26 @@
+# Normalise text to LF in the repository; check it out with whatever the
+# platform uses. Without this a tool that rewrites a file can flip its
+# convention, producing whole-file diffs that bury the real change.
+* text=auto
+
+# Approval snapshots are compared byte-for-byte with generated output whose
+# separators come from String.format("%n"), so they are platform-specific by
+# design and must not be normalised.
+*.approved.txt -text
+*.received.txt -text
+
+# The licence header Checkstyle matches against, compared line by line.
+header.txt -text
+
+# Launcher scripts: cmd.exe needs CRLF, sh needs LF, regardless of platform.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Binaries
+*.png binary
+*.jar binary
+*.exe binary
+*.gz binary
+*.zip binary

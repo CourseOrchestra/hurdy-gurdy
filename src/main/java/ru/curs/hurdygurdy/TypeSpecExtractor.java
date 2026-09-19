@@ -20,6 +20,18 @@ import io.swagger.v3.oas.models.OpenAPI;
 
 import java.util.function.BiConsumer;
 
+/**
+ * Produces generated types from a parsed document.
+ *
+ * @param <T> the generated type: a JavaPoet or KotlinPoet {@code TypeSpec}
+ */
 public interface TypeSpecExtractor<T> {
+    /**
+     * Generates every type this extractor is responsible for.
+     *
+     * @param openAPI             the document to read
+     * @param typeSpecBiConsumer  receives each generated type with the category
+     *                            that decides its subpackage
+     */
     void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer);
 }

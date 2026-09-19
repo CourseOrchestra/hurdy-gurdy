@@ -16,6 +16,9 @@
 
 package ru.curs.hurdygurdy;
 
+/**
+ * The kind of generated type, which decides the subpackage it is written to.
+ */
 public enum ClassCategory {
     /**
      * Data transition object class.
@@ -32,6 +35,12 @@ public enum ClassCategory {
         this.packageName = packageName;
     }
 
+    /**
+     * The subpackage, below the configured root package, that this kind of type
+     * is written to.
+     *
+     * @return the subpackage name
+     */
     public String getPackageName() {
         return packageName;
     }

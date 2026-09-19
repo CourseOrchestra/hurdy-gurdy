@@ -1,0 +1,28 @@
+---
+
+---
+/com
+---
+/com/example
+---
+/com/example/dto
+---
+/com/example/dto/Holder.java
+package com.example.dto;
+
+import com.external.dto.NullableThing;
+import java.util.Objects;
+
+public record Holder(NullableThing thing, LocalThing local_thing) {
+  public Holder {
+    Objects.requireNonNull(local_thing, "local_thing");
+  }
+}
+---
+/com/example/dto/LocalThing.java
+package com.example.dto;
+
+import java.lang.String;
+
+public record LocalThing(String id) {
+}

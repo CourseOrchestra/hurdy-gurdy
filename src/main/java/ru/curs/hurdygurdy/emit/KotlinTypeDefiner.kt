@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy
+package ru.curs.hurdygurdy.emit
 
+import ru.curs.hurdygurdy.CaseUtils
+import ru.curs.hurdygurdy.ClassCategory
+import ru.curs.hurdygurdy.GeneratorParams
+import ru.curs.hurdygurdy.spec.SchemaInheritance
+import ru.curs.hurdygurdy.spec.SchemaSemantics
 import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -54,6 +59,15 @@ import com.squareup.kotlinpoet.asTypeName
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.media.Schema
 import ru.curs.hurdygurdy.CaseUtils.normalizeToScreamingSnake
+import ru.curs.hurdygurdy.spec.SchemaInheritance.InheritedProperty
+import ru.curs.hurdygurdy.spec.SchemaSemantics.CLASS_NAME_PATTERN
+import ru.curs.hurdygurdy.spec.SchemaSemantics.defaultOf
+import ru.curs.hurdygurdy.spec.SchemaSemantics.describesObject
+import ru.curs.hurdygurdy.spec.SchemaSemantics.extractGroup
+import ru.curs.hurdygurdy.spec.SchemaSemantics.getEnumName
+import ru.curs.hurdygurdy.spec.SchemaSemantics.getExtendsList
+import ru.curs.hurdygurdy.spec.SchemaSemantics.getSubclassMapping
+import ru.curs.hurdygurdy.spec.SchemaSemantics.isEnumComponent
 import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.ZonedDateTime
@@ -84,7 +98,7 @@ class KotlinTypeDefiner internal constructor(
         }
     }
 
-    private fun Schema<*>.getInternalType() = TypeDefiner.effectiveType(this)
+    private fun Schema<*>.getInternalType() = SchemaSemantics.effectiveType(this)
 
     /**
      * Whether this schema is nullable: true when it says so (3.0 `nullable: true`
@@ -92,9 +106,9 @@ class KotlinTypeDefiner internal constructor(
      * when the schema says nothing at all, leaving the choice to the caller.
      */
     private fun Schema<*>.nullableOrNull(): Boolean? =
-        if (TypeDefiner.isNullableSchema(this)) true else nullable
+        if (SchemaSemantics.isNullableSchema(this)) true else nullable
 
-    public override fun defineKotlinType(
+    internal fun defineKotlinType(
         outerSchema: Schema<*>, openAPI: OpenAPI,
         parent: TypeSpec.Builder, typeNameFallback: String?, nullableOverride: Boolean?
     ): TypeName {
@@ -202,8 +216,8 @@ class KotlinTypeDefiner internal constructor(
         nullableOverride: Boolean? = null,
     ): TypeName {
         val meta = getReferencedTypeInfo(openAPI, `$ref`)
-        return ClassName(java.lang.String.join(".", meta.packageName, "dto"), meta.className)
-            .copy(nullable = nullableOverride ?: meta.isNullable)
+        return ClassName(java.lang.String.join(".", meta.packageName(), "dto"), meta.className())
+            .copy(nullable = nullableOverride ?: meta.nullable())
     }
 
     /**
@@ -240,14 +254,13 @@ class KotlinTypeDefiner internal constructor(
     }
 
 
-    override fun getEnum(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
+    override fun getEnum(name: String, schema: Schema<*>): TypeSpec {
         val classBuilder = TypeSpec.enumBuilder(name).addModifiers(KModifier.PUBLIC)
         schema.enum.forEach { classBuilder.addEnumValue(it) }
         return classBuilder.build()
     }
 
     /** A constructor property carried over from a base class (an allOf parent). */
-    private data class InheritedProperty(val key: String, val schema: Schema<*>, val required: Boolean)
 
     /**
      * The member subschemas of a polymorphic container — a `oneOf`, or a top-level
@@ -256,13 +269,11 @@ class KotlinTypeDefiner internal constructor(
      * anyOf. Single predicate for "is this schema a DEDUCTION-based polymorphic
      * interface".
      */
-    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> {
-        if (!schema.oneOf.isNullOrEmpty()) return schema.oneOf
-        val refs = schema.anyOf?.filter { it.`$ref` != null } ?: emptyList()
-        return if (refs.size >= 2) refs else emptyList()
-    }
+    private fun polymorphicMembers(schema: Schema<*>): List<Schema<*>> =
+        SchemaSemantics.polymorphicMembers(schema)
 
-    private fun isPolymorphicInterface(schema: Schema<*>): Boolean = polymorphicMembers(schema).isNotEmpty()
+    private fun isPolymorphicInterface(schema: Schema<*>): Boolean =
+        SchemaSemantics.isPolymorphicInterface(schema)
 
     override fun getDTOClass(name: String, schema: Schema<*>, openAPI: OpenAPI): TypeSpec {
         return if (schema.oneOf == null && schema.allOf != null) {
@@ -307,58 +318,13 @@ class KotlinTypeDefiner internal constructor(
     }
 
     /**
-     * The constructor parameters that the class generated for [ref] will declare,
-     * in declaration order (its own allOf-inherited parameters first, then its
-     * own properties), excluding the discriminator property. Used so that a
-     * subclass can re-declare the inherited parameters as `override` and pass
-     * them to the base-class constructor. Only resolves same-file references.
+     * The constructor parameters the class generated for [ref] will declare, so
+     * that a subclass can re-declare them as `override` and pass them to the
+     * base-class constructor.
      */
     private fun constructorPropertiesOf(ref: String, openAPI: OpenAPI): List<InheritedProperty> {
-        val schema = resolveLocalSchema(ref, openAPI) ?: return emptyList()
-        return constructorPropertiesOf(schema, openAPI)
-    }
-
-    private fun constructorPropertiesOf(schema: Schema<*>, openAPI: OpenAPI): List<InheritedProperty> {
-        val result = mutableListOf<InheritedProperty>()
-        // A property can be re-declared at several levels of an allOf chain (the
-        // YouTrack spec, for example, restates inherited fields on every subtype).
-        // Keep only the first (most-base) declaration by key so the generated
-        // constructor does not carry duplicate parameters. First-wins also keeps
-        // the parameter order aligned with the base-class constructor, which is
-        // what a subclass forwards its super-constructor arguments to.
-        val seen = mutableSetOf<String>()
-        fun add(property: InheritedProperty) {
-            if (seen.add(property.key)) {
-                result.add(property)
-            }
-        }
-        var ownSchema: Schema<*> = schema
-        if (schema.oneOf == null && schema.allOf != null) {
-            for (s in schema.allOf) {
-                if (s.`$ref` != null) {
-                    constructorPropertiesOf(s.`$ref`, openAPI).forEach(::add)
-                } else {
-                    ownSchema = s
-                }
-            }
-        }
-        val discriminatorProperty = schema.discriminator?.propertyName
-        val required = ownSchema.required?.toSet() ?: emptySet()
-        ownSchema.properties?.forEach { (key, value) ->
-            if (key != discriminatorProperty) {
-                add(InheritedProperty(key, value, required.contains(key)))
-            }
-        }
-        return result
-    }
-
-    private fun resolveLocalSchema(ref: String, openAPI: OpenAPI): Schema<*>? {
-        if (extractGroup(ref, FILE_NAME_PATTERN).isNotBlank()) {
-            // Reference into another file — we cannot see its schema here, so we
-            // leave inherited-property synthesis to that file's own generation.
-            return null
-        }
-        return openAPI.components?.schemas?.get(extractGroup(ref, CLASS_NAME_PATTERN))
+        val schema = SchemaInheritance.localComponent(openAPI, ref) ?: return emptyList()
+        return SchemaInheritance.flattenedProperties(schema, openAPI)
     }
 
     private fun getDTOClass(
@@ -601,7 +567,7 @@ class KotlinTypeDefiner internal constructor(
 
         val default = if (value.`$ref` == null) {
             value.default
-        } else getDefault(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
+        } else defaultOf(openAPI, extractGroup(value.`$ref`, CLASS_NAME_PATTERN))
         if (default != null) {
             when {
                 value.getInternalType() == "array" -> {
@@ -614,7 +580,7 @@ class KotlinTypeDefiner internal constructor(
                     paramSpec.defaultValue("%S", default.toString())
                 }
 
-                value.`$ref` != null && isEnum(
+                value.`$ref` != null && isEnumComponent(
                     openAPI,
                     extractGroup(value.`$ref`, CLASS_NAME_PATTERN)
                 )
@@ -675,8 +641,7 @@ class KotlinTypeDefiner internal constructor(
         if (isPolymorphicInterface(schema) && schema.discriminator == null) {
             val builder = AnnotationSpec.builder(JsonSubTypes::class)
             polymorphicMembers(schema).asSequence()
-                .map { it.`$ref` }
-                .filterNotNull()
+                .mapNotNull { it.`$ref` }
                 .map { referencedTypeName(it, openAPI) }
                 .map { it.copy(nullable = false) }
                 .map {
@@ -698,7 +663,7 @@ class KotlinTypeDefiner internal constructor(
     }
 
     private fun addInterfaces(openAPI: OpenAPI, name: String, classBuilder: TypeSpec.Builder) {
-        openAPI.components.schemas.forEach { schemaName, schema ->
+        openAPI.components.schemas.forEach { (schemaName, schema) ->
             if (isPolymorphicInterface(schema)) {
                 val interfaceName = ClassName(
                     java.lang.String.join(".", params.rootPackage, "dto"),

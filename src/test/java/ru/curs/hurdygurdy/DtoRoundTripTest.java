@@ -377,7 +377,8 @@ class DtoRoundTripTest {
             String json0 = "{\"id\":\"x\"}";
             Object back = mapper.readValue(json0, holder);
             String json1 = mapper.writeValueAsString(back);
-            assertThat(mapper.readTree(json1).path("nick").isNull() || mapper.readTree(json1).path("nick").isMissingNode())
+            JsonNode nick = mapper.readTree(json1).path("nick");
+            assertThat(nick.isNull() || nick.isMissingNode())
                     .as("null nick stays null on the wire [%s snake=%s]: %s", style, snake, json1)
                     .isTrue();
             Object back2 = mapper.readValue(json1, holder);

@@ -16,11 +16,37 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.TypeDefiner;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-public interface TypeProducersFactory<T> {
-    TypeDefiner<T> createTypeDefiner(BiConsumer<ClassCategory, T> typeSpecBiConsumer);
+/**
+ * Supplies the two language-specific halves of a generation run: the type
+ * definer, and the extractors that drive it.
+ *
+ * <p>{@code D} is the <em>concrete</em> definer type, so an extractor receives
+ * the definer it actually needs rather than the language-neutral base — which is
+ * what lets {@link TypeDefiner} stay free of JavaPoet and KotlinPoet.
+ *
+ * @param <T> the generated type
+ * @param <D> the concrete type definer producing it
+ */
+public interface TypeProducersFactory<T, D extends TypeDefiner<T>> {
+    /**
+     * Creates the type definer for this run.
+     *
+     * @param typeSpecBiConsumer where a definer emits types it generates as a
+     *                           side effect of resolving one
+     * @return the definer
+     */
+    D createTypeDefiner(BiConsumer<ClassCategory, T> typeSpecBiConsumer);
 
-    List<TypeSpecExtractor<T>> typeSpecExtractors(TypeDefiner<T> typeDefiner);
+    /**
+     * The extractors to run, in order.
+     *
+     * @param typeDefiner the definer created by
+     *                    {@link #createTypeDefiner(BiConsumer)}
+     * @return the extractors
+     */
+    List<TypeSpecExtractor<T>> typeSpecExtractors(D typeDefiner);
 }

@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy;
+package ru.curs.hurdygurdy.maven;
 
+import ru.curs.hurdygurdy.ExternalRefs;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.project.MavenProject;
 

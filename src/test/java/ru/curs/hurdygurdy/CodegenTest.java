@@ -23,14 +23,13 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static ru.curs.hurdygurdy.TestUtils.getContent;
 
 class CodegenTest {
     private JavaCodegen codegen = new JavaCodegen(
@@ -390,6 +389,114 @@ class CodegenTest {
     }
 
     @Test
+    void headerDefaultsAndHyphenatedNamesSpring() throws IOException {
+        // The Java counterpart of KCodegenTest.nullabilityHonoursRequiredAndDefault,
+        // and the fixture that had no Java coverage at all. Two things it pins,
+        // both of which used to be wrong here and right in Kotlin:
+        // `X-Trace-Id` becomes the identifier xTraceId (CaseUtils.kebabToCamel used
+        // to leave the hyphen in, which JavaPoet rejects outright, so generation
+        // failed on any spec with a hyphenated header), and an optional header
+        // carrying a default gets that default into @RequestHeader — without it the
+        // parameter arrives null where the specification promised a value.
+        // Controller and client together, since each builds its parameters separately.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void headerDefaultsAndHyphenatedNamesQuarkus() throws IOException {
+        // The Quarkus resource builds its own parameter list, so it needs its own
+        // coverage: here the default reaches the parameter as a separate
+        // @DefaultValue annotation, which the Java extractor emitted for query
+        // parameters only and never for headers.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false)
+                .framework(Framework.QUARKUS)
+                .generate(Role.CONTROLLER, Role.CLIENT));
+        codegen.generate(Path.of("src/test/resources/issue617.yaml"), result);
+        verify(result);
+    }
+
+    @Test
+    void externalRefNullabilityAndDefaults() throws IOException {
+        // The Java counterpart of the identically named Kotlin test. A default
+        // declared on a component in another file has to reach the annotation of
+        // every parameter that $refs it: the Java extractor read
+        // schema.getDefault() directly, which is null for a $ref because the
+        // parser is not asked to resolve one, and silently dropped the default.
+        // Snapshot only: the referenced types live in another package and are not
+        // generated here.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .generateResponseParameter(false)
+                .forceSnakeCaseForProperties(false));
+        codegen.generate(Path.of("src/test/resources/externalnullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    /**
+     * An operation whose verb the generator cannot map stops generation, in
+     * every dialect, rather than emitting a method with no mapping annotation.
+     *
+     * <p>Such a method compiles, so nothing in the user's build complains, and
+     * the endpoint is simply never routed — the failure shows up in production.
+     * Before the framework bindings were extracted the three dialects disagreed
+     * about this: the Spring controller threw a bare NullPointerException from
+     * inside JavaPoet, while the Spring client and Quarkus emitted the unmapped
+     * method. One algorithm, one answer.
+     */
+    @ParameterizedTest
+    @EnumSource(Framework.class)
+    void unsupportedHttpMethodIsRejected(Framework framework) {
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(framework)
+                .generate(EnumSet.allOf(Role.class)));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/unsupportedverb.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unsupported HTTP method 'options' at path '/items'")
+                .hasMessageContaining("get, post, put, patch and delete");
+    }
+
+    @Test
+    void externalNullableRequiredRecordComponent() throws IOException {
+        // A required record component is null-checked in the compact constructor
+        // unless the component it references permits null. When that component is
+        // declared in another file the question has to be put to THAT document:
+        // asking the current one finds nothing, answers "not nullable" by default
+        // and emits a check that rejects the legal payload {"thing": null}. The
+        // records path used to ask the wrong document; it now shares the one
+        // answer the rest of the generator has used since issue 620.
+        // Snapshot only: the referenced type lives in another package.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false)
+                .javaDtoStyle(JavaDtoStyle.RECORDS));
+        codegen.generate(Path.of("src/test/resources/externalrecordnullable.yaml"), result);
+        Approvals.verify(getContent(result));
+    }
+
+    @ParameterizedTest
+    @EnumSource(JavaDtoStyle.class)
+    void clashingGeneratedNamesAreRejected(JavaDtoStyle style) {
+        // Two inline objects with the same title generate two different classes
+        // under one name. Because a generated name is a file name, the second
+        // silently overwrote the first and one of the two properties ended up
+        // typed by a class carrying the other's fields — output that compiles,
+        // which is what made it dangerous.
+        codegen = new JavaCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false)
+                .javaDtoStyle(style));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/titleclash.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("both generated as 'Shared'");
+    }
+
+    @Test
     void quarkusServerAndClientSample2() throws IOException {
         // Both roles in a single run: XxxController (server resource) and
         // XxxClient (@RegisterRestClient) side by side, sharing the DTOs.
@@ -573,33 +680,5 @@ class CodegenTest {
     void verify(Path path) throws IOException {
         Approvals.verify(getContent(path));
         GeneratedCodeCompiler.assertJavaCompiles(path);
-    }
-
-    String getContent(Path path) throws IOException {
-        return Files.walk(path)
-                .sorted(Comparator.comparing(Path::toString))
-                .flatMap(p -> Stream.concat(
-                        Stream.of(
-                                String.format("---%n"),
-                                String.format("%s%n", p.toString()
-                                        .replaceAll(String.format("\\%s", File.separator), "/")
-                                        .substring(result.toString().length()))
-                        ),
-                        readFile(p))
-                ).collect(Collectors.joining());
-    }
-
-    Stream<String> readFile(Path path) {
-        String result;
-        if (Files.isReadable(path)) {
-            try {
-                result = Files.readString(path);
-            } catch (IOException e) {
-                result = null;
-            }
-            return Stream.ofNullable(result);
-        } else {
-            return Stream.empty();
-        }
     }
 }

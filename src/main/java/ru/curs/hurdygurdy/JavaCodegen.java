@@ -16,6 +16,9 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.emit.JavaTypeDefiner;
+import ru.curs.hurdygurdy.extract.DTOExtractor;
+import ru.curs.hurdygurdy.extract.JavaAPIExtractor;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 
@@ -24,21 +27,34 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * Generates Java sources.
+ */
 public class JavaCodegen extends Codegen<TypeSpec> {
+    /**
+     * Creates a Java generator.
+     *
+     * @param params what to generate and how
+     */
     public JavaCodegen(GeneratorParams params) {
 
-        super(params, new TypeProducersFactory<>() {
+        super(params, new TypeProducersFactory<TypeSpec, JavaTypeDefiner>() {
             @Override
-            public TypeDefiner<TypeSpec> createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+            public JavaTypeDefiner createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
                 return new JavaTypeDefiner(params, typeSpecBiConsumer);
             }
 
             @Override
-            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(TypeDefiner<TypeSpec> typeDefiner) {
-                return List.of(new JavaDTOExtractor(typeDefiner),
+            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(JavaTypeDefiner typeDefiner) {
+                return List.of(new DTOExtractor<>(typeDefiner, params),
                         new JavaAPIExtractor(typeDefiner, params));
             }
         });
+    }
+
+    @Override
+    String typeName(TypeSpec typeSpec) {
+        return typeSpec.name();
     }
 
     @Override

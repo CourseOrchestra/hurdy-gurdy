@@ -37,5 +37,5 @@ public interface Controller {
     value = ["/c"],
     produces = ["application/json"],
   )
-  public fun getWithExternalDefaults(@RequestParam(required = false, name = "size", defaultValue = "20") size: PageSize, @RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") `x-PageSize`: PageSize): List<NullableThing?>
+  public fun getWithExternalDefaults(@RequestParam(required = false, name = "size", defaultValue = "20") size: PageSize, @RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") xPageSize: PageSize): List<NullableThing?>
 }

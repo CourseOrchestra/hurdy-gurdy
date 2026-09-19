@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy;
+package ru.curs.hurdygurdy.spec;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
@@ -50,9 +50,9 @@ import java.util.function.Consumer;
  * keyword and hurdy-gurdy ignores it on purpose, warning about each occurrence
  * through {@link StrayNullableCheck}; writing a canonical nullability back onto
  * the schema here would revive a keyword the specification deleted. Nullability
- * stays where it is read, in {@link TypeDefiner#isNullableSchema(Schema)}.
+ * stays where it is read, in {@link SchemaSemantics#isNullableSchema(Schema)}.
  */
-final class SchemaNormalizer {
+public final class SchemaNormalizer {
 
     private SchemaNormalizer() {
     }
@@ -64,7 +64,7 @@ final class SchemaNormalizer {
      * @param warningListener receives a message for each rewrite that discards
      *                        information the document actually carried
      */
-    static void normalize(OpenAPI openAPI, Consumer<String> warningListener) {
+    public static void normalize(OpenAPI openAPI, Consumer<String> warningListener) {
         SchemaWalker.walk(openAPI, (schema, path) -> normalizeSchema(schema, path, warningListener));
     }
 
@@ -88,7 +88,7 @@ final class SchemaNormalizer {
      */
     private static void widenArrayWithoutItemType(Schema<?> schema, String path,
                                                   Consumer<String> warningListener) {
-        if (!TypeDefiner.isArraySchema(schema)) {
+        if (!SchemaSemantics.isArraySchema(schema)) {
             return;
         }
         boolean tuple = schema.getPrefixItems() != null && !schema.getPrefixItems().isEmpty();
@@ -117,7 +117,7 @@ final class SchemaNormalizer {
      * ordinary type — but unlike it, the type is left implicit.
      */
     private static void typeFromConst(Schema<?> schema) {
-        if (schema.getConst() == null || TypeDefiner.effectiveType(schema) != null) {
+        if (schema.getConst() == null || SchemaSemantics.effectiveType(schema) != null) {
             return;
         }
         Object value = schema.getConst();
@@ -150,7 +150,7 @@ final class SchemaNormalizer {
      * base64-encode it on the wire — changing a valid document's meaning.
      */
     private static void binaryFromContentEncoding(Schema<?> schema) {
-        if ("string".equals(TypeDefiner.effectiveType(schema))
+        if ("string".equals(SchemaSemantics.effectiveType(schema))
                 && schema.getFormat() == null
                 && isBase64(schema.getContentEncoding())) {
             schema.setFormat("binary");
@@ -178,7 +178,7 @@ final class SchemaNormalizer {
      * <p>So when nothing else already says the schema is nullable, {@code "null"}
      * is added to the type set first. That is the canonical 3.1 spelling of
      * precisely what the member said, and it is what
-     * {@link TypeDefiner#isNullableSchema(Schema)} reads — so the nullability
+     * {@link SchemaSemantics#isNullableSchema(Schema)} reads — so the nullability
      * survives in the form every other caller already understands.
      */
     private static void dropNullEnumMember(Schema<?> schema) {
@@ -186,7 +186,7 @@ final class SchemaNormalizer {
         if (values == null || !values.contains(null)) {
             return;
         }
-        if (!TypeDefiner.isNullableSchema(schema)) {
+        if (!SchemaSemantics.isNullableSchema(schema)) {
             preserveNullability(schema);
         }
         List<Object> withoutNull = new ArrayList<>();

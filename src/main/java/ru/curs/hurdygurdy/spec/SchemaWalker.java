@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy;
+package ru.curs.hurdygurdy.spec;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

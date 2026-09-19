@@ -41,8 +41,8 @@ public interface Client {
     @RequestParam(required = false, name = "force", defaultValue = "false") force: Boolean,
     @RequestParam(required = true, name = "reason") reason: String,
     @RequestParam(required = true, name = "note") note: String?,
-    @RequestHeader(required = true, name = "X-Trace-Id") `x-TraceId`: String,
-    @RequestHeader(required = false, name = "X-Correlation-Id") `x-CorrelationId`: String?,
+    @RequestHeader(required = true, name = "X-Trace-Id") xTraceId: String,
+    @RequestHeader(required = false, name = "X-Correlation-Id") xCorrelationId: String?,
   ): ItemResponse
 
   @GetExchange(
@@ -72,7 +72,7 @@ public interface Client {
     value = "/items/headers",
     accept = ["application/json"],
   )
-  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") `x-PageSize`: Int, @RequestHeader(required = false, name = "X-Plain") `x-Plain`: String?): ItemResponse
+  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") xPageSize: Int, @RequestHeader(required = false, name = "X-Plain") xPlain: String?): ItemResponse
 
   @GetExchange(
     value = "/items/nullable",
@@ -118,8 +118,8 @@ public interface Controller {
     @RequestParam(required = false, name = "force", defaultValue = "false") force: Boolean,
     @RequestParam(required = true, name = "reason") reason: String,
     @RequestParam(required = true, name = "note") note: String?,
-    @RequestHeader(required = true, name = "X-Trace-Id") `x-TraceId`: String,
-    @RequestHeader(required = false, name = "X-Correlation-Id") `x-CorrelationId`: String?,
+    @RequestHeader(required = true, name = "X-Trace-Id") xTraceId: String,
+    @RequestHeader(required = false, name = "X-Correlation-Id") xCorrelationId: String?,
   ): ItemResponse
 
   @GetMapping(
@@ -149,7 +149,7 @@ public interface Controller {
     value = ["/items/headers"],
     produces = ["application/json"],
   )
-  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") `x-PageSize`: Int, @RequestHeader(required = false, name = "X-Plain") `x-Plain`: String?): ItemResponse
+  public fun headerDefaults(@RequestHeader(required = false, name = "X-Page-Size", defaultValue = "20") xPageSize: Int, @RequestHeader(required = false, name = "X-Plain") xPlain: String?): ItemResponse
 
   @GetMapping(
     value = ["/items/nullable"],

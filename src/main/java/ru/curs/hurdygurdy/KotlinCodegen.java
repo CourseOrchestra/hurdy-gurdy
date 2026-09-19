@@ -16,6 +16,7 @@
 
 package ru.curs.hurdygurdy;
 
+import ru.curs.hurdygurdy.extract.DTOExtractor;
 import com.squareup.kotlinpoet.FileSpec;
 import com.squareup.kotlinpoet.TypeSpec;
 
@@ -24,20 +25,41 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * Generates Kotlin sources.
+ *
+ * <p>The two Kotlin classes it drives are named in full rather than imported.
+ * javadoc reads only the Java sources and never sees a Kotlin declaration, and
+ * an unresolvable {@code import} is a hard error where an unresolvable name
+ * inside a method body is not — so importing them would break the javadoc build
+ * that the release relies on.
+ */
 public class KotlinCodegen extends Codegen<TypeSpec> {
+    /**
+     * Creates a Kotlin generator.
+     *
+     * @param params what to generate and how
+     */
     public KotlinCodegen(GeneratorParams params) {
-        super(params, new TypeProducersFactory<>() {
+        super(params, new TypeProducersFactory<TypeSpec, ru.curs.hurdygurdy.emit.KotlinTypeDefiner>() {
             @Override
-            public TypeDefiner<TypeSpec> createTypeDefiner(BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
-                return new KotlinTypeDefiner(params, typeSpecBiConsumer);
+            public ru.curs.hurdygurdy.emit.KotlinTypeDefiner createTypeDefiner(
+                    BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
+                return new ru.curs.hurdygurdy.emit.KotlinTypeDefiner(params, typeSpecBiConsumer);
             }
 
             @Override
-            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(TypeDefiner<TypeSpec> typeDefiner) {
-                return List.of(new KotlinDTOExtractor(typeDefiner),
-                        new KotlinAPIExtractor(typeDefiner, params));
+            public List<TypeSpecExtractor<TypeSpec>> typeSpecExtractors(
+                    ru.curs.hurdygurdy.emit.KotlinTypeDefiner typeDefiner) {
+                return List.of(new DTOExtractor<>(typeDefiner, params),
+                        new ru.curs.hurdygurdy.extract.KotlinAPIExtractor(typeDefiner, params));
             }
         });
+    }
+
+    @Override
+    String typeName(TypeSpec typeSpec) {
+        return typeSpec.getName();
     }
 
     @Override

@@ -24,7 +24,7 @@
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -130,6 +130,12 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>3.27.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>1.5.0</version>
             <scope>test</scope>
         </dependency>
         <!-- DtoEqualsContractTest exercises the equals/hashCode contract of every
@@ -340,6 +346,7 @@
                          so include them too and the Apache license header is enforced
                          on .java and .kt alike (see the Header module in checkstyle.xml). -->
                     <includes>**/*.java,**/*.kt</includes>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
                 <dependencies>
                     <dependency>

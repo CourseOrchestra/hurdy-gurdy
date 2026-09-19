@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy;
+package ru.curs.hurdygurdy.spec;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.SpecVersion;
@@ -35,7 +35,7 @@ import java.util.List;
  * the {@code nullable}s in place, and every nullable field quietly turns
  * non-null), so each occurrence is reported as a warning instead.
  */
-final class StrayNullableCheck {
+public final class StrayNullableCheck {
 
     private StrayNullableCheck() {
     }
@@ -50,7 +50,7 @@ final class StrayNullableCheck {
      * @param openAPI the parsed document
      * @return the stray {@code nullable} locations
      */
-    static List<String> locations(OpenAPI openAPI) {
+    public static List<String> locations(OpenAPI openAPI) {
         if (openAPI == null || openAPI.getSpecVersion() != SpecVersion.V31) {
             return List.of();
         }

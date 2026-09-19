@@ -129,7 +129,7 @@ public final class Main implements Callable<Integer> {
      * {@code hurdy-gurdy-version.properties} resource, so it always reflects
      * the Maven project version instead of a hardcoded literal.
      */
-    static final class VersionProvider implements IVersionProvider {
+    public static final class VersionProvider implements IVersionProvider {
         @Override
         public String[] getVersion() throws Exception {
             Properties props = new Properties();

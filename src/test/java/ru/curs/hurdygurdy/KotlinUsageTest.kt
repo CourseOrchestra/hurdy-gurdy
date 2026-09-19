@@ -50,6 +50,6 @@ class KotlinUsageTest {
     fun rolesCanBePassedAsKotlinCollection() {
         val params = GeneratorParams.rootPackage("com.example.project")
             .generate(listOf(Role.CONTROLLER, Role.API))
-        assertEquals(setOf(Role.CONTROLLER, Role.API), params.getGenerate())
+        assertEquals(setOf(Role.CONTROLLER, Role.API), params.generate)
     }
 }

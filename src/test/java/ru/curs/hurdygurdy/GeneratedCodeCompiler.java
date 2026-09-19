@@ -60,7 +60,7 @@ import java.util.stream.Stream;
  * generated code references (Jackson, Lombok, jakarta.servlet via
  * tomcat-embed-core, spring-web and the Kotlin stdlib).
  */
-final class GeneratedCodeCompiler {
+public final class GeneratedCodeCompiler {
 
     /** First four bytes of every JVM class file. */
     private static final byte[] CLASS_FILE_MAGIC = {

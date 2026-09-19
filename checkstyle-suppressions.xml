@@ -5,4 +5,14 @@
   
 <suppressions>
     <suppress files="[/\\]target[/\\]" checks=".*" />
+
+    <!-- A test method's name states its intent and its body is the example;
+         Javadoc on top of that is ceremony. -->
+    <suppress files="[/\\]src[/\\]test[/\\]" checks="Javadoc.*|MissingJavadoc.*|SummaryJavadoc"/>
+
+    <!-- Design and metric rules describe an API, and a test has none: a JUnit
+         @TempDir field cannot be private with accessors, a date fixture is meant
+         to be a literal. The hygiene rules stay on everywhere. -->
+    <suppress files="[/\\]src[/\\]test[/\\]"
+              checks="VisibilityModifier|MagicNumber|DeclarationOrder|CyclomaticComplexity"/>
 </suppressions>

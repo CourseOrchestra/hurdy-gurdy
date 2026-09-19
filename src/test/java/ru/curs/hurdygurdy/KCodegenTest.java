@@ -23,14 +23,12 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static ru.curs.hurdygurdy.TestUtils.getContent;
 
 class KCodegenTest {
     private KotlinCodegen codegen = new KotlinCodegen(
@@ -455,6 +453,42 @@ class KCodegenTest {
         verify(result);
     }
 
+    /**
+     * An operation whose verb the generator cannot map stops generation, in
+     * every dialect, rather than emitting a method with no mapping annotation.
+     *
+     * <p>Such a method compiles, so nothing in the user's build complains, and
+     * the endpoint is simply never routed — the failure shows up in production.
+     * Before the framework bindings were extracted the three dialects disagreed
+     * about this: the Spring controller threw a bare NullPointerException from
+     * inside JavaPoet, while the Spring client and Quarkus emitted the unmapped
+     * method. One algorithm, one answer.
+     */
+    @ParameterizedTest
+    @EnumSource(Framework.class)
+    void unsupportedHttpMethodIsRejected(Framework framework) {
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .framework(framework)
+                .generate(EnumSet.allOf(Role.class)));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/unsupportedverb.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unsupported HTTP method 'options' at path '/items'")
+                .hasMessageContaining("get, post, put, patch and delete");
+    }
+
+    @Test
+    void clashingGeneratedNamesAreRejected() {
+        // The Kotlin definer has the same inline-type side channel as the Java
+        // one, so it needs the same guard: a generated name is a file name.
+        codegen = new KotlinCodegen(GeneratorParams.rootPackage("com.example")
+                .forceSnakeCaseForProperties(false));
+        assertThatThrownBy(() ->
+                codegen.generate(Path.of("src/test/resources/titleclash.yaml"), result))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("both generated as 'Shared'");
+    }
+
     @ParameterizedTest
     @EnumSource(Framework.class)
     void youtrackOpenapiCompiles(Framework framework) throws IOException {
@@ -531,33 +565,5 @@ class KCodegenTest {
     void verify(Path path) throws IOException {
         Approvals.verify(getContent(path));
         GeneratedCodeCompiler.assertKotlinCompiles(path);
-    }
-
-    String getContent(Path path) throws IOException {
-        return Files.walk(path)
-                .sorted(Comparator.comparing(Path::toString))
-                .flatMap(p -> Stream.concat(
-                        Stream.of(
-                                String.format("---%n"),
-                                String.format("%s%n", p.toString()
-                                        .replaceAll(String.format("\\%s", File.separator), "/")
-                                        .substring(result.toString().length()))
-                        ),
-                        readFile(p))
-                ).collect(Collectors.joining());
-    }
-
-    Stream<String> readFile(Path path) {
-        String result;
-        if (Files.isReadable(path)) {
-            try {
-                result = Files.readString(path);
-            } catch (IOException e) {
-                result = null;
-            }
-            return Stream.ofNullable(result);
-        } else {
-            return Stream.empty();
-        }
     }
 }

@@ -31,6 +31,8 @@
     <!-- See https://checkstyle.org/config_misc.html#NewlineAtEndOfFile -->
     <module name="NewlineAtEndOfFile"/>
 
+    <module name="JavadocPackage"/>
+
     <!-- Checks for Size Violations.                    -->
     <!-- See https://checkstyle.org/config_sizes.html -->
     <module name="FileLength"/>
@@ -65,16 +67,27 @@
 
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->
+        <!-- JavadocMethod/JavadocType validate the Javadoc that is there;
+             MissingJavadoc* requires it to be there at all. Both halves are
+             needed, and both reach protected: anything a subclass or another
+             package can see is API to someone. -->
         <module name="JavadocMethod">
-            <property name="accessModifiers" value="public"/>
+            <property name="accessModifiers" value="public, protected"/>
             <property name="allowMissingReturnTag" value="true"/>
             <property name="tokens" value="METHOD_DEF"/>
         </module>
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="protected"/>
+            <property name="allowedAnnotations" value="Override"/>
+        </module>
         <module name="JavadocType">
-            <property name="scope" value="public"/>
+            <property name="scope" value="protected"/>
+        </module>
+        <module name="MissingJavadocType">
+            <property name="scope" value="protected"/>
         </module>
         <module name="JavadocVariable">
-            <property name="accessModifiers" value="public"/>
+            <property name="accessModifiers" value="public, protected"/>
         </module>
         <module name="SummaryJavadoc"/>
 
