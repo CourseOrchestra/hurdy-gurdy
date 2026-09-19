@@ -66,6 +66,12 @@ public class JavaAPIExtractor extends APIExtractor<TypeSpec, TypeSpec.Builder> {
     private final JavaTypeDefiner typeDefiner;
     private final Framework framework;
 
+    /**
+     * Creates a Java API extractor.
+     *
+     * @param typeDefiner resolves a schema to a Java type
+     * @param params      what to generate and how
+     */
     public JavaAPIExtractor(JavaTypeDefiner typeDefiner,
                             GeneratorParams params) {
         super(params,

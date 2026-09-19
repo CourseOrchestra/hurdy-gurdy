@@ -37,6 +37,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+/**
+ * The {@code gen-server} goal: generates sources from a specification and adds
+ * them to the project's compile source roots.
+ *
+ * <p>A run is skipped when nothing it depends on has changed; see
+ * {@link Fingerprint}.
+ */
 @Mojo(
         name = "gen-server",
         defaultPhase = LifecyclePhase.GENERATE_SOURCES

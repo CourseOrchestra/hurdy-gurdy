@@ -48,6 +48,14 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
     private final BiFunction<String, Role, B> builderSupplier;
     private final Function<B, T> buildInvoker;
 
+    /**
+     * Creates an extractor for one target language.
+     *
+     * @param params          what to generate and how
+     * @param modelBuilder    reads the document into the language-neutral model
+     * @param builderSupplier creates the builder for one generated interface
+     * @param buildInvoker    finishes a builder into a generated type
+     */
     protected APIExtractor(GeneratorParams params,
                            ApiModelBuilder modelBuilder,
                            BiFunction<String, Role, B> builderSupplier,
@@ -58,10 +66,21 @@ public abstract class APIExtractor<T, B> implements TypeSpecExtractor<T> {
         this.buildInvoker = buildInvoker;
     }
 
+    /**
+     * The target web framework.
+     *
+     * @return the configured framework
+     */
     protected Framework getFramework() {
         return params.getFramework();
     }
 
+    /**
+     * Generates one interface per tag, for every requested role.
+     *
+     * @param openAPI            the document to read
+     * @param typeSpecBiConsumer receives each generated interface
+     */
     public final void extractTypeSpecs(OpenAPI openAPI, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         for (Role role : params.getGenerate()) {
             //the Api interface never carries response-related artifacts

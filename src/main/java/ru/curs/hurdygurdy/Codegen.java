@@ -34,6 +34,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 
+/**
+ * Runs a generation: parses and canonicalises a specification, drives the
+ * extractors over it, and writes the types they produce.
+ *
+ * @param <T> the generated type: a JavaPoet or KotlinPoet {@code TypeSpec}
+ */
 public abstract class Codegen<T> {
 
     /**
@@ -51,6 +57,14 @@ public abstract class Codegen<T> {
     private Consumer<String> warningListener = System.err::println;
 
 
+    /**
+     * Creates a generator for one target language.
+     *
+     * @param params               what to generate and how
+     * @param typeProducersFactory supplies the language's type definer and the
+     *                             extractors that drive it
+     * @param <D>                  the concrete type definer
+     */
     public <D extends TypeDefiner<T>> Codegen(GeneratorParams params,
                                               TypeProducersFactory<T, D> typeProducersFactory) {
         this.params = params;
@@ -110,6 +124,14 @@ public abstract class Codegen<T> {
         }
     }
 
+    /**
+     * Generates sources for one specification.
+     *
+     * @param sourceFile      the specification to read
+     * @param resultDirectory an existing directory to write the sources into
+     * @throws IOException if the specification cannot be read or the sources
+     *                     cannot be written
+     */
     public void generate(Path sourceFile, Path resultDirectory) throws IOException {
         parse(sourceFile);
 

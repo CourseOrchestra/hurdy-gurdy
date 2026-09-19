@@ -16,10 +16,6 @@
 
 package ru.curs.hurdygurdy;
 
-import ru.curs.hurdygurdy.emit.TypeDefiner;
-import ru.curs.hurdygurdy.extract.APIExtractor;
-import ru.curs.hurdygurdy.extract.JavaAPIExtractor;
-import ru.curs.hurdygurdy.extract.KotlinAPIExtractor;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -44,16 +40,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * a specification: for every generated operation, the same parameters, bound the
  * same way, with the same {@code required} flags and the same default values.
  *
- * <p>The two back ends share no code below {@link APIExtractor}: each of
- * {@link JavaAPIExtractor} and {@link KotlinAPIExtractor} carries its own
+ * <p>The two back ends share no code below {@code APIExtractor}: each of
+ * {@code JavaAPIExtractor} and {@code KotlinAPIExtractor} carries its own
  * {@code buildSpringMethod}, {@code buildQuarkusMethod} and
  * {@code buildSpringClientMethod}, six copies of one algorithm. Nothing made them
  * agree except that they were written from each other, and nothing detected it
  * when they stopped: the approval snapshots pin each language against its own
  * past output, never against the other language, and the two suites do not even
  * use the same fixtures. That is how
- * {@link TypeDefiner#effectiveDefault(io.swagger.v3.oas.models.media.Schema,
- * io.swagger.v3.oas.models.OpenAPI)} — the one method that resolves a
+ * {@code TypeDefiner.effectiveDefault} — the one method that resolves a
  * parameter's default through a {@code $ref} — came to be called from all six
  * Kotlin sites and none of the Java ones, so a Java client silently lost a
  * default that the Kotlin one honoured.

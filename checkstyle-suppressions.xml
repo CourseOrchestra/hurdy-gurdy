@@ -5,4 +5,19 @@
   
 <suppressions>
     <suppress files="[/\\]target[/\\]" checks=".*" />
+
+    <!-- Tests are checked for everything except documentation. A test method's
+         name states its intent and its body is the example; demanding Javadoc
+         on top of that produces ceremony, not information. The checks that do
+         apply - unused imports, whitespace, line length, the licence header -
+         catch real rot and apply everywhere. -->
+    <suppress files="[/\\]src[/\\]test[/\\]" checks="Javadoc.*|MissingJavadoc.*|SummaryJavadoc"/>
+
+    <!-- Design and metric rules describe an API, and a test has none. A JUnit
+         @TempDir field cannot be private with accessors, a date fixture is meant
+         to be a literal, and a table-driven assertion helper is meant to be one
+         long switch. The hygiene rules - unused imports, the licence header,
+         tabs, line length, trailing newline - stay on everywhere. -->
+    <suppress files="[/\\]src[/\\]test[/\\]"
+              checks="VisibilityModifier|MagicNumber|DeclarationOrder|CyclomaticComplexity"/>
 </suppressions>

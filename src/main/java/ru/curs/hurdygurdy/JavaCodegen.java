@@ -27,7 +27,15 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * Generates Java sources.
+ */
 public class JavaCodegen extends Codegen<TypeSpec> {
+    /**
+     * Creates a Java generator.
+     *
+     * @param params what to generate and how
+     */
     public JavaCodegen(GeneratorParams params) {
 
         super(params, new TypeProducersFactory<TypeSpec, JavaTypeDefiner>() {

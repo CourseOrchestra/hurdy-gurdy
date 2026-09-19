@@ -45,6 +45,12 @@ public class DTOExtractor<T> implements TypeSpecExtractor<T> {
     private final TypeDefiner<T> typeDefiner;
     private final GeneratorParams params;
 
+    /**
+     * Creates a DTO extractor.
+     *
+     * @param typeDefiner turns a schema into the generated type
+     * @param params      what to generate and how
+     */
     public DTOExtractor(TypeDefiner<T> typeDefiner, GeneratorParams params) {
         this.typeDefiner = typeDefiner;
         this.params = params;

@@ -82,10 +82,20 @@ import static ru.curs.hurdygurdy.spec.SchemaSemantics.isNullableSchema;
 import static ru.curs.hurdygurdy.spec.SchemaSemantics.isPolymorphicInterface;
 import static ru.curs.hurdygurdy.spec.SchemaSemantics.polymorphicMembers;
 
+/**
+ * Maps a schema onto the Java type system and builds the Java DTOs.
+ */
 public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
     private boolean hasJsonZonedDateTimeDeserializer;
     private final JavaClassMembers classMembers;
 
+    /**
+     * Creates a Java type definer.
+     *
+     * @param params             what to generate and how
+     * @param typeSpecBiConsumer receives types generated as a side effect of
+     *                           resolving another, such as an inline object
+     */
     public JavaTypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, TypeSpec> typeSpecBiConsumer) {
         super(params, typeSpecBiConsumer);
         this.classMembers = JavaClassMembers.of(params.getJavaDtoStyle());
@@ -96,6 +106,16 @@ public final class JavaTypeDefiner extends TypeDefiner<TypeSpec> {
         return internalType == null ? "unknown" : internalType;
     }
 
+    /**
+     * The Java type a schema maps to.
+     *
+     * @param schema           the schema to resolve
+     * @param openAPI          the document it was written in
+     * @param parent           the type being built, which receives any nested
+     *                         enum the schema declares
+     * @param typeNameFallback the name to give a type the schema does not name
+     * @return the resolved type
+     */
     public TypeName defineJavaType(Schema<?> schema, OpenAPI openAPI, TypeSpec.Builder parent,
                             String typeNameFallback) {
         return defineJavaType(schema, openAPI, parent, typeNameFallback, false);

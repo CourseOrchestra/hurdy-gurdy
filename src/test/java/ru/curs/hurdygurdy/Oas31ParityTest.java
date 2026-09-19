@@ -16,7 +16,6 @@
 
 package ru.curs.hurdygurdy;
 
-import ru.curs.hurdygurdy.spec.StrayNullableCheck;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -65,7 +64,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * file, which would not resolve from the temporary directory) and they contain
  * no {@code nullable} keyword. {@code nullable} is deliberately excluded,
  * because 3.1 removed it and hurdy-gurdy therefore ignores it on purpose — see
- * {@link StrayNullableCheck} — so those fixtures <em>should</em> differ between
+ * {@code StrayNullableCheck} — so those fixtures <em>should</em> differ between
  * the versions, and the difference is covered by
  * {@code CodegenTest.strayNullable31IsIgnored} instead.
  */

@@ -16,6 +16,18 @@
 
 package ru.curs.hurdygurdy.emit;
 
+/**
+ * Where the class generated for a referenced component lives, and whether it
+ * admits null.
+ *
+ * @param className   the simple name of the generated class
+ * @param packageName the root package it is generated into, which for a
+ *                    cross-file reference comes from that file's
+ *                    {@code x-package}
+ * @param fileName    the file the component is declared in, empty for a
+ *                    same-file reference
+ * @param nullable    whether the component permits a null value
+ */
 public record DTOMeta(
         String className,
         String packageName,

@@ -86,11 +86,27 @@ public abstract class TypeDefiner<T> {
     private final LinkedDocuments linkedDocuments = new LinkedDocuments();
     private final Set<String> aliasesBeingInlined = new HashSet<>();
 
+    /**
+     * Creates a type definer.
+     *
+     * @param params             what to generate and how
+     * @param typeSpecBiConsumer receives types generated as a side effect of
+     *                           resolving another, such as an inline object
+     */
     public TypeDefiner(GeneratorParams params, BiConsumer<ClassCategory, T> typeSpecBiConsumer) {
         this.params = params;
         this.typeSpecBiConsumer = typeSpecBiConsumer;
     }
 
+    /**
+     * The type generated for a component schema: an enum, an array alias or a
+     * class, whichever the schema describes.
+     *
+     * @param name    the component's name
+     * @param schema  the component's schema
+     * @param openAPI the document it was declared in
+     * @return the generated type
+     */
     public final T getDTO(String name, Schema<?> schema, OpenAPI openAPI) {
         if (schema.getEnum() != null) {
             return getEnum(name, schema);
@@ -147,7 +163,7 @@ public abstract class TypeDefiner<T> {
         }
     }
 
-    public final void checkPropertyName(String name, String propertyName) {
+    final void checkPropertyName(String name, String propertyName) {
         if (params.isForceSnakeCaseForProperties()
                 && !SNAKE_CASE_PROPERTY.matcher(propertyName).matches()) throw new IllegalStateException(
                 String.format("Property '%s' of schema '%s' is not in snake case",
@@ -175,7 +191,7 @@ public abstract class TypeDefiner<T> {
      * @param propertyName the generated Java/Kotlin property identifier
      * @return the name to pin, or null when none is needed
      */
-    public final String jsonNameOverride(String key, String propertyName) {
+    final String jsonNameOverride(String key, String propertyName) {
         if (!params.isForceSnakeCaseForProperties()) {
             // No @JsonNaming is emitted, and the identifier IS the spec key.
             return null;
@@ -201,13 +217,21 @@ public abstract class TypeDefiner<T> {
      */
     abstract T getArrayAlias(String name, Schema<?> schema, OpenAPI openAPI);
 
+    /**
+     * Prepares the definer for one generation run, discarding what the previous
+     * one cached.
+     *
+     * @param currentSourceFile the specification being generated
+     * @param listener          receives warnings raised while reading linked
+     *                          documents
+     */
     public void init(Path currentSourceFile, Consumer<String> listener) {
         linkedDocuments.reset(currentSourceFile, listener);
         externalClasses.clear();
         aliasesBeingInlined.clear();
     }
 
-    public DTOMeta getReferencedTypeInfo(OpenAPI currentOpenAPI, String ref) {
+    DTOMeta getReferencedTypeInfo(OpenAPI currentOpenAPI, String ref) {
         checkReferenceIsGeneratable(ref);
         String fileName = extractGroup(ref, FILE_NAME_PATTERN);
         String className = extractGroup(ref, CLASS_NAME_PATTERN);

@@ -35,6 +35,11 @@ import java.util.function.BiConsumer;
  * that the release relies on.
  */
 public class KotlinCodegen extends Codegen<TypeSpec> {
+    /**
+     * Creates a Kotlin generator.
+     *
+     * @param params what to generate and how
+     */
     public KotlinCodegen(GeneratorParams params) {
         super(params, new TypeProducersFactory<TypeSpec, ru.curs.hurdygurdy.emit.KotlinTypeDefiner>() {
             @Override

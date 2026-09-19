@@ -340,6 +340,7 @@
                          so include them too and the Apache license header is enforced
                          on .java and .kt alike (see the Header module in checkstyle.xml). -->
                     <includes>**/*.java,**/*.kt</includes>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
                 <dependencies>
                     <dependency>
