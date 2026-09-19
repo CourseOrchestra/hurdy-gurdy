@@ -47,7 +47,7 @@ class KotlinLanguageFunctionalTest {
         write(
             "build.gradle.kts", """
                 import ru.curs.hurdygurdy.Role
-                import ru.curs.hurdygurdy.gradle.Language
+                import ru.curs.hurdygurdy.Language
 
                 plugins {
                     kotlin("jvm") version "2.4.0"
@@ -92,7 +92,7 @@ class KotlinLanguageFunctionalTest {
         write(
             "build.gradle.kts", """
                 import ru.curs.hurdygurdy.Role
-                import ru.curs.hurdygurdy.gradle.Language
+                import ru.curs.hurdygurdy.Language
 
                 plugins {
                     java

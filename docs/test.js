@@ -68,7 +68,7 @@ const base = {
     generate: ["controller", "client"], responseParameter: true, forceSnakeCase: false });
   assert.ok(out.includes("import ru.curs.hurdygurdy.Framework"), "gradle imports Framework");
   assert.ok(out.includes("import ru.curs.hurdygurdy.Role"), "gradle imports Role");
-  assert.ok(out.includes("import ru.curs.hurdygurdy.gradle.Language"), "gradle imports Language");
+  assert.ok(out.includes("import ru.curs.hurdygurdy.Language"), "gradle imports Language");
   assert.ok(out.includes("framework = Framework.QUARKUS"), "gradle framework enum");
   assert.ok(out.includes("language = Language.KOTLIN"), "gradle language enum");
   assert.ok(out.includes("generate = setOf(Role.CONTROLLER, Role.CLIENT)"), "gradle generate setOf");

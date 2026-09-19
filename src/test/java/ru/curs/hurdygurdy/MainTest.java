@@ -53,6 +53,43 @@ class MainTest {
         assertThat(javaFilesIn(out)).isGreaterThan(0);
     }
 
+    /**
+     * A misspelt language used to fall through to Kotlin, because the choice was
+     * {@code "java".equalsIgnoreCase(language) ? java : kotlin} - so the run
+     * succeeded and wrote the wrong language, which the user meets as a compile
+     * error in their own build about sources they did not ask for.
+     */
+    @Test
+    void anUnknownLanguageFailsInsteadOfGeneratingTheOtherOne() throws IOException {
+        int exit = Main.run(
+                "--spec", "src/test/resources/commonparam.yaml",
+                "--root-package", "com.example",
+                "--language", "jva",
+                "--output", out.toString());
+
+        assertThat(exit).isNotEqualTo(0);
+        try (Stream<Path> walk = Files.walk(out)) {
+            assertThat(walk.filter(Files::isRegularFile).count())
+                    .as("nothing generated for an unknown language")
+                    .isEqualTo(0);
+        }
+    }
+
+    @Test
+    void kotlinLanguageGeneratesKotlinSources() throws IOException {
+        int exit = Main.run(
+                "--spec", "src/test/resources/commonparam.yaml",
+                "--root-package", "com.example",
+                "--language", "KoTlIn",
+                "--output", out.toString());
+
+        assertThat(exit).isEqualTo(0);
+        try (Stream<Path> walk = Files.walk(out)) {
+            assertThat(walk.filter(p -> p.toString().endsWith(".kt")).count())
+                    .isGreaterThan(0);
+        }
+    }
+
     @Test
     void versionOptionReflectsPomVersion() throws IOException {
         Properties props = new Properties();

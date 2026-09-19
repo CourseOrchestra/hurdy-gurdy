@@ -19,9 +19,8 @@ package ru.curs.hurdygurdy.maven;
 import ru.curs.hurdygurdy.Codegen;
 import ru.curs.hurdygurdy.Framework;
 import ru.curs.hurdygurdy.GeneratorParams;
-import ru.curs.hurdygurdy.JavaCodegen;
 import ru.curs.hurdygurdy.JavaDtoStyle;
-import ru.curs.hurdygurdy.KotlinCodegen;
+import ru.curs.hurdygurdy.Language;
 import ru.curs.hurdygurdy.Role;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -112,10 +111,7 @@ public class CodegenMojo extends AbstractMojo {
                         .framework(Framework.of(framework))
                         .javaDtoStyle(JavaDtoStyle.of(javaDtoStyle))
                         .generate(roles);
-        Codegen<?> codegen =
-                "java".equalsIgnoreCase(language)
-                        ? new JavaCodegen(params)
-                        : new KotlinCodegen(params);
+        Codegen<?> codegen = Codegen.of(Language.of(language), params);
         codegen.setWarningListener(getLog()::warn);
         try {
             Path targetPath = outputDirectory.toPath();
