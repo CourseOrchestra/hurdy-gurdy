@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy.build;
+package ru.curs.hurdygurdy.maven;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Plugin;

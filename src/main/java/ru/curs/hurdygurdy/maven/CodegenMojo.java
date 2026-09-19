@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy.build;
+package ru.curs.hurdygurdy.maven;
 
 import ru.curs.hurdygurdy.Codegen;
 import ru.curs.hurdygurdy.Framework;
