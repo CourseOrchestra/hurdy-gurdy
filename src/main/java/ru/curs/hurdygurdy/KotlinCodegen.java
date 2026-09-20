@@ -34,13 +34,13 @@ import java.util.function.BiConsumer;
  * inside a method body is not — so importing them would break the javadoc build
  * that the release relies on.
  */
-public class KotlinCodegen extends Codegen<TypeSpec> {
+class KotlinCodegen extends Codegen<TypeSpec> {
     /**
      * Creates a Kotlin generator.
      *
      * @param params what to generate and how
      */
-    public KotlinCodegen(GeneratorParams params) {
+    KotlinCodegen(GeneratorParams params) {
         super(params, new TypeProducersFactory<TypeSpec, ru.curs.hurdygurdy.emit.KotlinTypeDefiner>() {
             @Override
             public ru.curs.hurdygurdy.emit.KotlinTypeDefiner createTypeDefiner(
