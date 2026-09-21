@@ -18,14 +18,15 @@ package ru.curs.hurdygurdy.gradle
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import ru.curs.hurdygurdy.Codegen
 import ru.curs.hurdygurdy.GeneratorParams
-import ru.curs.hurdygurdy.JavaCodegen
 import ru.curs.hurdygurdy.Role
 import java.io.File
 import kotlin.test.assertEquals
 
 class DeterminismFunctionalTest {
-    @TempDir lateinit var dir: File
+    @TempDir
+    lateinit var dir: File
 
     @Test
     fun `two generations of the same spec are byte-identical`() {
@@ -36,7 +37,8 @@ class DeterminismFunctionalTest {
         fun gen(out: File) {
             val params = GeneratorParams.rootPackage("com.acme.petstore")
                 .generate(setOf(Role.CONTROLLER))
-            JavaCodegen(params).generate(spec.toPath(), out.toPath())
+            Codegen.of(Language.JAVA, params)
+                .generate(spec.toPath(), out.toPath())
         }
         gen(a); gen(b)
 

@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package ru.curs.hurdygurdy.spec;
+package ru.curs.hurdygurdy;
 
-import ru.curs.hurdygurdy.Codegen;
-import ru.curs.hurdygurdy.GeneratorParams;
-import ru.curs.hurdygurdy.JavaCodegen;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import ru.curs.hurdygurdy.spec.StrayNullableCheck;
 
 import java.io.IOException;
 import java.nio.file.Files;
