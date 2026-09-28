@@ -1,0 +1,82 @@
+openapi: 3.0.3
+info:
+  title: "Unions with scalar members"
+  description: |
+    An anyOf/oneOf with a scalar member admits values that no generated class
+    can hold: {"loc": ["body", 0]} is a list of a string and an integer. Such a
+    union has no single Java/Kotlin type, so it maps to Object/Any, exactly like
+    the 3.1 spelling type: [string, integer]. An empty class invented from the
+    property name compiles, and then fails to deserialize every value the
+    schema permits.
+  version: "0.1"
+
+paths:
+  /errors:
+    get:
+      operationId: getError
+      parameters:
+        - name: key
+          in: query
+          schema:
+            anyOf:
+              - type: string
+              - type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  schemas:
+    ValidationError:
+      type: object
+      required: [loc, msg]
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        msg:
+          type: string
+        id_or_name:
+          anyOf:
+            - type: string
+            - type: integer
+        either:
+          oneOf:
+            - type: string
+            - type: boolean
+        cat_or_name:
+          anyOf:
+            - $ref: '#/components/schemas/Cat'
+            - type: string
+        code_or_name:
+          anyOf:
+            - type: object
+              properties:
+                code:
+                  type: integer
+            - type: string
+        # control: a union of objects keeps its generated type
+        pet:
+          $ref: '#/components/schemas/Pet'
+
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      properties:
+        purrs:
+          type: boolean
+    Dog:
+      type: object
+      properties:
+        barks:
+          type: boolean

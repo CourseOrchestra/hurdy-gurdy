@@ -92,6 +92,7 @@ class Oas31ParityTest {
             "nestedpolyrecord",
             "oneofdiscriminator",
             "polyrecord",
+            "scalarunion",
             "twoparams");
 
     @TempDir

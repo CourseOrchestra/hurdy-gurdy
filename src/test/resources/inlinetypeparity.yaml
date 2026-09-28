@@ -22,7 +22,7 @@ components:
       properties:
         # An `anyOf` of scalars: no `type`, no `title`. This is the shape the two
         # back ends disagreed about - Java invented a class named after the
-        # position, Kotlin gave up and said Any.
+        # position, Kotlin said Any. Any is right: no class can hold "body" or 0.
         scalar_union:
           type: array
           items:

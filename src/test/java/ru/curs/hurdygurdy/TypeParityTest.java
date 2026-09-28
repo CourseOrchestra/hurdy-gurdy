@@ -40,6 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * exactly that shape, and the two approval suites had each pinned their own
  * answer to it without anything noticing they disagreed.
  *
+ * <p>For an {@code anyOf} of scalars the agreed answer is Kotlin's: it admits a
+ * string or an integer, which no generated class can hold, so both languages
+ * say {@code Object}/{@code Any} (see {@link ScalarUnionTest}).
+ *
  * <p>The snapshots pin what each language emits; this pins that the set of types
  * is the same one on both sides, which is the fact no single-language snapshot
  * can state.
@@ -50,12 +54,13 @@ class TypeParityTest {
     private Path temp;
 
     /**
-     * The types {@code inlinetypeparity.yaml} describes. Every one of the three
-     * inline ones is untitled, so each is named after the position it was found
-     * in — which is the naming the two back ends used to disagree about.
+     * The types {@code inlinetypeparity.yaml} describes. Both untitled inline
+     * objects are named after the position they were found in — which is the
+     * naming the two back ends used to disagree about. The scalar union is no
+     * type at all.
      */
     private static final List<String> EXPECTED = List.of(
-            "AnonymousObject", "NamedInline", "ScalarUnionItem", "Thing", "UntypedObject");
+            "AnonymousObject", "NamedInline", "Thing", "UntypedObject");
 
     @Test
     void bothBackEndsGenerateTheSameTypes() throws IOException {
@@ -66,10 +71,10 @@ class TypeParityTest {
     @Test
     void anUntitledInlineTypeIsNamedAfterItsPositionInBothLanguages() throws IOException {
         assertThat(source(java(), "Thing.java"))
-                .contains("private List<ScalarUnionItem> scalarUnion;")
+                .contains("private List<Object> scalarUnion;")
                 .contains("private UntypedObject untypedObject;");
         assertThat(source(kotlin(), "Thing.kt"))
-                .contains("List<ScalarUnionItem>")
+                .contains("scalarUnion: List<Any>")
                 .contains("UntypedObject");
     }
 
