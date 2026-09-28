@@ -13,8 +13,10 @@
 header.txt -text
 
 # Launcher scripts: cmd.exe needs CRLF, sh needs LF, regardless of platform.
-*.bat text eol=crlf
-*.cmd text eol=crlf
+# Windows scripts are stored as CRLF verbatim rather than normalised, because
+# Dependabot's wrapper bumps commit them as CRLF and bypass these attributes.
+*.bat -text
+*.cmd -text
 gradlew text eol=lf
 *.sh text eol=lf
 
