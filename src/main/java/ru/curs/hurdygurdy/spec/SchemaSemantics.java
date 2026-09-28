@@ -157,9 +157,41 @@ public final class SchemaSemantics {
         return schema.getProperties() != null && !schema.getProperties().isEmpty()
                 || schema.getAdditionalProperties() != null
                 || schema.getAllOf() != null
-                || schema.getOneOf() != null
-                || schema.getAnyOf() != null
+                || isUnionOfObjects(schema.getOneOf())
+                || isUnionOfObjects(schema.getAnyOf())
                 || schema.getDiscriminator() != null;
+    }
+
+    /**
+     * Whether every non-null member of a {@code oneOf}/{@code anyOf} is an
+     * object. Only such a union can be a class or an interface: a union with a
+     * scalar in it — {@code anyOf: [string, integer]}, or
+     * {@code anyOf: [{$ref: Cat}, string]} — admits values no generated type
+     * can hold, so it is {@code Object}/{@code Any}, the same as the 3.1
+     * spelling {@code type: [string, integer]}.
+     */
+    @SuppressWarnings("rawtypes")
+    private static boolean isUnionOfObjects(List<Schema> members) {
+        if (members == null) {
+            return false;
+        }
+        List<Schema> nonNull = members.stream()
+                .filter(member -> !"null".equals(effectiveType(member)))
+                .toList();
+        return !nonNull.isEmpty() && nonNull.stream().allMatch(SchemaSemantics::isObjectMember);
+    }
+
+    /**
+     * Whether one member of a union is an object: a reference to a component
+     * (which is generated as a class), a {@code type: object}, or a typeless
+     * schema that describes one.
+     */
+    private static boolean isObjectMember(Schema<?> member) {
+        if (member.get$ref() != null) {
+            return true;
+        }
+        String type = effectiveType(member);
+        return type == null ? describesObject(member) : "object".equals(type);
     }
 
     /**
