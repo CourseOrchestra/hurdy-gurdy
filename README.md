@@ -25,7 +25,7 @@ Generates client and server side Java/Kotlin code based on OpenAPI spec, using [
 <plugin>
     <groupId>ru.curs</groupId>
     <artifactId>hurdy-gurdy</artifactId>
-    <version>3.3</version>
+    <version>4.0</version>
     <configuration>
         <!--Root package for generated code-->
         <rootPackage>com.example.project</rootPackage>
@@ -96,7 +96,7 @@ import ru.curs.hurdygurdy.Language
 
 plugins {
     java
-    id("ru.curs.hurdy-gurdy") version "3.3"
+    id("ru.curs.hurdy-gurdy") version "4.0"
 }
 
 hurdyGurdy {
@@ -123,12 +123,14 @@ For Kotlin output, set `language = Language.KOTLIN` and apply the Kotlin JVM plu
 ### Direct API usage from Kotlin code
 
 ```kotlin
+import ru.curs.hurdygurdy.Codegen
 import ru.curs.hurdygurdy.Framework
 import ru.curs.hurdygurdy.GeneratorParams
-import ru.curs.hurdygurdy.KotlinCodegen
+import ru.curs.hurdygurdy.Language
 import ru.curs.hurdygurdy.Role
 
-val codegen = KotlinCodegen(
+val codegen = Codegen.of(
+    Language.KOTLIN,
     GeneratorParams.rootPackage("com.example.project")
         // optional: spring is the default
         .framework(Framework.QUARKUS)
