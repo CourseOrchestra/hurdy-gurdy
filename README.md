@@ -1,8 +1,6 @@
 <p align="center"><img src="docs/logo.png" alt="Hurdy-Gurdy" width="220"></p>
 
-[![Actions Status: build](https://github.com/courseorchestra/hurdy-gurdy/workflows/build/badge.svg)](https://github.com/courseorchestra/hurdy-gurdy/actions?query=workflow%3A"build")
-
-[![Maven Central](https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy)](https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy)
+[![Maven Central](https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy)](https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy) [![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/ru.curs.hurdy-gurdy)](https://plugins.gradle.org/plugin/ru.curs.hurdy-gurdy)
 
 
 
