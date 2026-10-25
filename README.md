@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/logo.png" alt="Hurdy-Gurdy" width="220"></p>
 
-[![Maven Central](https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy)](https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy) [![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/ru.curs.hurdy-gurdy)](https://plugins.gradle.org/plugin/ru.curs.hurdy-gurdy)
+<p align="center"><a href="https://central.sonatype.com/artifact/ru.curs/hurdy-gurdy"><img src="https://img.shields.io/maven-central/v/ru.curs/hurdy-gurdy" alt="Maven Central"></a> <a href="https://plugins.gradle.org/plugin/ru.curs.hurdy-gurdy"><img src="https://img.shields.io/gradle-plugin-portal/v/ru.curs.hurdy-gurdy" alt="Gradle Plugin Portal"></a></p>
 
 
 
