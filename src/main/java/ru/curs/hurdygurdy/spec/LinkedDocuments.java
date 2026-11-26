@@ -16,8 +16,8 @@
 
 package ru.curs.hurdygurdy.spec;
 
-import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 
 import java.io.IOException;
@@ -92,7 +92,7 @@ public final class LinkedDocuments {
     private OpenAPI parse(String fileName) {
         Path externalFile = sourceFile.resolveSibling(fileName);
         try {
-            OpenAPI parsed = new OpenAPIParser()
+            OpenAPI parsed = new OpenAPIV3Parser()
                     .readContents(Files.readString(externalFile), null, new ParseOptions())
                     .getOpenAPI();
             if (parsed == null) {

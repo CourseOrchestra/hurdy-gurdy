@@ -16,8 +16,8 @@
 
 package ru.curs.hurdygurdy;
 
-import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -87,7 +87,7 @@ class StrayNullableCheckTest {
     }
 
     private static List<String> locationsIn(String spec) throws IOException {
-        OpenAPI openAPI = new OpenAPIParser()
+        OpenAPI openAPI = new OpenAPIV3Parser()
                 .readContents(Files.readString(Path.of(spec)), null, new ParseOptions())
                 .getOpenAPI();
         return StrayNullableCheck.locations(openAPI);

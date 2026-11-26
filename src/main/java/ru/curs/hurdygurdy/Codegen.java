@@ -19,8 +19,8 @@ package ru.curs.hurdygurdy;
 import ru.curs.hurdygurdy.emit.TypeDefiner;
 import ru.curs.hurdygurdy.spec.SchemaNormalizer;
 import ru.curs.hurdygurdy.spec.StrayNullableCheck;
-import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 
@@ -98,7 +98,7 @@ public abstract class Codegen<T> {
         if (!Files.isReadable(sourceFile)) throw new IllegalArgumentException(
                 String.format("File %s is not readable", sourceFile));
         ParseOptions parseOptions = new ParseOptions();
-        SwaggerParseResult result = new OpenAPIParser()
+        SwaggerParseResult result = new OpenAPIV3Parser()
                 .readContents(Files.readString(sourceFile), null, parseOptions);
         openAPI = result.getOpenAPI();
         if (openAPI == null) {
